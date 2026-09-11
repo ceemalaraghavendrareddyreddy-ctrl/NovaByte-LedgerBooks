@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ vendor.name }} {% if not vendor.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
+<p style="color:var(--muted);">{{ vendor.email or '' }} {{ vendor.phone or '' }}</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Balance Due</div><div class="value">{{ '%.2f'|format(vendor.balance_due) }}</div></div>
+</div>
+
+<div class="card">
+  <a class="btn" href="{{ url_for('purchases.bill_new', vendor_id=vendor.id) }}">+ New Bill</a>
+  <a class="btn secondary" href="{{ url_for('purchases.payment_new', vendor_id=vendor.id) }}">+ Pay Vendor</a>
+  <a class="btn secondary" href="{{ url_for('purchases.vendor_edit', vendor_id=vendor.id) }}">Edit</a>
+  <form class="inline" method="post" action="{{ url_for('purchases.vendor_toggle', vendor_id=vendor.id) }}">
+    <button class="btn small secondary" type="submit">{{ 'Deactivate' if vendor.is_active else 'Activate' }}</button>
+  </form>
+</div>
+
+<div class="card">
+  <h3>Bills</h3>
+  {% if bills %}
+  <table>
+    <thead><tr><th>Bill #</th><th>Vendor Ref</th><th>Date</th><th>Due</th><th>Status</th><th class="num">Total</th><th class="num">Balance Due</th></tr></thead>
+    <tbody>
+      {% for b in bills %}
+      <tr>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=b.id) }}">{{ b.bill_no }}</a></td>
+        <td>{{ b.vendor_ref or '-' }}</td>
+        <td>{{ b.bill_date }}</td>
+        <td>{{ b.due_date }}</td>
+        <td><span class="badge {{ 'debit' if b.status == 'paid' else '' }}">{{ b.status }}</span></td>
+        <td class="num">{{ '%.2f'|format(b.total) }}</td>
+        <td class="num">{{ '%.2f'|format(b.balance_due) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No bills yet.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Payments</h3>
+  {% if payments %}
+  <table>
+    <thead><tr><th>Date</th><th>Method</th><th>Reference</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for p in payments %}
+      <tr>
+        <td><a href="{{ url_for('purchases.payment_detail', payment_id=p.id) }}">{{ p.payment_date }}</a></td>
+        <td>{{ p.method }}</td>
+        <td>{{ p.reference_no or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(p.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No payments yet.</p>
+  {% endif %}
+</div>
+<a class="btn secondary" href="{{ url_for('purchases.vendor_list') }}">Back to Vendors</a>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Budget vs Actual</h1>
+
+<form method="get" class="form-row">
+  <label>Month</label>
+  <select name="month">
+    {% for i in range(1, 13) %}
+    <option value="{{ i }}" {% if i == month %}selected{% endif %}>{{ month_names[i-1] }}</option>
+    {% endfor %}
+  </select>
+  <label>Year</label>
+  <select name="year">
+    {% for y in range(current_year - 2, current_year + 2) %}
+    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn small" type="submit">Go</button>
+</form>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Budgeted Income</div><div class="value">{{ '%.2f'|format(total_budgeted_income) }}</div></div>
+  <div class="stat"><div class="label">Actual Income</div><div class="value">{{ '%.2f'|format(total_actual_income) }}</div></div>
+  <div class="stat"><div class="label">Budgeted Expense</div><div class="value">{{ '%.2f'|format(total_budgeted_expense) }}</div></div>
+  <div class="stat"><div class="label">Actual Expense</div><div class="value">{{ '%.2f'|format(total_actual_expense) }}</div></div>
+</div>
+
+<div class="card">
+  {% if rows %}
+  <table>
+    <thead><tr><th>Account</th><th class="num">Budgeted</th><th class="num">Actual</th><th class="num">Variance</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.code }} - {{ r.account.name }}</a></td>
+        <td class="num">{{ '%.2f'|format(r.budgeted) }}</td>
+        <td class="num">{{ '%.2f'|format(r.actual) }}</td>
+        <td class="num" style="color: {{ 'var(--success)' if r.favorable else 'var(--error)' }};">{{ '%.2f'|format(r.variance) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No budget set for this period yet. <a href="{{ url_for('budgets.budget_entry', year=year, month=month) }}">Set one up &rarr;</a></p>
+  {% endif %}
+</div>
+<a class="btn secondary" href="{{ url_for('budgets.budget_entry', year=year, month=month) }}">Edit Budget</a>
+{% endblock %}

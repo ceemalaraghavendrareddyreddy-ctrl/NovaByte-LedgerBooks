@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>MRA Sync</h1>
+<p style="color:var(--muted);">
+  Invoices and credit memos here failed to reach MRA_TaxInvoice_System — not because MRA rejected
+  them, but because the connection itself failed (it was down, or misconfigured). They're always
+  retried oldest-first.
+</p>
+
+<form method="post" action="{{ url_for('mra_sync.retry_all') }}">
+  <button class="btn" type="submit">Retry All</button>
+</form>
+
+<h2 style="margin-top:1.5rem;">Failed Invoices</h2>
+<table>
+  <thead><tr><th>Invoice</th><th>Customer</th><th>Date</th><th class="num">Total</th></tr></thead>
+  <tbody>
+    {% for inv in failed_invoices %}
+    <tr>
+      <td><a href="{{ url_for('sales.invoice_detail', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+      <td>{{ inv.customer.name }}</td>
+      <td>{{ inv.invoice_date }}</td>
+      <td class="num">{{ '%.2f'|format(inv.total) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="color:var(--muted);">None.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2 style="margin-top:1.5rem;">Failed Credit Memos</h2>
+<table>
+  <thead><tr><th>Credit Memo</th><th>Customer</th><th>Date</th><th class="num">Total</th></tr></thead>
+  <tbody>
+    {% for cm in failed_credit_memos %}
+    <tr>
+      <td><a href="{{ url_for('sales.credit_memo_detail', credit_memo_id=cm.id) }}">{{ cm.credit_no }}</a></td>
+      <td>{{ cm.customer.name }}</td>
+      <td>{{ cm.credit_date }}</td>
+      <td class="num">{{ '%.2f'|format(cm.total) }}</td>
+    </tr>
+    {% else %}
+    <tr><td colspan="4" style="color:var(--muted);">None.</td></tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dashboard</h1>
+
+<div class="card">
+  <h3 style="margin-top:0;">Quick Actions</h3>
+  <a class="btn" href="{{ url_for('sales.invoice_new') }}">+ Invoice</a>
+  <a class="btn secondary" href="{{ url_for('sales.estimate_new') }}">+ Estimate</a>
+  <a class="btn secondary" href="{{ url_for('sales.payment_new') }}">Receive Payment</a>
+  <a class="btn secondary" href="{{ url_for('purchases.bill_new') }}">+ Bill</a>
+  <a class="btn secondary" href="{{ url_for('ledger.journal_new') }}">+ Journal Entry</a>
+  <a class="btn secondary" href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+</div>
+
+<div class="dash-grid">
+
+  <div class="card">
+    <h3 style="margin-top:0;">Bank Accounts</h3>
+    {% if bank_rows %}
+    <table>
+      <tbody>
+        {% for r in bank_rows %}
+        <tr>
+          <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.name }}</a></td>
+          <td class="num">{{ '%.2f'|format(r.balance) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot><tr><th>Total</th><th class="num">{{ '%.2f'|format(bank_total) }}</th></tr></tfoot>
+    </table>
+    {% else %}
+    <p style="color:var(--muted);">No bank/cash accounts set up.</p>
+    {% endif %}
+    <a class="btn small secondary" href="{{ url_for('banking.transfer') }}" style="margin-top:0.5rem;">Transfer Funds</a>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Sales &amp; Get Paid</h3>
+    <p style="color:var(--muted); font-size:0.85rem; margin-top:-0.5rem;">Last 30 days</p>
+    <div class="dash-funnel">
+      <div class="dash-funnel-stage">
+        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_not_paid / funnel_max * 100)|round(1) }}%; background: #d9a441;"></div></div>
+        <div class="dash-funnel-label"><span>Not Paid</span><span class="num">{{ '%.2f'|format(funnel_not_paid) }}</span></div>
+      </div>
+      <div class="dash-funnel-stage">
+        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_paid / funnel_max * 100)|round(1) }}%; background: #2a5db0;"></div></div>
+        <div class="dash-funnel-label"><span>Paid</span><span class="num">{{ '%.2f'|format(funnel_paid) }}</span></div>
+      </div>
+      <div class="dash-funnel-stage">
+        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_deposited / funnel_max * 100)|round(1) }}%; background: var(--success);"></div></div>
+        <div class="dash-funnel-label"><span>Deposited</span><span class="num">{{ '%.2f'|format(funnel_deposited) }}</span></div>
+      </div>
+    </div>
+    <a class="btn small secondary" href="{{ url_for('sales.aging_report') }}" style="margin-top:0.5rem;">View AR Aging</a>
+    <a class="btn small secondary" href="{{ url_for('banking.make_deposit') }}" style="margin-top:0.5rem;">Make Deposit</a>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Expenses — Last 30 Days</h3>
+    {% if top_expenses %}
+    <div style="display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap;">
+      <div class="dash-donut" style="background: conic-gradient({{ donut_gradient }});">
+        <div class="dash-donut-hole">
+          <div class="dash-donut-total">{{ '%.0f'|format(expense_total_30d) }}</div>
+        </div>
+      </div>
+      <table style="flex:1; min-width:180px;">
+        <tbody>
+          {% for r in top_expenses %}
+          <tr>
+            <td><span class="dash-dot" style="background:{{ r.color }};"></span> {{ r.account.name if r.account else r.label }}</td>
+            <td class="num">{{ '%.2f'|format(r.amount) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p style="color:var(--muted);">No expenses in the last 30 days.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Profit &amp; Loss — {{ month_name }} (Month to Date)</h3>
+    <div class="form-row" style="align-items:center;">
+      <label style="min-width:80px;">Income</label>
+      <div class="dash-bar" style="flex:1;"><div class="dash-bar-segment" style="width:{{ (income_mtd / pl_max * 100)|round(1) }}%; background: var(--success);"></div></div>
+      <span class="num" style="min-width:90px; text-align:right;">{{ '%.2f'|format(income_mtd) }}</span>
+    </div>
+    <div class="form-row" style="align-items:center;">
+      <label style="min-width:80px;">Expenses</label>
+      <div class="dash-bar" style="flex:1;"><div class="dash-bar-segment" style="width:{{ (expense_mtd / pl_max * 100)|round(1) }}%; background: var(--error);"></div></div>
+      <span class="num" style="min-width:90px; text-align:right;">{{ '%.2f'|format(expense_mtd) }}</span>
+    </div>
+    <div class="stat-row" style="margin-top:0.8rem;">
+      <div class="stat">
+        <div class="label">{{ 'Net Profit' if net_income_mtd >= 0 else 'Net Loss' }}</div>
+        <div class="value" style="color: {{ 'var(--success)' if net_income_mtd >= 0 else 'var(--error)' }};">{{ '%.2f'|format(net_income_mtd) }}</div>
+      </div>
+    </div>
+    <a class="btn small secondary" href="{{ url_for('reports.profit_loss') }}" style="margin-top:0.5rem;">Full P&amp;L Report</a>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Bills to Pay</h3>
+    <div class="stat-row">
+      <div class="stat"><div class="label">Overdue</div><div class="value" style="color:var(--error);">{{ '%.2f'|format(bills_overdue_total) }}</div></div>
+      <div class="stat"><div class="label">Not Due Yet</div><div class="value">{{ '%.2f'|format(bills_not_due_total) }}</div></div>
+    </div>
+    <a class="btn small secondary" href="{{ url_for('purchases.aging_report') }}" style="margin-top:0.5rem;">View AP Aging</a>
+  </div>
+
+  {% if low_stock_items %}
+  <div class="card">
+    <h3 style="margin-top:0;">⚠️ Low Stock Alert</h3>
+    <table>
+      <thead><tr><th>Item</th><th class="num">On Hand</th><th class="num">Reorder Level</th></tr></thead>
+      <tbody>
+        {% for i in low_stock_items %}
+        <tr>
+          <td><a href="{{ url_for('inventory.item_detail', item_id=i.id) }}">{{ i.sku }} - {{ i.name }}</a></td>
+          <td class="num" style="color:var(--error);">{{ i.quantity_on_hand }} {{ i.unit }}</td>
+          <td class="num">{{ i.reorder_level }} {{ i.unit }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Recent Journal Activity</h3>
+  {% if recent_entries %}
+  <table>
+    <thead><tr><th>Date</th><th>Reference</th><th>Memo</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for e in recent_entries %}
+      <tr>
+        <td><a href="{{ url_for('ledger.journal_detail', entry_id=e.id) }}">{{ e.entry_date }}</a></td>
+        <td>{{ e.reference_no or '-' }}</td>
+        <td>{{ e.memo or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(e.total_debit) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No journal entries yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Balance Sheet</h1>
+
+<form method="get" class="form-row">
+  <label>As of</label>
+  <input type="date" name="as_of" value="{{ as_of }}" onchange="this.form.submit()">
+</form>
+
+<div class="card">
+  <h2 class="section-title" style="margin-top:0;">Assets</h2>
+  <table>
+    <tbody>
+      {% for r in asset_rows %}
+      {% if r.balance != 0 %}
+      <tr>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.code }} - {{ r.account.name }}</a></td>
+        <td class="num">{{ '%.2f'|format(r.balance) }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total Assets</th><th class="num">{{ '%.2f'|format(total_assets) }}</th></tr></tfoot>
+  </table>
+
+  <h2 class="section-title">Liabilities</h2>
+  <table>
+    <tbody>
+      {% for r in liability_rows %}
+      {% if r.balance != 0 %}
+      <tr>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.code }} - {{ r.account.name }}</a></td>
+        <td class="num">{{ '%.2f'|format(r.balance) }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th>Total Liabilities</th><th class="num">{{ '%.2f'|format(total_liabilities) }}</th></tr></tfoot>
+  </table>
+
+  <h2 class="section-title">Equity</h2>
+  <table>
+    <tbody>
+      {% for r in equity_rows %}
+      {% if r.balance != 0 %}
+      <tr>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.code }} - {{ r.account.name }}</a></td>
+        <td class="num">{{ '%.2f'|format(r.balance) }}</td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+      <tr>
+        <td>Net Income (current period)</td>
+        <td class="num">{{ '%.2f'|format(net_income) }}</td>
+      </tr>
+    </tbody>
+    <tfoot><tr><th>Total Equity</th><th class="num">{{ '%.2f'|format(total_equity) }}</th></tr></tfoot>
+  </table>
+
+  <h2 class="section-title">Summary</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="label">Total Assets</div><div class="value">{{ '%.2f'|format(total_assets) }}</div></div>
+    <div class="stat"><div class="label">Liabilities + Equity</div><div class="value">{{ '%.2f'|format(total_liabilities + total_equity) }}</div></div>
+  </div>
+  {% if (total_assets - (total_liabilities + total_equity))|abs > 0.005 %}
+  <p class="flash flash-error" style="margin-top:1rem;">Out of balance by {{ '%.2f'|format(total_assets - (total_liabilities + total_equity)) }}.</p>
+  {% else %}
+  <p class="flash flash-success" style="margin-top:1rem;">Balance sheet balances: Assets = Liabilities + Equity.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:500px;margin:3rem auto;text-align:center;">
+  <h1 style="color:var(--error);">🔒 Access Restricted</h1>
+  <p>This area is limited to Owner accounts. If you need access, ask an owner on your team.</p>
+  <a class="btn secondary" href="{{ url_for('dashboard.index') }}">Back to Dashboard</a>
+</div>
+{% endblock %}

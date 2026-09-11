@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Pay Vendor</h1>
+<div class="card">
+  <form method="get" id="vendor-select-form">
+    <div class="form-row">
+      <label>Vendor</label>
+      <select name="vendor_id" onchange="this.form.submit()">
+        <option value="">-- select vendor --</option>
+        {% for v in vendors %}
+        <option value="{{ v.id }}" {% if selected_vendor_id == v.id %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </form>
+
+  {% if selected_vendor_id %}
+  <form method="post" id="payment-form">
+    <input type="hidden" name="vendor_id" value="{{ selected_vendor_id }}">
+    <div class="form-row">
+      <label>Payment Date</label>
+      <input type="date" name="payment_date" required value="{{ form.payment_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>Amount Paid</label>
+      <input type="number" step="0.01" name="amount" id="payment-amount" required value="{{ form.amount or '' }}">
+    </div>
+    <div class="form-row">
+      <label>Currency</label>
+      <select name="currency" id="currency-select" style="max-width:120px;">
+        {% for c in currencies %}
+        <option value="{{ c }}" {% if (form.currency or base_currency) == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row" id="exchange-rate-row" style="display:none;">
+      <label>Exchange Rate <span style="font-weight:normal; color:var(--muted);">(1 unit = ? {{ base_currency }}, today's rate)</span></label>
+      <input type="number" step="0.000001" name="exchange_rate" id="exchange-rate-input" value="{{ form.exchange_rate or 1.0 }}" style="max-width:140px;">
+    </div>
+    <div class="form-row">
+      <label>Method</label>
+      <select name="method">
+        <option value="bank">Bank Transfer</option>
+        <option value="cash">Cash</option>
+        <option value="cheque">Cheque</option>
+        <option value="mobile">Mobile Money</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Pay From</label>
+      <select name="source_account_id" required>
+        {% for a in source_accounts %}
+        <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Reference #</label>
+      <input type="text" name="reference_no" value="{{ form.reference_no or '' }}">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo" value="{{ form.memo or '' }}">
+    </div>
+
+    <h3>Apply to Bills</h3>
+    {% if outstanding_bills %}
+    <p style="color:var(--muted); font-size:.88rem;" id="currency-filter-note"></p>
+    <table>
+      <thead><tr><th>Bill #</th><th>Due Date</th><th>Currency</th><th class="num">Balance Due</th><th class="num">Apply Amount</th></tr></thead>
+      <tbody>
+        {% for b in outstanding_bills %}
+        <tr class="apply-row" data-currency="{{ b.currency }}">
+          <td>{{ b.bill_no }}</td>
+          <td>{{ b.due_date }}</td>
+          <td>{{ b.currency }}</td>
+          <td class="num">{{ '%.2f'|format(b.balance_due) }}</td>
+          <td>
+            <input type="hidden" name="apply_bill_id" value="{{ b.id }}">
+            <input type="number" step="0.01" name="apply_amount" class="apply-input" data-balance="{{ b.balance_due }}" value="0">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button type="button" class="btn small secondary" id="auto-apply">Auto-apply (oldest first)</button>
+    <div class="stat-row" style="margin-top:1rem;">
+      <div class="stat"><div class="label">Applied</div><div class="value" id="applied-total">0.00</div></div>
+      <div class="stat"><div class="label">Unapplied</div><div class="value" id="unapplied-total">0.00</div></div>
+    </div>
+    {% else %}
+    <p>No outstanding bills for this vendor.</p>
+    {% endif %}
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Save Payment</button>
+      <a class="btn secondary" href="{{ url_for('purchases.payment_list') }}">Cancel</a>
+    </div>
+  </form>
+  {% endif %}
+</div>
+
+<script>
+const BASE_CURRENCY = {{ base_currency|tojson }};
+const applyInputs = document.querySelectorAll('.apply-input');
+const amountInput = document.getElementById('payment-amount');
+const currencySelect = document.getElementById('currency-select');
+
+function recalc() {
+  let applied = 0;
+  document.querySelectorAll('.apply-row:not([hidden]) .apply-input').forEach(i => applied += parseFloat(i.value) || 0);
+  const total = parseFloat(amountInput ? amountInput.value : 0) || 0;
+  document.getElementById('applied-total').textContent = applied.toFixed(2);
+  document.getElementById('unapplied-total').textContent = (total - applied).toFixed(2);
+}
+
+function updateCurrencyFilter() {
+  if (!currencySelect) return;
+  const currency = currencySelect.value;
+  document.getElementById('exchange-rate-row').style.display = currency !== BASE_CURRENCY ? '' : 'none';
+
+  let anyHidden = false;
+  document.querySelectorAll('.apply-row').forEach(row => {
+    const matches = row.dataset.currency === currency;
+    row.hidden = !matches;
+    if (!matches) {
+      anyHidden = true;
+      row.querySelector('.apply-input').value = 0;
+    }
+  });
+  const note = document.getElementById('currency-filter-note');
+  if (note) {
+    note.textContent = anyHidden
+      ? `Showing only ${currency} bills — bills in other currencies need a separate payment.`
+      : '';
+  }
+  recalc();
+}
+
+document.getElementById('auto-apply')?.addEventListener('click', () => {
+  let remaining = parseFloat(amountInput.value) || 0;
+  document.querySelectorAll('.apply-row:not([hidden]) .apply-input').forEach(input => {
+    const balance = parseFloat(input.dataset.balance);
+    const apply = Math.min(balance, Math.max(remaining, 0));
+    input.value = apply.toFixed(2);
+    remaining -= apply;
+  });
+  recalc();
+});
+
+applyInputs.forEach(i => i.addEventListener('input', recalc));
+amountInput?.addEventListener('input', recalc);
+currencySelect?.addEventListener('change', updateCurrencyFilter);
+updateCurrencyFilter();
+</script>
+{% endblock %}

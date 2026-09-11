@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Company Settings</h1>
+<p style="color:var(--muted);">Shown on the header and footer of every invoice PDF.</p>
+<div class="card" style="max-width:600px;">
+  <form method="post">
+    <div class="form-row"><label>Business Name</label><input type="text" name="business_name" required value="{{ settings.business_name }}"></div>
+    <div class="form-row"><label>Address</label><textarea name="address" rows="2">{{ settings.address or '' }}</textarea></div>
+    <div class="form-row"><label>Phone</label><input type="text" name="phone" value="{{ settings.phone or '' }}"></div>
+    <div class="form-row"><label>Email</label><input type="email" name="email" value="{{ settings.email or '' }}"></div>
+    <div class="form-row"><label>VAT Number</label><input type="text" name="vat_number" value="{{ settings.vat_number or '' }}"></div>
+    <div class="form-row"><label>Invoice Footer Note</label><input type="text" name="invoice_footer_note" value="{{ settings.invoice_footer_note or '' }}"></div>
+    <div class="form-row">
+      <label>Base Currency</label>
+      <select name="base_currency" style="max-width:120px;">
+        {% for c in currencies %}
+        <option value="{{ c }}" {% if settings.base_currency == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <p style="color:var(--muted); font-size:.85rem;">
+      The currency every ledger entry and report is posted in. Invoices, bills, and payments can
+      still be issued in a different currency — they convert to this one at whatever exchange
+      rate is entered when each one is created.
+    </p>
+    <hr>
+    <p style="color:var(--muted); font-size:0.85rem;">
+      Connects this business to MRA_TaxInvoice_System, so every invoice and credit memo is
+      automatically fiscalised. Get the API key from that system's own Settings page
+      (External Integration section) for this company.
+    </p>
+    <div class="form-row"><label>MRA API URL</label><input type="text" name="mra_api_url" placeholder="http://localhost:5059" value="{{ settings.mra_api_url or '' }}"></div>
+    <div class="form-row"><label>MRA API Key</label><input type="text" name="mra_api_key" value="{{ settings.mra_api_key or '' }}"></div>
+    <button class="btn" type="submit">Save Settings</button>
+  </form>
+</div>
+
+<div class="card" style="max-width:600px; margin-top:1rem;">
+  <h3 style="margin-top:0;">Payroll Integration</h3>
+  <p style="color:var(--muted); font-size:.85rem;">
+    Lets an external payroll system (e.g. Sicorax) push one summarized journal entry per
+    Finalized payroll run — gross pay, PAYE, CSG/NSF, and net pay payable — instead of the
+    figures only ever living on a payslip. Generate a key here, then paste it into that
+    system's own LedgerBooks connection settings.
+  </p>
+  {% if settings.payroll_api_key %}
+  <div class="form-row">
+    <label>Current API Key</label>
+    <input type="text" readonly value="{{ settings.payroll_api_key }}" style="font-family:monospace;" onclick="this.select();">
+  </div>
+  {% else %}
+  <p><em>No key generated yet — the payroll system can't push until one exists.</em></p>
+  {% endif %}
+  <form method="post" action="{{ url_for('settings.regenerate_payroll_api_key') }}" onsubmit="return confirm('Regenerate the payroll API key? The old key stops working immediately — update it on the payroll system\'s side too.');">
+    <button class="btn secondary" type="submit">{{ 'Regenerate' if settings.payroll_api_key else 'Generate' }} API Key</button>
+  </form>
+</div>
+{% endblock %}

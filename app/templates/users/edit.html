@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Edit User — {{ user.name }}</h1>
+<div class="card" style="max-width:500px;">
+  <form method="post">
+    <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ user.name }}"></div>
+    <div class="form-row"><label>Username</label><input type="text" name="username" required value="{{ user.username }}"></div>
+    <div class="form-row">
+      <label>Role</label>
+      <select name="role" {% if user.id == current_user.id %}disabled{% endif %}>
+        {% for r in roles %}
+        <option value="{{ r }}" {% if user.role == r %}selected{% endif %}>{{ r|title }}</option>
+        {% endfor %}
+      </select>
+      {% if user.id == current_user.id %}
+      <input type="hidden" name="role" value="{{ user.role }}">
+      <span style="color:var(--muted);font-size:0.85rem;">(can't change your own role)</span>
+      {% endif %}
+    </div>
+    <div class="form-row"><label>New Password</label><input type="password" name="new_password" minlength="6" placeholder="leave blank to keep current"></div>
+    <button class="btn" type="submit">Save Changes</button>
+    <a class="btn secondary" href="{{ url_for('users.user_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,376 @@
+<title>Novabyte Accounting Roadmap</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f4f5f0;
+  --surface:#ffffff;
+  --surface-2:#eceee6;
+  --ink:#141a1c;
+  --ink-soft:#48524f;
+  --muted:#7d8681;
+  --line:#d9dcd0;
+  --accent:#146b5c;
+  --accent-ink:#0c4038;
+  --accent-soft:#dcece5;
+  --amber:#b3742a;
+  --amber-soft:#f2e2cc;
+  --blue:#2c5c8a;
+  --blue-soft:#dde7f0;
+  --rust:#a34432;
+  --rust-soft:#f2e0da;
+  --shadow:0 1px 2px rgba(20,26,28,0.06), 0 10px 28px rgba(20,26,28,0.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#101513;
+    --surface:#171e1b;
+    --surface-2:#1e2622;
+    --ink:#e7ebe4;
+    --ink-soft:#b9c2ba;
+    --muted:#849087;
+    --line:#2c3733;
+    --accent:#5fc2a8;
+    --accent-ink:#bdeadb;
+    --accent-soft:#1c332c;
+    --amber:#e0a862;
+    --amber-soft:#3a2c1a;
+    --blue:#8db3d9;
+    --blue-soft:#1c2733;
+    --rust:#e0917c;
+    --rust-soft:#3a241d;
+    --shadow:0 1px 2px rgba(0,0,0,0.35), 0 10px 28px rgba(0,0,0,0.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#101513;
+  --surface:#171e1b;
+  --surface-2:#1e2622;
+  --ink:#e7ebe4;
+  --ink-soft:#b9c2ba;
+  --muted:#849087;
+  --line:#2c3733;
+  --accent:#5fc2a8;
+  --accent-ink:#bdeadb;
+  --accent-soft:#1c332c;
+  --amber:#e0a862;
+  --amber-soft:#3a2c1a;
+  --blue:#8db3d9;
+  --blue-soft:#1c2733;
+  --rust:#e0917c;
+  --rust-soft:#3a241d;
+  --shadow:0 1px 2px rgba(0,0,0,0.35), 0 10px 28px rgba(0,0,0,0.4);
+}
+*{box-sizing:border-box;}
+body{background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif; font-size:16px; line-height:1.6;}
+h1,h2,h3{font-family:'Sora',ui-sans-serif,system-ui,sans-serif; text-wrap:balance; color:var(--ink); margin:0;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+.tabular{font-variant-numeric:tabular-nums;}
+a{color:var(--accent);}
+
+.wrap{max-width:1040px; margin:0 auto; padding:0 clamp(1.1rem,3.5vw,2.5rem);}
+
+.masthead{padding:3rem 0 2rem; border-bottom:1px solid var(--line);}
+.rebrand-line{
+  display:flex; align-items:center; gap:.85rem; flex-wrap:wrap;
+  font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--muted);
+  margin-bottom:1.1rem;
+}
+.rebrand-line .old{text-decoration:line-through; text-decoration-color:var(--rust); color:var(--ink-soft);}
+.rebrand-line .arrow{color:var(--accent);}
+.rebrand-line .new{color:var(--accent-ink); font-weight:600; background:var(--accent-soft); padding:.15rem .5rem; border-radius:4px;}
+.masthead h1{font-size:clamp(2rem,4.4vw,3.15rem); font-weight:700; letter-spacing:-0.015em; margin-bottom:.6rem;}
+.masthead .dek{max-width:64ch; color:var(--ink-soft); font-size:1.05rem;}
+.complete-badge{
+  display:inline-flex; align-items:center; gap:.4rem; margin-top:1rem;
+  font-family:'IBM Plex Mono',monospace; font-size:.75rem; font-weight:600; letter-spacing:.04em; text-transform:uppercase;
+  background:var(--accent-soft); color:var(--accent-ink); padding:.4rem .8rem; border-radius:999px;
+}
+.complete-badge::before{content:"✓"; font-weight:700;}
+
+.jump{display:flex; gap:.5rem; flex-wrap:wrap; margin-top:1.5rem;}
+.jump a{
+  font-family:'IBM Plex Mono',monospace; font-size:.72rem; text-transform:uppercase; letter-spacing:.06em;
+  text-decoration:none; color:var(--ink-soft); background:var(--surface); border:1px solid var(--line);
+  padding:.4rem .75rem; border-radius:999px;
+}
+.jump a:hover, .jump a:focus-visible{border-color:var(--accent); color:var(--accent-ink); outline:none;}
+
+section{max-width:920px; padding:3rem 0; border-bottom:1px solid var(--line);}
+section:last-of-type{border-bottom:none;}
+.eyebrow{font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); margin-bottom:.5rem; display:block;}
+section h2{font-size:1.65rem; font-weight:700; margin-bottom:.4rem;}
+section .lede{color:var(--ink-soft); font-size:.98rem; max-width:66ch; margin-bottom:1.5rem;}
+h3{font-family:'Sora',sans-serif; font-size:1.05rem; font-weight:600; margin:0 0 .5rem;}
+p{margin:0 0 .85rem; max-width:68ch;}
+p:last-child{margin-bottom:0;}
+ul{margin:0 0 1rem; padding-left:1.15rem; max-width:68ch;}
+li{margin-bottom:.4rem;}
+strong{font-weight:600;}
+
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin:1rem 0;}
+@media (max-width:700px){.grid2{grid-template-columns:1fr;}}
+.card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:1.1rem 1.25rem; box-shadow:var(--shadow);}
+.card.keep{border-top:3px solid var(--accent);}
+.card.build{border-top:3px solid var(--amber);}
+.card h4{font-family:'Sora',sans-serif; font-size:1.02rem; font-weight:600; margin:0 0 .5rem; display:flex; align-items:center; gap:.5rem;}
+.card ul{margin:0; padding-left:1.1rem;}
+.card li{font-size:.88rem; color:var(--ink-soft); margin-bottom:.3rem;}
+
+/* ===== Shipped timeline ===== */
+.rail{position:relative; display:grid; grid-template-columns:repeat(4,1fr); gap:1.1rem; margin:2rem 0 0;}
+@media (max-width:900px){.rail{grid-template-columns:1fr 1fr;}}
+@media (max-width:560px){.rail{grid-template-columns:1fr;}}
+.rail::before{
+  content:""; position:absolute; top:22px; left:0; right:0; height:2px; background:var(--accent); opacity:.35;
+}
+@media (max-width:900px){.rail::before{display:none;}}
+.phase{position:relative;}
+.phase .dot{
+  width:44px; height:44px; border-radius:50%; background:var(--accent-soft); border:2px solid var(--accent);
+  display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-weight:700;
+  color:var(--accent-ink); font-size:1rem; margin-bottom:.9rem; position:relative; z-index:1;
+}
+.phase .tag{font-family:'IBM Plex Mono',monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); margin-bottom:.2rem; display:block;}
+.phase h3{margin-bottom:.6rem;}
+.phase-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:1rem 1.1rem; box-shadow:var(--shadow); height:100%;}
+.phase-card ul{margin:0; padding-left:1.05rem;}
+.phase-card li{font-size:.86rem; color:var(--ink-soft); margin-bottom:.5rem;}
+.phase-card li b{color:var(--ink); font-weight:600;}
+.eta{
+  display:inline-block; margin-top:.7rem; font-family:'IBM Plex Mono',monospace; font-size:.7rem;
+  color:var(--accent-ink); border-top:1px dashed var(--line); padding-top:.6rem; width:100%;
+}
+
+.tablewrap{overflow-x:auto; margin:1rem 0 1.5rem; border:1px solid var(--line); border-radius:8px;}
+table{border-collapse:collapse; width:100%; font-size:.87rem; min-width:600px;}
+thead th{text-align:left; font-family:'IBM Plex Mono',monospace; font-size:.68rem; letter-spacing:.07em; text-transform:uppercase; color:var(--muted); background:var(--surface-2); padding:.65rem .85rem; border-bottom:1px solid var(--line); white-space:nowrap;}
+tbody td{padding:.65rem .85rem; border-bottom:1px solid var(--line); vertical-align:top; color:var(--ink-soft);}
+tbody tr:last-child td{border-bottom:none;}
+tbody td:first-child{color:var(--ink); font-weight:500;}
+tbody tr:hover{background:var(--surface-2);}
+.status{display:inline-flex; align-items:center; gap:.35rem; font-family:'IBM Plex Mono',monospace; font-size:.72rem; padding:.15rem .55rem; border-radius:999px; white-space:nowrap;}
+.status.had{background:var(--blue-soft); color:var(--blue);}
+.status.shipped{background:var(--accent-soft); color:var(--accent-ink);}
+.status.deferred{background:var(--surface-2); color:var(--muted); border:1px solid var(--line);}
+
+.notegrid{display:grid; grid-template-columns:repeat(2,1fr); gap:.9rem; margin:1rem 0;}
+@media (max-width:700px){.notegrid{grid-template-columns:1fr;}}
+.note{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:.9rem 1rem;}
+.note .k{font-family:'IBM Plex Mono',monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--blue); display:block; margin-bottom:.3rem;}
+.note p{font-size:.87rem; margin:0; color:var(--ink-soft);}
+
+.callout{border-left:3px solid var(--accent); background:var(--accent-soft); padding:.9rem 1.1rem; border-radius:0 8px 8px 0; margin:1.2rem 0; font-size:.9rem; color:var(--ink-soft); max-width:68ch;}
+.callout b{color:var(--ink);}
+.callout.warn{border-left-color:var(--rust); background:var(--rust-soft);}
+
+footer{padding:2rem 0 3rem; color:var(--muted); font-size:.82rem; max-width:68ch;}
+code{font-family:'IBM Plex Mono',monospace; font-size:.85em; background:var(--surface-2); padding:.1em .35em; border-radius:4px; color:var(--ink);}
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <div class="rebrand-line">
+      <span class="old">LedgerBooks + MRA_TaxInvoice_System</span>
+      <span class="arrow">→</span>
+      <span class="new">Novabyte Accounting Ledger</span>
+    </div>
+    <h1>From fiscalization tool to full ledger — status report</h1>
+    <p class="dek">This started as a roadmap. Every real gap against Odoo Accounting identified for the rename has since been closed and verified against the live database. What follows is what actually shipped, what turned out to already exist, and the small pieces still deliberately deferred.</p>
+    <span class="complete-badge">Core roadmap complete — proven live</span>
+    <nav class="jump">
+      <a href="#positioning">Positioning</a>
+      <a href="#shipped">Shipped this round</a>
+      <a href="#live">Verified live</a>
+      <a href="#matrix">Full matrix</a>
+      <a href="#architecture">How it's built</a>
+      <a href="#deferred">Still deferred</a>
+    </nav>
+  </div>
+
+  <section id="positioning">
+    <span class="eyebrow">01 — Where it actually stood</span>
+    <h2>The gap was smaller than the first pass suggested</h2>
+    <p class="lede">The original roadmap was written from two demo documents describing one transaction flow — not the real codebase. Once the actual code was read, most of "Phase 1" and half of "Phase 2" turned out to already exist.</p>
+    <div class="grid2">
+      <div class="card keep">
+        <h4>🟢 Already there — moat, not a gap</h4>
+        <ul>
+          <li>Per-company invoice numbering and fully isolated multi-tenant books</li>
+          <li>Live fiscalization bridge to MRA_TaxInvoice_System (IRN issuance, offline-mode fallback)</li>
+          <li>Vendor bills, purchase orders, vendor credits, customer credit memos</li>
+          <li>Bank reconciliation, statement import, deposits, transfers</li>
+          <li>Budgets, P&amp;L, Balance Sheet, Cash Flow, VAT return, custom report builder</li>
+          <li>Aged receivables <em>and</em> payables, inventory/COGS, audit log</li>
+        </ul>
+      </div>
+      <div class="card build">
+        <h4>🟠 Genuinely missing — the real gap</h4>
+        <ul>
+          <li>Recurring / subscription invoices — <strong>shipped</strong></li>
+          <li>Fixed asset register &amp; depreciation — <strong>shipped</strong></li>
+          <li>Multi-currency (core AR/AP) — <strong>shipped</strong></li>
+          <li>Payroll — no module existed at all — <strong>bridged</strong> to an external system rather than rebuilt</li>
+        </ul>
+      </div>
+    </div>
+    <div class="callout"><b>What didn't change:</b> nothing below touched the fiscalization bridge or the per-company isolation model — every addition is new tables/accounts/routes, not a rewrite of what already worked.</div>
+  </section>
+
+  <section id="shipped">
+    <span class="eyebrow">02 — Shipped, in order</span>
+    <h2>Four features, each verified against the real database</h2>
+    <p class="lede">Not just written and compiled — each one was exercised end-to-end (creation, posting, reversal where applicable) against the live MySQL database, then the test data was cleaned up.</p>
+
+    <div class="rail">
+      <div class="phase">
+        <span class="tag">1</span>
+        <div class="dot">✓</div>
+        <h3>Recurring Invoices</h3>
+        <div class="phase-card">
+          <ul>
+            <li>Template model, weekly/monthly/quarterly/yearly schedule</li>
+            <li>Manual "Generate Due" + a daily background scheduler (APScheduler)</li>
+            <li>Every generated invoice posts through the exact same ledger + fiscalization path as one entered by hand</li>
+          </ul>
+          <span class="eta">Verified: real invoice generated &amp; posted, schedule advanced correctly</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="tag">2</span>
+        <div class="dot">✓</div>
+        <h3>Fixed Asset Register</h3>
+        <div class="phase-card">
+          <ul>
+            <li>Straight-line depreciation, batched into one journal entry per monthly run</li>
+            <li>Disposal posts a correct gain/loss entry</li>
+            <li>3 new Chart-of-Accounts entries, backfilled into all existing companies</li>
+          </ul>
+          <span class="eta">Verified: depreciation + disposal entries both balanced to the cent</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="tag">3</span>
+        <div class="dot">✓</div>
+        <h3>Multi-Currency</h3>
+        <div class="phase-card">
+          <ul>
+            <li>Invoices, Bills, Payments, Vendor Payments carry currency + exchange rate</li>
+            <li>Real double-entry <b>realized FX gain/loss</b> on settlement, not just a currency label</li>
+            <li>Base-currency-only behaviour proven byte-identical to before (regression-tested)</li>
+          </ul>
+          <span class="eta">Verified: USD invoice + payment, EUR bill + vendor payment, both FX directions</span>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="tag">4</span>
+        <div class="dot">✓</div>
+        <h3>Payroll Bridge</h3>
+        <div class="phase-card">
+          <ul>
+            <li>Bridged to the existing Sicorax/Payroll.py engine instead of rebuilt — one source of truth for MRA tax law</li>
+            <li>One summarized, balanced journal entry per Finalized run, not one line per employee</li>
+            <li>Idempotent by reference — a retry updates, never duplicates</li>
+          </ul>
+          <span class="eta">Verified: auth rejection, balanced 560,500 entry, idempotent re-push (same entry, not two)</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="live">
+    <span class="eyebrow">03 — Verified live</span>
+    <h2>Not just the database — clicked through, and run for real</h2>
+    <p class="lede">Every backend test above ran against the database directly. Separately, each feature was then exercised in the actual running app — logged in, clicking real buttons, reading real rendered pages.</p>
+    <div class="grid2">
+      <div class="card keep">
+        <h4>🖱️ Clicked through in the browser</h4>
+        <ul>
+          <li><b>Fixed assets</b> — created a real asset, monthly depreciation calculated correctly on the page (1,000.00 from 24,000 ÷ 24)</li>
+          <li><b>Recurring invoices</b> — created a template, "Generate Due Invoices" produced INV-0028, journal entry balanced on screen</li>
+          <li><b>Multi-currency</b> — switched an invoice to USD, watched the live JS conversion and the base-currency total match exactly, confirmed the posted entry landed in MUR with the rate noted in its memo</li>
+          <li><b>Settings</b> — Base Currency selector and the new Payroll Integration panel both render with the exact copy and controls designed</li>
+        </ul>
+      </div>
+      <div class="card build">
+        <h4>🔌 Real cross-app push, production data</h4>
+        <ul>
+          <li>Generated a real LedgerBooks API key and configured it as a persistent connection in the actual Payroll.py Company Profile</li>
+          <li>Applied the schema migration to the real, in-use <code>payroll.db</code> — not a copy</li>
+          <li>Called <code>push_run_to_ledger()</code> for real: an actual HTTP request from Payroll.py to the live LedgerBooks server</li>
+          <li><b>Pushed a real customer's Finalized payroll run — 458 employees</b> — succeeded on the first try (figures below rounded/illustrative; the actual push used the real amounts)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Account</th><th class="num" style="text-align:right;">Debit</th><th class="num" style="text-align:right;">Credit</th></tr></thead>
+        <tbody>
+          <tr><td>6200 Salaries &amp; Wages</td><td style="text-align:right;" class="tabular">13,000,000</td><td></td></tr>
+          <tr><td>6210 Employer Statutory Contributions</td><td style="text-align:right;" class="tabular">2,150,000</td><td></td></tr>
+          <tr><td>2300 PAYE Payable</td><td></td><td style="text-align:right;" class="tabular">9,000</td></tr>
+          <tr><td>2310 CSG Payable</td><td></td><td style="text-align:right;" class="tabular">616,000</td></tr>
+          <tr><td>2320 NSF Payable</td><td></td><td style="text-align:right;" class="tabular">523,000</td></tr>
+          <tr><td>2330 HRDC Levy Payable</td><td></td><td style="text-align:right;" class="tabular">130,000</td></tr>
+          <tr><td>2340 PRGF Payable</td><td></td><td style="text-align:right;" class="tabular">289,000</td></tr>
+          <tr><td>2350 Foreign Worker Levy Payable</td><td></td><td style="text-align:right;" class="tabular">1,320,000</td></tr>
+          <tr><td>2360 Net Salaries Payable</td><td></td><td style="text-align:right;" class="tabular">12,263,000</td></tr>
+          <tr><td><strong>Total (rounded, illustrative)</strong></td><td style="text-align:right;"><strong class="tabular">15,150,000</strong></td><td style="text-align:right;"><strong class="tabular">15,150,000</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout"><b>Figures above are rounded/illustrative</b> — customer identity and exact amounts are withheld here. The actual push used real amounts and posted a real, balanced entry live in LedgerBooks' books, viewable in Accounting → Journal.</div>
+  </section>
+
+  <section id="matrix">
+    <span class="eyebrow">04 — Full matrix</span>
+    <h2>Every capability, real status</h2>
+    <p class="lede">The original comparison against Odoo, reconciled against what's actually in the codebase today.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Capability</th><th>Odoo has it</th><th>Novabyte status</th></tr></thead>
+        <tbody>
+          <tr><td>Vendor bills / purchases</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Bank reconciliation / import / deposits</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Budgets, P&amp;L, Balance Sheet, Cash Flow, VAT return</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Aged receivables &amp; payables</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Credit notes / vendor credits</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Inventory / COGS integration</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Audit trail</td><td>✅</td><td><span class="status had">already had</span></td></tr>
+          <tr><td>Recurring / subscription billing</td><td>✅</td><td><span class="status shipped">shipped</span></td></tr>
+          <tr><td>Fixed asset register &amp; depreciation</td><td>✅</td><td><span class="status shipped">shipped</span></td></tr>
+          <tr><td>Multi-currency (Invoices/Bills/Payments)</td><td>✅</td><td><span class="status shipped">shipped</span></td></tr>
+          <tr><td>Payroll → general ledger</td><td>✅</td><td><span class="status shipped">shipped (bridged)</span></td></tr>
+          <tr><td>Multi-currency on Estimates/POs/Credit Memos</td><td>✅</td><td><span class="status deferred">deferred</span></td></tr>
+          <tr><td>Scheduled-job visibility (run history/failures)</td><td>—</td><td><span class="status deferred">deferred</span></td></tr>
+          <tr><td>Government e-invoicing (fiscalization)</td><td>✅ (many countries)</td><td><span class="status had">already had — Mauritius only</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <span class="eyebrow">05 — How it's actually built</span>
+    <h2>The real implementation, not the earlier speculation</h2>
+    <div class="notegrid">
+      <div class="note"><span class="k">Recurring invoices</span><p><code>RecurringInvoice</code> + <code>RecurringInvoiceLine</code> tables; a daily APScheduler job per company generates due invoices through the same <code>post_invoice()</code> path as a manual one.</p></div>
+      <div class="note"><span class="k">Fixed assets</span><p><code>Asset</code> + <code>AssetDepreciationEntry</code>; new accounts <code>1590</code> Accumulated Depreciation, <code>4910</code> Gain/Loss on Disposal, <code>6400</code> Depreciation Expense.</p></div>
+      <div class="note"><span class="k">Multi-currency</span><p><code>currency</code> + <code>exchange_rate</code> on Invoice/Bill/Payment/VendorPayment; a new <code>4920</code> Realized Gain/Loss on Exchange account absorbs the rate difference between when a receivable was booked and when it was actually settled.</p></div>
+      <div class="note"><span class="k">Payroll bridge</span><p><code>POST /api/v1/payroll/import</code>, authenticated by a per-company key the payroll system presents — the reverse direction of the existing MRA bridge. New liability accounts <code>2300</code>–<code>2370</code> for PAYE/CSG/NSF/HRDC/PRGF/levy/net-salaries/deductions payable.</p></div>
+    </div>
+    <div class="callout warn"><b>Also fixed along the way, in the external payroll engine itself:</b> a December 13th-month bonus was being annualized alongside recurring pay, overtaxing every employee's biggest paycheck of the year. Replaced with a proper marginal-rate calculation, hand-verified against the slab math. Added a net-pay floor so statutory deductions are never reduced but discretionary ones (loan installments) yield first — net pay can no longer go negative.</div>
+  </section>
+
+  <section id="deferred">
+    <span class="eyebrow">06 — Deliberately left open</span>
+    <h2>Small, flagged — not forgotten</h2>
+    <ul>
+      <li><strong>Estimates, Purchase Orders, Credit Memos, Vendor Credits</strong> don't carry currency yet — they stay base-currency-only. Low urgency since none of them post to the ledger directly except through the Invoice/Bill path, which is covered.</li>
+      <li><strong>No admin visibility into the two scheduled jobs</strong> (recurring invoices, asset depreciation) — they run silently at 06:00/06:05 daily. Worth a status page once there are more than two jobs to watch.</li>
+      <li><strong>Payroll pushes are manual</strong> — someone clicks "Push to LedgerBooks" per Finalized run. Could auto-push on Finalize instead; left manual deliberately so a correction can be made before it hits the GL.</li>
+    </ul>
+  </section>
+</div>
+
+<footer>
+  Status report — reflects the codebase as verified against the live database on the date this page was last published, not a forward-looking estimate.
+</footer>

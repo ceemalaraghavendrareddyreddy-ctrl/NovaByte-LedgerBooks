@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Fixed Asset Register</h1>
+<div class="inline" style="display:flex; gap:.6rem; align-items:center; margin-bottom:1rem;">
+  <a class="btn" href="{{ url_for('assets.asset_new') }}">+ New Asset</a>
+  <form method="post" action="{{ url_for('assets.run_due') }}">
+    <button class="btn secondary" type="submit" {% if due_count == 0 %}disabled{% endif %}>
+      Run Depreciation{% if due_count %} ({{ due_count }} due){% endif %}
+    </button>
+  </form>
+</div>
+
+<div class="card">
+  {% if assets %}
+  <table>
+    <thead><tr><th>Asset</th><th>Account</th><th>Purchased</th><th class="num">Cost</th><th class="num">Acc. Depreciation</th><th class="num">Net Book Value</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for a in assets %}
+      <tr>
+        <td><a href="{{ url_for('assets.asset_detail', asset_id=a.id) }}">{{ a.name }}</a></td>
+        <td>{{ a.asset_account.code }} - {{ a.asset_account.name }}</td>
+        <td>{{ a.purchase_date }}</td>
+        <td class="num">{{ '%.2f'|format(a.purchase_cost) }}</td>
+        <td class="num">{{ '%.2f'|format(a.accumulated_depreciation) }}</td>
+        <td class="num">{{ '%.2f'|format(a.net_book_value) }}</td>
+        <td>
+          {% if a.status == 'disposed' %}<span class="badge">disposed</span>
+          {% elif a.status == 'fully_depreciated' %}<span class="badge">fully depreciated</span>
+          {% else %}<span class="badge debit">active</span>{% endif %}
+          {% if a.is_due %}<span class="badge" style="background:#fbe6e4;color:var(--error);">due</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No fixed assets registered yet. Add one for anything you're depreciating over time — equipment, vehicles, fixtures.</p>
+  {% endif %}
+</div>
+{% endblock %}

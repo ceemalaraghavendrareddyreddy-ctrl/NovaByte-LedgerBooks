@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Custom Report Builder</h1>
+
+<div class="card">
+  <form method="get">
+    <div class="form-row">
+      <label>Account Type</label>
+      <select name="account_type">
+        <option value="">-- all types --</option>
+        {% for t in account_types %}
+        <option value="{{ t }}" {% if account_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Subtype</label>
+      <select name="account_subtype">
+        <option value="">-- all subtypes --</option>
+        {% for s in subtypes %}
+        <option value="{{ s }}" {% if account_subtype == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Show</label>
+      <select name="date_mode" id="date_mode">
+        <option value="range" {% if date_mode == 'range' %}selected{% endif %}>Activity over a date range</option>
+        <option value="asof" {% if date_mode == 'asof' %}selected{% endif %}>Balance as of a date</option>
+      </select>
+    </div>
+    <div class="form-row" id="range-fields" {% if date_mode == 'asof' %}style="display:none;"{% endif %}>
+      <label>From</label>
+      <input type="date" name="start_date" value="{{ start_date }}">
+      <label>To</label>
+      <input type="date" name="end_date" value="{{ end_date }}">
+    </div>
+    <div class="form-row" id="asof-fields" {% if date_mode == 'range' %}style="display:none;"{% endif %}>
+      <label>As of</label>
+      <input type="date" name="as_of" value="{{ as_of }}">
+    </div>
+    <button class="btn small" type="submit">Run Report</button>
+    <a class="btn small secondary" href="{{ url_for('reports.custom_report_export', account_type=account_type, account_subtype=account_subtype, date_mode=date_mode, start_date=start_date, end_date=end_date, as_of=as_of) }}">Export CSV</a>
+  </form>
+</div>
+
+<div class="card">
+  {% if rows %}
+  <table>
+    <thead><tr><th>Code</th><th>Account</th><th>Type</th><th>Subtype</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.account.code }}</td>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.name }}</a></td>
+        <td>{{ r.account.account_type }}</td>
+        <td>{{ r.account.subtype or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(r.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="4">Total</th><th class="num">{{ '%.2f'|format(total) }}</th></tr></tfoot>
+  </table>
+  {% else %}
+  <p>No accounts match these filters.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Save This Report</h3>
+  <form method="post" action="{{ url_for('reports.custom_report_save') }}" class="form-row">
+    <input type="hidden" name="account_type" value="{{ account_type }}">
+    <input type="hidden" name="account_subtype" value="{{ account_subtype }}">
+    <input type="hidden" name="date_mode" value="{{ date_mode }}">
+    <input type="text" name="name" placeholder="Report name" required>
+    <button class="btn small secondary" type="submit">Save</button>
+  </form>
+
+  {% if saved_reports %}
+  <h3>Saved Reports</h3>
+  <table>
+    <thead><tr><th>Name</th><th>Filters</th><th></th></tr></thead>
+    <tbody>
+      {% for s in saved_reports %}
+      <tr>
+        <td><a href="{{ url_for('reports.custom_report', account_type=s.account_type or '', account_subtype=s.account_subtype or '', date_mode=s.date_mode) }}">{{ s.name }}</a></td>
+        <td>{{ s.account_type or 'All types' }} / {{ s.account_subtype or 'All subtypes' }} / {{ s.date_mode }}</td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('reports.custom_report_delete', saved_id=s.id) }}" onsubmit="return confirm('Delete this saved report?');">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+
+<script>
+document.getElementById('date_mode').addEventListener('change', function() {
+  document.getElementById('range-fields').style.display = this.value === 'range' ? 'flex' : 'none';
+  document.getElementById('asof-fields').style.display = this.value === 'asof' ? 'flex' : 'none';
+});
+</script>
+{% endblock %}

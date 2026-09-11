@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Invoice {{ invoice.invoice_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('sales.customer_detail', customer_id=invoice.customer.id) }}">{{ invoice.customer.name }}</a>
+  &middot; Date: {{ invoice.invoice_date }} &middot; Due: {{ invoice.due_date }}
+  &middot; <span class="badge {{ 'debit' if invoice.status == 'paid' else '' }}">{{ invoice.status }}</span>
+  {% if invoice.is_foreign %}&middot; <span class="badge">{{ invoice.currency }} @ {{ invoice.exchange_rate }}</span>{% endif %}
+</p>
+{% if invoice.memo %}<p>{{ invoice.memo }}</p>{% endif %}
+
+{% if invoice.mra_status %}
+<p style="color:var(--muted); font-size:.9em;">
+  MRA: <span class="badge">{{ invoice.mra_status }}</span>
+  {% if invoice.mra_invoice_number %} &middot; {{ invoice.mra_invoice_number }}{% endif %}
+  {% if invoice.mra_irn %} &middot; IRN {{ invoice.mra_irn }}{% endif %}
+  {% if invoice.mra_status == 'ERROR' %} — could not reach the MRA fiscalisation service{% endif %}
+</p>
+{% endif %}
+{% if invoice.mra_void_reference %}
+<p style="color:var(--muted); font-size:.9em;">Cancelled on the MRA side by credit note {{ invoice.mra_void_reference }}.</p>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Account</th><th>Taxable</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in invoice.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ line.income_account.code }} - {{ line.income_account.name }}</td>
+        <td>{{ 'Yes' if line.taxable else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ invoice.vat_rate }}%)</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.total) }}</th></tr>
+      {% if invoice.is_foreign %}
+      <tr><td colspan="5" style="text-align:right; color:var(--muted);">Total (base currency, @ {{ invoice.exchange_rate }})</td><td class="num" style="color:var(--muted);">{{ '%.2f'|format(invoice.total_base) }}</td></tr>
+      {% endif %}
+      <tr><td colspan="5" style="text-align:right;">Paid</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.amount_paid) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Balance Due</th><th class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.balance_due) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if invoice.journal_entry_id %}
+<p><a href="{{ url_for('ledger.journal_detail', entry_id=invoice.journal_entry_id) }}">View journal entry &rarr;</a></p>
+{% endif %}
+
+<a class="btn" href="{{ url_for('sales.invoice_pdf', invoice_id=invoice.id) }}" target="_blank">📄 View / Print PDF</a>
+{% if invoice.status in ('open', 'partial') %}
+<a class="btn" href="{{ url_for('sales.payment_new', customer_id=invoice.customer_id) }}">Record Payment</a>
+{% endif %}
+{% if invoice.status != 'void' and invoice.amount_paid == 0 %}
+<form class="inline" method="post" action="{{ url_for('sales.invoice_void', invoice_id=invoice.id) }}" onsubmit="return confirm('Void this invoice? This reverses its ledger entry.');">
+  <button class="btn danger" type="submit">Void Invoice</button>
+</form>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Back to Invoices</a>
+
+{% with entity_type='invoice', entity_id=invoice.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

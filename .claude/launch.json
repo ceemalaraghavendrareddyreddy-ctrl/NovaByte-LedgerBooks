@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "quickbooksclone",
+      "runtimeExecutable": "venv/Scripts/python.exe",
+      "runtimeArgs": ["run.py"],
+      "port": 5057,
+      "url": "http://localhost:5057"
+    }
+  ]
+}

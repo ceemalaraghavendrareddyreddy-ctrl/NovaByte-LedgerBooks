@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Edit Customer' if editing else 'New Customer' }}</h1>
+<div class="card" style="max-width:600px;">
+  <form method="post" action="{{ action_url }}">
+    <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ form.name or '' }}"></div>
+    <div class="form-row"><label>Email</label><input type="email" name="email" value="{{ form.email or '' }}"></div>
+    <div class="form-row"><label>Phone</label><input type="text" name="phone" value="{{ form.phone or '' }}"></div>
+    <div class="form-row"><label>Address</label><textarea name="address" rows="2">{{ form.address or '' }}</textarea></div>
+    <div class="form-row"><label>VAT Number</label><input type="text" name="vat_number" value="{{ form.vat_number or '' }}"></div>
+    <div class="form-row"><label>Opening Balance</label><input type="number" step="0.01" name="opening_balance" value="{{ form.opening_balance or 0 }}"></div>
+    <button class="btn" type="submit">{{ 'Save Changes' if editing else 'Save Customer' }}</button>
+    <a class="btn secondary" href="{{ url_for('sales.customer_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

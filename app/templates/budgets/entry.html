@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Budget Entry</h1>
+
+<form method="get" class="form-row">
+  <label>Month</label>
+  <select name="month">
+    {% for i in range(1, 13) %}
+    <option value="{{ i }}" {% if i == month %}selected{% endif %}>{{ month_names[i-1] }}</option>
+    {% endfor %}
+  </select>
+  <label>Year</label>
+  <select name="year">
+    {% for y in range(current_year - 2, current_year + 2) %}
+    <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn small" type="submit">Go</button>
+</form>
+
+<div class="card">
+  <form method="post">
+    <input type="hidden" name="year" value="{{ year }}">
+    <input type="hidden" name="month" value="{{ month }}">
+    <h3 class="section-title" style="margin-top:0;">Income</h3>
+    <table>
+      <thead><tr><th>Account</th><th class="num">Budgeted Amount</th></tr></thead>
+      <tbody>
+        {% for r in rows if r.account.account_type == 'Income' %}
+        <tr>
+          <td>{{ r.account.code }} - {{ r.account.name }}</td>
+          <td><input type="number" step="0.01" name="amount_{{ r.account.id }}" value="{{ r.amount }}" style="text-align:right;"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h3 class="section-title">Expenses</h3>
+    <table>
+      <thead><tr><th>Account</th><th class="num">Budgeted Amount</th></tr></thead>
+      <tbody>
+        {% for r in rows if r.account.account_type == 'Expense' %}
+        <tr>
+          <td>{{ r.account.code }} - {{ r.account.name }}</td>
+          <td><input type="number" step="0.01" name="amount_{{ r.account.id }}" value="{{ r.amount }}" style="text-align:right;"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <button class="btn" type="submit" style="margin-top:1rem;">Save Budget</button>
+    <a class="btn secondary" href="{{ url_for('budgets.budget_vs_actual', year=year, month=month) }}">View Budget vs Actual</a>
+  </form>
+</div>
+{% endblock %}

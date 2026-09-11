@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Vendor Credit {{ vendor_credit.credit_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('purchases.vendor_detail', vendor_id=vendor_credit.vendor.id) }}">{{ vendor_credit.vendor.name }}</a>
+  &middot; Date: {{ vendor_credit.credit_date }}
+  &middot; <span class="badge {{ 'debit' if vendor_credit.status == 'closed' else '' }}">{{ vendor_credit.status }}</span>
+</p>
+{% if vendor_credit.memo %}<p>{{ vendor_credit.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Returned to Vendor</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in vendor_credit.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ 'Yes' if (line.item_id and line.return_to_vendor) else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="4" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(vendor_credit.subtotal) }}</td></tr>
+      <tr><td colspan="4" style="text-align:right;">VAT ({{ vendor_credit.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(vendor_credit.vat_amount) }}</td></tr>
+      <tr><th colspan="4" style="text-align:right;">Total Credit</th><th class="num">{{ '%.2f'|format(vendor_credit.total) }}</th></tr>
+      <tr><td colspan="4" style="text-align:right;">Applied</td><td class="num">{{ '%.2f'|format(vendor_credit.amount_applied) }}</td></tr>
+      <tr><th colspan="4" style="text-align:right;">Remaining Credit</th><th class="num">{{ '%.2f'|format(vendor_credit.remaining_credit) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if vendor_credit.journal_entry_id %}
+<p><a href="{{ url_for('ledger.journal_detail', entry_id=vendor_credit.journal_entry_id) }}">View journal entry &rarr;</a></p>
+{% endif %}
+
+{% if vendor_credit.status != 'void' and vendor_credit.remaining_credit > 0 %}
+<div class="card">
+  <h3>Apply to Open Bills</h3>
+  {% if open_bills %}
+  <form method="post" action="{{ url_for('purchases.vendor_credit_apply', vendor_credit_id=vendor_credit.id) }}">
+    <table>
+      <thead><tr><th>Bill #</th><th>Due Date</th><th class="num">Balance Due</th><th class="num">Apply Amount</th></tr></thead>
+      <tbody>
+        {% for b in open_bills %}
+        <tr>
+          <td>{{ b.bill_no }}</td>
+          <td>{{ b.due_date }}</td>
+          <td class="num">{{ '%.2f'|format(b.balance_due) }}</td>
+          <td>
+            <input type="hidden" name="apply_bill_id" value="{{ b.id }}">
+            <input type="number" step="0.01" name="apply_amount" value="0">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn" type="submit" style="margin-top:0.5rem;">Apply Credit</button>
+  </form>
+  {% else %}
+  <p style="color:var(--muted);">This vendor has no open bills to apply the credit to.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if vendor_credit.status != 'void' and vendor_credit.amount_applied == 0 %}
+<form class="inline" method="post" action="{{ url_for('purchases.vendor_credit_void', vendor_credit_id=vendor_credit.id) }}" onsubmit="return confirm('Void this vendor credit? This reverses its ledger entry.');">
+  <button class="btn danger" type="submit">Void Vendor Credit</button>
+</form>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('purchases.vendor_credit_list') }}">Back to Vendor Credits</a>
+
+{% with entity_type='vendor_credit', entity_id=vendor_credit.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

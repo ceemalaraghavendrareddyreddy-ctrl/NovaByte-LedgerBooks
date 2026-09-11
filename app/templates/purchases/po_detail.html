@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Purchase Order {{ po.po_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('purchases.vendor_detail', vendor_id=po.vendor.id) }}">{{ po.vendor.name }}</a>
+  &middot; Date: {{ po.po_date }}
+  {% if po.expected_date %} &middot; Expected: {{ po.expected_date }}{% endif %}
+  &middot; <span class="badge {{ 'debit' if po.status == 'closed' else '' }}">{{ po.status }}</span>
+</p>
+{% if po.memo %}<p>{{ po.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Ordered</th><th class="num">Billed</th><th class="num">Remaining</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in po.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ line.quantity_billed }}</td>
+        <td class="num">{{ line.quantity_remaining }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(po.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ po.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(po.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(po.total) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if po.bills %}
+<div class="card">
+  <h3>Bills Received Against This PO</h3>
+  <table>
+    <thead><tr><th>Bill #</th><th>Date</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      {% for b in po.bills %}
+      <tr>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=b.id) }}">{{ b.bill_no }}</a></td>
+        <td>{{ b.bill_date }}</td>
+        <td class="num">{{ '%.2f'|format(b.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if po.status not in ('closed', 'cancelled') %}
+<div class="card">
+  <h3>Status</h3>
+  <form class="inline" method="post" action="{{ url_for('purchases.po_status', po_id=po.id) }}">
+    <select name="status" onchange="this.form.submit()">
+      <option value="draft" {% if po.status == 'draft' %}selected{% endif %}>Draft</option>
+      <option value="sent" {% if po.status == 'sent' %}selected{% endif %}>Sent</option>
+      <option value="cancelled">Cancelled</option>
+    </select>
+  </form>
+
+  <h3>Receive Goods / Create Bill</h3>
+  <a class="btn" href="{{ url_for('purchases.po_receive', po_id=po.id) }}">Receive &amp; Bill</a>
+</div>
+{% endif %}
+
+<a class="btn secondary" href="{{ url_for('purchases.po_list') }}">Back to Purchase Orders</a>
+
+{% with entity_type='purchase_order', entity_id=po.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

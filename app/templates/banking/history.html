@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reconciliation History</h1>
+<a class="btn" href="{{ url_for('banking.reconcile_start') }}">+ Start New Reconciliation</a>
+
+<div class="card">
+  {% if reconciliations %}
+  <table>
+    <thead><tr><th>Account</th><th>Statement Date</th><th class="num">Ending Balance</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for r in reconciliations %}
+      <tr>
+        <td>{{ r.account.code }} - {{ r.account.name }}</td>
+        <td>
+          {% if r.is_completed %}
+          <a href="{{ url_for('banking.reconcile_detail', recon_id=r.id) }}">{{ r.statement_date }}</a>
+          {% else %}
+          <a href="{{ url_for('banking.reconcile_work', recon_id=r.id) }}">{{ r.statement_date }}</a>
+          {% endif %}
+        </td>
+        <td class="num">{{ '%.2f'|format(r.statement_ending_balance) }}</td>
+        <td>{% if r.is_completed %}<span class="badge debit">Completed</span>{% else %}<span class="badge">In Progress</span>{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No reconciliations yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

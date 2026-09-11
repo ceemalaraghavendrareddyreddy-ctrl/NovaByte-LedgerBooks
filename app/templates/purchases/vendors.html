@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Vendors</h1>
+<a class="btn" href="{{ url_for('purchases.vendor_new') }}">+ New Vendor</a>
+
+<div class="card">
+  {% if vendors %}
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th class="num">Balance Due</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for v in vendors %}
+      <tr>
+        <td><a href="{{ url_for('purchases.vendor_detail', vendor_id=v.id) }}">{{ v.name }}</a></td>
+        <td>{{ v.email or '-' }}</td>
+        <td>{{ v.phone or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(v.balance_due) }}</td>
+        <td>{% if v.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td>
+          <a class="btn small secondary" href="{{ url_for('purchases.vendor_edit', vendor_id=v.id) }}">Edit</a>
+          <a class="btn small secondary" href="{{ url_for('purchases.bill_new', vendor_id=v.id) }}">New Bill</a>
+          <form class="inline" method="post" action="{{ url_for('purchases.vendor_toggle', vendor_id=v.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if v.is_active else 'Activate' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No vendors yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

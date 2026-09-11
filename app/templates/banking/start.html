@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reconcile Account</h1>
+<p style="color:var(--muted);">Match this account against your bank/cash statement for a period.</p>
+<div class="card" style="max-width:500px;">
+  <form method="post">
+    <div class="form-row">
+      <label>Account</label>
+      <select name="account_id" required>
+        <option value="">-- select account --</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Statement Date</label>
+      <input type="date" name="statement_date" required value="{{ today }}">
+    </div>
+    <div class="form-row">
+      <label>Statement Ending Balance</label>
+      <input type="number" step="0.01" name="statement_ending_balance" required>
+    </div>
+    <button class="btn" type="submit">Start Reconciliation</button>
+    <a class="btn secondary" href="{{ url_for('banking.reconcile_history') }}">View Past Reconciliations</a>
+  </form>
+</div>
+{% endblock %}

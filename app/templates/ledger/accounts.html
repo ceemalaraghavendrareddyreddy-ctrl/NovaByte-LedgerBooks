@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Chart of Accounts</h1>
+<a class="btn" href="{{ url_for('ledger.account_new') }}">+ New Account</a>
+
+{% for type, accounts in grouped.items() %}
+<h2 class="section-title">{{ type }}</h2>
+{% if accounts %}
+<div class="card">
+  <table>
+    <thead>
+      <tr><th>Code</th><th>Name</th><th>Subtype</th><th class="num">Balance</th><th>Status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr>
+        <td>{{ a.code }}</td>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=a.id) }}">{{ a.name }}</a></td>
+        <td>{{ a.subtype or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(a.balance()) }}</td>
+        <td>{% if a.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('ledger.account_toggle', account_id=a.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if a.is_active else 'Activate' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<p style="color:var(--muted);">No {{ type|lower }} accounts yet.</p>
+{% endif %}
+{% endfor %}
+{% endblock %}

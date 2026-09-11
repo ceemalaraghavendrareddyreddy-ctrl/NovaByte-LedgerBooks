@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Audit Log</h1>
+<p style="color:var(--muted);">Last 500 actions across the system.</p>
+
+<form method="get" class="form-row">
+  <label>User</label>
+  <select name="user_id">
+    <option value="">-- all users --</option>
+    {% for u in users %}
+    <option value="{{ u.id }}" {% if selected_user_id == u.id %}selected{% endif %}>{{ u.name }}</option>
+    {% endfor %}
+  </select>
+  <label>Type</label>
+  <select name="entity_type">
+    <option value="">-- all types --</option>
+    {% for t in entity_types %}
+    <option value="{{ t }}" {% if selected_entity_type == t %}selected{% endif %}>{{ t.replace('_',' ')|title }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn small" type="submit">Filter</button>
+</form>
+
+<div class="card">
+  {% if logs %}
+  <table>
+    <thead><tr><th>When</th><th>User</th><th>Action</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td>{{ log.created_at.strftime('%d %b %Y %H:%M') }}</td>
+        <td>{{ log.user.name if log.user else 'System' }}</td>
+        <td><span class="badge">{{ log.action }}</span></td>
+        <td>{{ log.entity_type.replace('_',' ')|title }}</td>
+        <td>{{ log.description }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No audit activity recorded yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

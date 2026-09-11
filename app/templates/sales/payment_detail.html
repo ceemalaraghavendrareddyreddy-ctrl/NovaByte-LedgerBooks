@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Payment #{{ payment.id }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('sales.customer_detail', customer_id=payment.customer.id) }}">{{ payment.customer.name }}</a>
+  &middot; {{ payment.payment_date }} &middot; {{ payment.method }}
+  {% if payment.reference_no %} &middot; Ref: {{ payment.reference_no }}{% endif %}
+</p>
+{% if payment.memo %}<p>{{ payment.memo }}</p>{% endif %}
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Amount</div><div class="value">{{ payment.currency }} {{ '%.2f'|format(payment.amount) }}</div></div>
+  <div class="stat"><div class="label">Unapplied</div><div class="value">{{ payment.currency }} {{ '%.2f'|format(payment.unapplied_amount) }}</div></div>
+  {% if payment.exchange_rate|float != 1.0 %}
+  <div class="stat"><div class="label">Exchange Rate</div><div class="value">{{ payment.exchange_rate }}</div></div>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Applied To</h3>
+  {% if payment.applications %}
+  <table>
+    <thead><tr><th>Invoice</th><th class="num">Amount Applied</th></tr></thead>
+    <tbody>
+      {% for app in payment.applications %}
+      <tr>
+        <td><a href="{{ url_for('sales.invoice_detail', invoice_id=app.invoice.id) }}">{{ app.invoice.invoice_no }}</a></td>
+        <td class="num">{{ '%.2f'|format(app.amount_applied) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Not applied to any invoice.</p>
+  {% endif %}
+</div>
+
+{% if payment.journal_entry_id %}
+<p><a href="{{ url_for('ledger.journal_detail', entry_id=payment.journal_entry_id) }}">View journal entry &rarr;</a></p>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('sales.payment_list') }}">Back to Payments</a>
+{% endblock %}

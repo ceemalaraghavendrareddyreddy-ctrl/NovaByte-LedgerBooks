@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Fixed Asset</h1>
+
+<div class="callout" style="background:var(--accent-soft,#eef4f1); border-left:3px solid var(--accent,#2f6b4f); padding:.75rem 1rem; border-radius:0 6px 6px 0; margin-bottom:1rem; font-size:.9rem;">
+  This only sets up depreciation tracking. If you haven't already recorded the purchase itself
+  (via a Bill or a manual Journal Entry coded to the asset account below), do that separately —
+  registering an asset here does not post an acquisition entry, so it never double-counts the cost.
+</div>
+
+<div class="card">
+  <form method="post">
+    <div class="form-row">
+      <label>Asset Name</label>
+      <input type="text" name="name" required value="{{ form.name or '' }}" placeholder="e.g. Delivery Van - Toyota Hiace">
+    </div>
+    <div class="form-row">
+      <label>Description</label>
+      <input type="text" name="description" value="{{ form.description or '' }}">
+    </div>
+    <div class="form-row">
+      <label>Asset Account</label>
+      <select name="asset_account_id" required>
+        <option value="">-- select account --</option>
+        {% for a in asset_accounts %}
+        <option value="{{ a.id }}" {% if form.asset_account_id|string == a.id|string %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Purchase Date</label>
+      <input type="date" name="purchase_date" required value="{{ form.purchase_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>Purchase Cost</label>
+      <input type="number" step="0.01" name="purchase_cost" required value="{{ form.purchase_cost or '' }}">
+    </div>
+    <div class="form-row">
+      <label>Salvage Value</label>
+      <input type="number" step="0.01" name="salvage_value" value="{{ form.salvage_value or 0 }}">
+    </div>
+    <div class="form-row">
+      <label>Useful Life (months)</label>
+      <input type="number" name="useful_life_months" required value="{{ form.useful_life_months or 36 }}">
+    </div>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Save Asset</button>
+      <a class="btn secondary" href="{{ url_for('assets.asset_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

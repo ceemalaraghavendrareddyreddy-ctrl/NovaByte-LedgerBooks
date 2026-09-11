@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reconciling {{ recon.account.code }} - {{ recon.account.name }}</h1>
+<p style="color:var(--muted);">Statement date: {{ recon.statement_date }}</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Beginning Balance</div><div class="value">{{ '%.2f'|format(recon.beginning_balance) }}</div></div>
+  <div class="stat"><div class="label">Statement Ending Balance</div><div class="value">{{ '%.2f'|format(recon.statement_ending_balance) }}</div></div>
+  <div class="stat"><div class="label">Cleared Balance</div><div class="value">{{ '%.2f'|format(recon.cleared_balance) }}</div></div>
+  <div class="stat">
+    <div class="label">Difference</div>
+    <div class="value" style="color: {{ 'var(--success)' if recon.difference == 0 else 'var(--error)' }};">{{ '%.2f'|format(recon.difference) }}</div>
+  </div>
+</div>
+
+<div class="card">
+  <form method="post">
+    <p>Check off every transaction that appears on your bank/cash statement.</p>
+    <table>
+      <thead><tr><th></th><th>Date</th><th>Memo</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+      <tbody>
+        {% for line in uncleared_lines %}
+        <tr>
+          <td><input type="checkbox" name="line_id" value="{{ line.id }}" {% if line.reconciliation_id == recon.id %}checked{% endif %}></td>
+          <td><a href="{{ url_for('ledger.journal_detail', entry_id=line.entry.id) }}">{{ line.entry.entry_date }}</a></td>
+          <td>{{ line.memo or line.entry.memo or '-' }}</td>
+          <td class="num">{{ '%.2f'|format(line.debit) if line.debit else '' }}</td>
+          <td class="num">{{ '%.2f'|format(line.credit) if line.credit else '' }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5">No uncleared transactions up to the statement date.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <div style="margin-top:1rem;">
+      <button class="btn secondary" type="submit" name="action" value="update">Update</button>
+      <button class="btn" type="submit" name="action" value="finish" {% if recon.difference != 0 %}disabled title="Must be zero to finish"{% endif %}>Finish Reconciliation</button>
+    </div>
+  </form>
+  <form method="post" action="{{ url_for('banking.reconcile_cancel', recon_id=recon.id) }}" onsubmit="return confirm('Cancel this reconciliation? All checkmarks will be discarded.');" style="margin-top:0.5rem;">
+    <button class="btn danger small" type="submit">Cancel Reconciliation</button>
+  </form>
+</div>
+{% endblock %}

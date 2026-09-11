@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Invoices</h1>
+<a class="btn" href="{{ url_for('sales.invoice_new') }}">+ New Invoice</a>
+
+<div class="card">
+  {% if invoices %}
+  <table>
+    <thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due</th><th>Status</th><th>Currency</th><th class="num">Total</th><th class="num">Balance Due</th></tr></thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td><a href="{{ url_for('sales.invoice_detail', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+        <td><a href="{{ url_for('sales.customer_detail', customer_id=inv.customer.id) }}">{{ inv.customer.name }}</a></td>
+        <td>{{ inv.invoice_date }}</td>
+        <td>{{ inv.due_date }}</td>
+        <td><span class="badge {{ 'debit' if inv.status == 'paid' else '' }}">{{ inv.status }}</span></td>
+        <td>{{ inv.currency }}{% if inv.is_foreign %} <span style="color:var(--muted); font-size:.85em;">@{{ inv.exchange_rate }}</span>{% endif %}</td>
+        <td class="num">{{ '%.2f'|format(inv.total) }}</td>
+        <td class="num">{{ '%.2f'|format(inv.balance_due) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No invoices yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

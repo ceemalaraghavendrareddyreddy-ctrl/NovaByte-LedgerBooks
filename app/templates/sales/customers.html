@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Customers</h1>
+<a class="btn" href="{{ url_for('sales.customer_new') }}">+ New Customer</a>
+
+<div class="card">
+  {% if customers %}
+  <table>
+    <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th class="num">Balance Due</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for c in customers %}
+      <tr>
+        <td><a href="{{ url_for('sales.customer_detail', customer_id=c.id) }}">{{ c.name }}</a></td>
+        <td>{{ c.email or '-' }}</td>
+        <td>{{ c.phone or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(c.balance_due) }}</td>
+        <td>{% if c.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td>
+          <a class="btn small secondary" href="{{ url_for('sales.customer_edit', customer_id=c.id) }}">Edit</a>
+          <a class="btn small secondary" href="{{ url_for('sales.invoice_new', customer_id=c.id) }}">New Invoice</a>
+          <form class="inline" method="post" action="{{ url_for('sales.customer_toggle', customer_id=c.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if c.is_active else 'Activate' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No customers yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

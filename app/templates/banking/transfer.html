@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Transfer Between Accounts</h1>
+<p style="color:var(--muted);">Move money between any two accounts — e.g. Bank to Petty Cash. Posts a simple two-line journal entry.</p>
+
+<div class="card" style="max-width:500px;">
+  <form method="post">
+    <div class="form-row">
+      <label>From</label>
+      <select name="from_account_id" required>
+        <option value="">-- select account --</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>To</label>
+      <select name="to_account_id" required>
+        <option value="">-- select account --</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Amount</label>
+      <input type="number" step="0.01" name="amount" required>
+    </div>
+    <div class="form-row">
+      <label>Date</label>
+      <input type="date" name="transfer_date" required value="{{ form.transfer_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo" value="{{ form.memo or '' }}">
+    </div>
+    <button class="btn" type="submit">Transfer</button>
+  </form>
+</div>
+{% endblock %}

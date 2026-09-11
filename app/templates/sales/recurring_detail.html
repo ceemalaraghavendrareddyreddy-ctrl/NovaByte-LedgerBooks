@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ template.name }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('sales.customer_detail', customer_id=template.customer.id) }}">{{ template.customer.name }}</a>
+  &middot; {{ template.frequency|capitalize }}
+  &middot; Next run: {{ template.next_run_date }}{% if template.is_due %} <span class="badge" style="background:#fbe6e4;color:var(--error);">due</span>{% endif %}
+  {% if template.end_date %} &middot; Ends {{ template.end_date }}{% endif %}
+  &middot;
+  {% if not template.is_active %}<span class="badge">paused</span>
+  {% elif template.is_ended %}<span class="badge">ended</span>
+  {% else %}<span class="badge debit">active</span>{% endif %}
+</p>
+{% if template.memo %}<p>{{ template.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Account</th><th>Taxable</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in template.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ line.income_account.code }} - {{ line.income_account.name }}</td>
+        <td>{{ 'Yes' if line.taxable else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(template.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ template.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(template.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total per invoice</th><th class="num">{{ '%.2f'|format(template.total) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+<div class="card">
+  <h3>Controls</h3>
+  <div class="inline" style="display:flex; gap:.6rem; flex-wrap:wrap;">
+    <form method="post" action="{{ url_for('sales.recurring_generate_now', template_id=template.id) }}">
+      <button class="btn" type="submit" onclick="return confirm('Generate one invoice from this template now? This posts to the ledger immediately.');">Generate Invoice Now</button>
+    </form>
+    <form method="post" action="{{ url_for('sales.recurring_toggle', template_id=template.id) }}">
+      <button class="btn secondary" type="submit">{{ 'Pause' if template.is_active else 'Resume' }}</button>
+    </form>
+    {% if template.invoices_generated == 0 %}
+    <form method="post" action="{{ url_for('sales.recurring_delete', template_id=template.id) }}">
+      <button class="btn secondary" type="submit" onclick="return confirm('Delete this template? It has never generated an invoice.');">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+  <p style="color:var(--muted); margin-top:.75rem;">
+    {{ template.invoices_generated }} invoice(s) generated so far{% if template.last_generated_at %}, last on {{ template.last_generated_at.strftime('%Y-%m-%d') }}{% endif %}.
+  </p>
+</div>
+
+<div class="card">
+  <h3>Generated Invoices</h3>
+  {% if generated %}
+  <table>
+    <thead><tr><th>Invoice #</th><th>Date</th><th>Status</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      {% for inv in generated %}
+      <tr>
+        <td><a href="{{ url_for('sales.invoice_detail', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+        <td>{{ inv.invoice_date }}</td>
+        <td><span class="badge {{ 'debit' if inv.status == 'paid' else '' }}">{{ inv.status }}</span></td>
+        <td class="num">{{ '%.2f'|format(inv.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No invoices generated from this template yet.</p>
+  {% endif %}
+</div>
+
+<a class="btn secondary" href="{{ url_for('sales.recurring_list') }}">Back to Recurring Invoices</a>
+{% endblock %}

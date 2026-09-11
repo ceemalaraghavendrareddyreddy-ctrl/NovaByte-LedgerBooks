@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Credit Memo {{ credit_memo.credit_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('sales.customer_detail', customer_id=credit_memo.customer.id) }}">{{ credit_memo.customer.name }}</a>
+  &middot; Date: {{ credit_memo.credit_date }}
+  &middot; <span class="badge {{ 'debit' if credit_memo.status == 'closed' else '' }}">{{ credit_memo.status }}</span>
+</p>
+{% if credit_memo.memo %}<p>{{ credit_memo.memo }}</p>{% endif %}
+
+{% if credit_memo.mra_status == 'SKIPPED' %}
+<p style="color:var(--muted); font-size:.9em;">MRA: not fiscalised — this customer has no prior MRA-fiscalised invoice to reference.</p>
+{% elif credit_memo.mra_status %}
+<p style="color:var(--muted); font-size:.9em;">
+  MRA: <span class="badge">{{ credit_memo.mra_status }}</span>
+  {% if credit_memo.mra_invoice_number %} &middot; {{ credit_memo.mra_invoice_number }}{% endif %}
+  {% if credit_memo.mra_irn %} &middot; IRN {{ credit_memo.mra_irn }}{% endif %}
+  {% if credit_memo.mra_status == 'ERROR' %} — could not reach the MRA fiscalisation service{% endif %}
+</p>
+{% endif %}
+{% if credit_memo.mra_void_reference %}
+<p style="color:var(--muted); font-size:.9em;">Cancelled on the MRA side by debit note {{ credit_memo.mra_void_reference }}.</p>
+{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Account</th><th>Returned to Stock</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in credit_memo.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ line.income_account.code }} - {{ line.income_account.name }}</td>
+        <td>{{ 'Yes' if (line.item_id and line.item.is_tracked and line.return_to_stock) else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(credit_memo.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ credit_memo.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(credit_memo.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total Credit</th><th class="num">{{ '%.2f'|format(credit_memo.total) }}</th></tr>
+      <tr><td colspan="5" style="text-align:right;">Applied</td><td class="num">{{ '%.2f'|format(credit_memo.amount_applied) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Remaining Credit</th><th class="num">{{ '%.2f'|format(credit_memo.remaining_credit) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if credit_memo.journal_entry_id %}
+<p><a href="{{ url_for('ledger.journal_detail', entry_id=credit_memo.journal_entry_id) }}">View journal entry &rarr;</a></p>
+{% endif %}
+
+{% if credit_memo.status != 'void' and credit_memo.remaining_credit > 0 %}
+<div class="card">
+  <h3>Apply to Open Invoices</h3>
+  {% if open_invoices %}
+  <form method="post" action="{{ url_for('sales.credit_memo_apply', credit_memo_id=credit_memo.id) }}">
+    <table>
+      <thead><tr><th>Invoice #</th><th>Due Date</th><th class="num">Balance Due</th><th class="num">Apply Amount</th></tr></thead>
+      <tbody>
+        {% for inv in open_invoices %}
+        <tr>
+          <td>{{ inv.invoice_no }}</td>
+          <td>{{ inv.due_date }}</td>
+          <td class="num">{{ '%.2f'|format(inv.balance_due) }}</td>
+          <td>
+            <input type="hidden" name="apply_invoice_id" value="{{ inv.id }}">
+            <input type="number" step="0.01" name="apply_amount" value="0">
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn" type="submit" style="margin-top:0.5rem;">Apply Credit</button>
+  </form>
+  {% else %}
+  <p style="color:var(--muted);">This customer has no open invoices to apply the credit to.</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if credit_memo.status != 'void' and credit_memo.amount_applied == 0 %}
+<form class="inline" method="post" action="{{ url_for('sales.credit_memo_void', credit_memo_id=credit_memo.id) }}" onsubmit="return confirm('Void this credit memo? This reverses its ledger entry.');">
+  <button class="btn danger" type="submit">Void Credit Memo</button>
+</form>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('sales.credit_memo_list') }}">Back to Credit Memos</a>
+
+{% with entity_type='credit_memo', entity_id=credit_memo.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

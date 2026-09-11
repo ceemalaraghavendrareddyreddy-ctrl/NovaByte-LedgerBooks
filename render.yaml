@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: ledgerbooks
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    # Waitress (serve.py), not the Flask dev server (run.py) — no debug mode,
+    # no auto-reloader forking a second process (which would double-run the
+    # scheduler), and it respects $PORT the way Render expects.
+    startCommand: "python serve.py"
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ledgerbooks-db
+          property: connectionString
+      # MRA_TaxInvoice_System and the payroll bridge are both configured per-company
+      # from inside the app (Settings), not via env vars — nothing else needed here.
+
+databases:
+  - name: ledgerbooks-db
+    plan: free
+    databaseName: ledgerbooks
+    user: ledgerbooks

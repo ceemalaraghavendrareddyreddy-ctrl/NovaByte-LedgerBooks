@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Journal Entries</h1>
+<a class="btn" href="{{ url_for('ledger.journal_new') }}">+ New Journal Entry</a>
+
+<div class="card">
+  {% if entries %}
+  <table>
+    <thead><tr><th>Date</th><th>Reference</th><th>Memo</th><th>Source</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td><a href="{{ url_for('ledger.journal_detail', entry_id=e.id) }}">{{ e.entry_date }}</a></td>
+        <td>{{ e.reference_no or '-' }}</td>
+        <td>{{ e.memo or '-' }}</td>
+        <td><span class="badge">{{ e.source_type }}</span></td>
+        <td class="num">{{ '%.2f'|format(e.total_debit) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No journal entries yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

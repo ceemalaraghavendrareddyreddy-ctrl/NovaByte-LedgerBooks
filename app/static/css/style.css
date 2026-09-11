@@ -1,0 +1,234 @@
+:root {
+  --bg: #f4f7fa;
+  --card: #ffffff;
+  --text: #1c2b33;
+  --accent: #1a7f5a;
+  --accent-dark: #145f43;
+  --border: #dce4e9;
+  --muted: #647883;
+  --success: #2e7d46;
+  --error: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+/* App shell: QuickBooks-style left icon/group sidebar + main content area */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  align-items: flex-start;
+}
+
+.sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--accent);
+  color: white;
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 1rem;
+}
+
+.sidebar-brand {
+  display: block;
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: white;
+  text-decoration: none;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,0.15);
+  margin-bottom: 0.4rem;
+}
+
+.sidebar-link {
+  display: block;
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+}
+.sidebar-link:hover { background: rgba(255,255,255,0.12); }
+
+.sidebar-group summary {
+  display: block;
+  color: white;
+  font-weight: 600;
+  padding: 0.6rem 1.2rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+.sidebar-group summary::-webkit-details-marker { display: none; }
+.sidebar-group summary::after { content: '▸'; float: right; opacity: 0.7; }
+.sidebar-group[open] summary::after { content: '▾'; }
+.sidebar-group summary:hover { background: rgba(255,255,255,0.12); }
+.sidebar-group a {
+  display: block;
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  font-size: 0.9rem;
+  padding: 0.45rem 1.2rem 0.45rem 2.2rem;
+}
+.sidebar-group a:hover { background: rgba(255,255,255,0.12); color: white; }
+
+.sidebar-footer {
+  margin-top: auto;
+  padding: 1rem 1.2rem 0;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+.sidebar-footer a {
+  display: block;
+  color: rgba(255,255,255,0.9);
+  text-decoration: none;
+  font-size: 0.85rem;
+  padding: 0.3rem 0;
+}
+.sidebar-footer a:hover { color: white; text-decoration: underline; }
+
+.container {
+  max-width: 1200px;
+  margin: 0;
+  padding: 1.2rem;
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 800px) {
+  .app-shell { flex-direction: column; }
+  .sidebar { width: 100%; min-height: auto; position: relative; }
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+h1, h2, h3 { color: var(--accent-dark); }
+
+.flash {
+  padding: 0.6rem 1rem;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  font-weight: 500;
+}
+.flash-success { background: #e3f5e8; color: var(--success); }
+.flash-error { background: #fbe6e4; color: var(--error); }
+
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--border);
+  color: var(--muted);
+}
+.badge.debit { background: #e3f5e8; color: var(--success); }
+.badge.credit { background: #eaf1fb; color: #2a5db0; }
+
+.btn {
+  display: inline-block;
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn:hover { background: var(--accent-dark); }
+.btn.secondary { background: var(--muted); }
+.btn.danger { background: var(--error); }
+.btn.small { padding: 0.3rem 0.7rem; font-size: 0.85rem; }
+
+.stat-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+.stat { flex: 1; min-width: 160px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
+.stat .label { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; }
+.stat .value { font-size: 1.6rem; font-weight: 700; color: var(--accent-dark); }
+
+form.inline { display: inline; }
+.form-row { display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.6rem; }
+.form-row label { min-width: 140px; color: var(--muted); font-weight: 500; }
+.form-row input, .form-row select, .form-row textarea {
+  padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 6px; font-size: 1rem; flex: 1;
+}
+
+.journal-lines-table input, .journal-lines-table select { width: 100%; padding: 0.4rem; }
+.journal-lines-table td { vertical-align: middle; }
+
+.section-title {
+  margin-top: 1.5rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 2px solid var(--border);
+}
+
+/* Dashboard widgets */
+.dash-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1rem;
+}
+.dash-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--border);
+}
+.dash-bar-segment { height: 100%; transition: width 0.3s; }
+.dash-funnel { display: flex; flex-direction: column; gap: 0.6rem; margin-top: 0.4rem; }
+.dash-funnel-bar-track { background: var(--border); border-radius: 6px; height: 22px; overflow: hidden; }
+.dash-funnel-bar { height: 100%; border-radius: 6px 0 0 6px; transition: width 0.3s; min-width: 2px; }
+.dash-funnel-label { display: flex; justify-content: space-between; font-size: 0.85rem; margin-top: 0.15rem; }
+.dash-funnel-label span:first-child { color: var(--muted); }
+.dash-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  margin-right: 0.4rem;
+}
+.dash-donut {
+  width: 110px; height: 110px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.dash-donut-hole {
+  width: 66px; height: 66px;
+  border-radius: 50%;
+  background: var(--card);
+  display: flex; align-items: center; justify-content: center;
+}
+.dash-donut-total { font-weight: 700; font-size: 0.85rem; color: var(--accent-dark); }
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14201c;
+    --card: #1b2925;
+    --text: #e7f0eb;
+    --border: #2c3d37;
+    --muted: #9db3a9;
+  }
+  .badge.debit { background: #1f3a2a; }
+  .badge.credit { background: #1b2f47; color: #9dc2f7; }
+}

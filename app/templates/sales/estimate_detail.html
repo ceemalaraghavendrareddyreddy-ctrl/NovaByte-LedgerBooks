@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Estimate {{ estimate.estimate_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('sales.customer_detail', customer_id=estimate.customer.id) }}">{{ estimate.customer.name }}</a>
+  &middot; Date: {{ estimate.estimate_date }}
+  {% if estimate.expiry_date %} &middot; Expires: {{ estimate.expiry_date }}{% endif %}
+  &middot; <span class="badge {{ 'debit' if estimate.status in ('accepted','converted') else '' }}">{{ estimate.status }}</span>
+  {% if estimate.is_expired %}<span class="badge" style="background:#fbe6e4;color:var(--error);">expired</span>{% endif %}
+</p>
+{% if estimate.memo %}<p>{{ estimate.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Account</th><th>Taxable</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in estimate.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ line.income_account.code }} - {{ line.income_account.name }}</td>
+        <td>{{ 'Yes' if line.taxable else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(estimate.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ estimate.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(estimate.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(estimate.total) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if estimate.status == 'converted' %}
+<p>Converted to invoice: <a href="{{ url_for('sales.invoice_detail', invoice_id=estimate.converted_invoice_id) }}">{{ estimate.converted_invoice.invoice_no }}</a></p>
+{% else %}
+<div class="card">
+  <h3>Status</h3>
+  <form class="inline" method="post" action="{{ url_for('sales.estimate_status', estimate_id=estimate.id) }}">
+    <select name="status" onchange="this.form.submit()">
+      <option value="draft" {% if estimate.status == 'draft' %}selected{% endif %}>Draft</option>
+      <option value="sent" {% if estimate.status == 'sent' %}selected{% endif %}>Sent</option>
+      <option value="accepted" {% if estimate.status == 'accepted' %}selected{% endif %}>Accepted</option>
+      <option value="declined" {% if estimate.status == 'declined' %}selected{% endif %}>Declined</option>
+    </select>
+  </form>
+
+  {% if estimate.status != 'declined' %}
+  <h3>Convert to Invoice</h3>
+  <form method="post" action="{{ url_for('sales.estimate_convert', estimate_id=estimate.id) }}">
+    <div class="form-row">
+      <label>Invoice Due Date</label>
+      <input type="date" name="due_date">
+    </div>
+    <button class="btn" type="submit" onclick="return confirm('Convert this estimate to a real invoice? This will post to the ledger.');">Convert to Invoice</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+<a class="btn secondary" href="{{ url_for('sales.estimate_list') }}">Back to Estimates</a>
+{% endblock %}

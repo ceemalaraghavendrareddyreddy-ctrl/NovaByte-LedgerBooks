@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Purchase Orders</h1>
+<a class="btn" href="{{ url_for('purchases.po_new') }}">+ New Purchase Order</a>
+
+<div class="card">
+  {% if purchase_orders %}
+  <table>
+    <thead><tr><th>PO #</th><th>Vendor</th><th>Date</th><th>Expected</th><th>Status</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      {% for po in purchase_orders %}
+      <tr>
+        <td><a href="{{ url_for('purchases.po_detail', po_id=po.id) }}">{{ po.po_no }}</a></td>
+        <td><a href="{{ url_for('purchases.vendor_detail', vendor_id=po.vendor.id) }}">{{ po.vendor.name }}</a></td>
+        <td>{{ po.po_date }}</td>
+        <td>{{ po.expected_date or '-' }}</td>
+        <td><span class="badge {{ 'debit' if po.status == 'closed' else '' }}">{{ po.status }}</span></td>
+        <td class="num">{{ '%.2f'|format(po.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No purchase orders yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

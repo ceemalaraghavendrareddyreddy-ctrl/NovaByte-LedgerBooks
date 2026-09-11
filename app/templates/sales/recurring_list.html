@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Recurring Invoices</h1>
+<div class="inline" style="display:flex; gap:.6rem; align-items:center; margin-bottom:1rem;">
+  <a class="btn" href="{{ url_for('sales.recurring_new') }}">+ New Recurring Invoice</a>
+  <form method="post" action="{{ url_for('sales.recurring_run_due') }}">
+    <button class="btn secondary" type="submit" {% if due_count == 0 %}disabled{% endif %}>
+      Generate Due Invoices{% if due_count %} ({{ due_count }}){% endif %}
+    </button>
+  </form>
+</div>
+
+<div class="card">
+  {% if templates %}
+  <table>
+    <thead><tr><th>Template</th><th>Customer</th><th>Frequency</th><th>Next Run</th><th>Status</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for t in templates %}
+      <tr>
+        <td><a href="{{ url_for('sales.recurring_detail', template_id=t.id) }}">{{ t.name }}</a></td>
+        <td><a href="{{ url_for('sales.customer_detail', customer_id=t.customer.id) }}">{{ t.customer.name }}</a></td>
+        <td style="text-transform:capitalize;">{{ t.frequency }}</td>
+        <td>
+          {{ t.next_run_date }}
+          {% if t.is_due %}<span class="badge" style="background:#fbe6e4;color:var(--error);">due</span>{% endif %}
+        </td>
+        <td>
+          {% if not t.is_active %}<span class="badge">paused</span>
+          {% elif t.is_ended %}<span class="badge">ended</span>
+          {% else %}<span class="badge debit">active</span>{% endif %}
+        </td>
+        <td class="num">{{ '%.2f'|format(t.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No recurring invoice templates yet — set one up for a customer you bill on a schedule.</p>
+  {% endif %}
+</div>
+{% endblock %}

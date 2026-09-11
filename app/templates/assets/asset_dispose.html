@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Dispose of {{ asset.name }}</h1>
+<p style="color:var(--muted);">Net book value today: {{ '%.2f'|format(asset.net_book_value) }}</p>
+
+<div class="card">
+  <form method="post">
+    <div class="form-row">
+      <label>Disposal Date</label>
+      <input type="date" name="disposal_date" required value="{{ today }}">
+    </div>
+    <div class="form-row">
+      <label>Proceeds Received</label>
+      <input type="number" step="0.01" name="proceeds" value="0">
+    </div>
+    <p style="color:var(--muted); font-size:.88rem;">
+      This writes off the asset's cost and its accumulated depreciation, records any proceeds against
+      Bank Account (1010), and posts the difference against Gain/Loss on Disposal of Assets (4910).
+    </p>
+    <button class="btn" type="submit" onclick="return confirm('Dispose of this asset? This posts a journal entry and cannot be undone from here.');">Confirm Disposal</button>
+    <a class="btn secondary" href="{{ url_for('assets.asset_detail', asset_id=asset.id) }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

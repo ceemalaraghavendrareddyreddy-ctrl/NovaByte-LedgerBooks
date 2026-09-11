@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Vendor Credits</h1>
+<a class="btn" href="{{ url_for('purchases.vendor_credit_new') }}">+ New Vendor Credit</a>
+
+<div class="card">
+  {% if vendor_credits %}
+  <table>
+    <thead><tr><th>Credit #</th><th>Vendor</th><th>Date</th><th>Status</th><th class="num">Total</th><th class="num">Remaining</th></tr></thead>
+    <tbody>
+      {% for c in vendor_credits %}
+      <tr>
+        <td><a href="{{ url_for('purchases.vendor_credit_detail', vendor_credit_id=c.id) }}">{{ c.credit_no }}</a></td>
+        <td><a href="{{ url_for('purchases.vendor_detail', vendor_id=c.vendor.id) }}">{{ c.vendor.name }}</a></td>
+        <td>{{ c.credit_date }}</td>
+        <td><span class="badge {{ 'debit' if c.status == 'closed' else '' }}">{{ c.status }}</span></td>
+        <td class="num">{{ '%.2f'|format(c.total) }}</td>
+        <td class="num">{{ '%.2f'|format(c.remaining_credit) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No vendor credits yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

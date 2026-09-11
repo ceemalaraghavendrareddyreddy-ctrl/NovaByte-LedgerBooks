@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Adjust Stock — {{ item.name }}</h1>
+<p style="color:var(--muted);">Current quantity on hand: {{ item.quantity_on_hand }} {{ item.unit }}</p>
+<div class="card" style="max-width:500px;">
+  <form method="post">
+    <div class="form-row"><label>New Quantity</label><input type="number" step="0.001" name="new_quantity" required value="{{ item.quantity_on_hand }}"></div>
+    <div class="form-row"><label>Reason / Memo</label><input type="text" name="memo" placeholder="e.g. physical count correction, damage write-off"></div>
+    <p style="color:var(--muted);font-size:0.9rem;">Note: this changes quantity only, at the current average cost. It does not post a ledger entry — for value corrections, use a manual Journal Entry against the Inventory account.</p>
+    <button class="btn" type="submit">Save Adjustment</button>
+    <a class="btn secondary" href="{{ url_for('inventory.item_detail', item_id=item.id) }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

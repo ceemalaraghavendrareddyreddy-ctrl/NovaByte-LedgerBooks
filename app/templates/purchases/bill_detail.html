@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Bill {{ bill.bill_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('purchases.vendor_detail', vendor_id=bill.vendor.id) }}">{{ bill.vendor.name }}</a>
+  {% if bill.vendor_ref %} &middot; Ref: {{ bill.vendor_ref }}{% endif %}
+  &middot; Date: {{ bill.bill_date }} &middot; Due: {{ bill.due_date }}
+  &middot; <span class="badge {{ 'debit' if bill.status == 'paid' else '' }}">{{ bill.status }}</span>
+  {% if bill.is_foreign %}&middot; <span class="badge">{{ bill.currency }} @ {{ bill.exchange_rate }}</span>{% endif %}
+</p>
+{% if bill.memo %}<p>{{ bill.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Account</th><th>Taxable</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in bill.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ line.expense_account.code }} - {{ line.expense_account.name }}</td>
+        <td>{{ 'Yes' if line.taxable else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ bill.vat_rate }}%)</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ bill.currency }} {{ '%.2f'|format(bill.total) }}</th></tr>
+      {% if bill.is_foreign %}
+      <tr><td colspan="5" style="text-align:right; color:var(--muted);">Total (base currency, @ {{ bill.exchange_rate }})</td><td class="num" style="color:var(--muted);">{{ '%.2f'|format(bill.total_base) }}</td></tr>
+      {% endif %}
+      <tr><td colspan="5" style="text-align:right;">Paid</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.amount_paid) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Balance Due</th><th class="num">{{ bill.currency }} {{ '%.2f'|format(bill.balance_due) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if bill.journal_entry_id %}
+<p><a href="{{ url_for('ledger.journal_detail', entry_id=bill.journal_entry_id) }}">View journal entry &rarr;</a></p>
+{% endif %}
+
+{% if bill.status in ('open', 'partial') %}
+<a class="btn" href="{{ url_for('purchases.payment_new', vendor_id=bill.vendor_id) }}">Pay Vendor</a>
+{% endif %}
+{% if bill.status != 'void' and bill.amount_paid == 0 %}
+<form class="inline" method="post" action="{{ url_for('purchases.bill_void', bill_id=bill.id) }}" onsubmit="return confirm('Void this bill? This reverses its ledger entry.');">
+  <button class="btn danger" type="submit">Void Bill</button>
+</form>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('purchases.bill_list') }}">Back to Bills</a>
+
+{% with entity_type='bill', entity_id=bill.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

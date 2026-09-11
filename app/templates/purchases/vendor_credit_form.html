@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Vendor Credit</h1>
+<div class="card">
+  <form method="post" id="vendor-credit-form">
+    <div class="form-row">
+      <label>Vendor</label>
+      <select name="vendor_id" required>
+        <option value="">-- select vendor --</option>
+        {% for v in vendors %}
+        <option value="{{ v.id }}" {% if form.vendor_id|string == v.id|string %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Credit Date</label>
+      <input type="date" name="credit_date" required value="{{ form.credit_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>VAT Rate %</label>
+      <input type="number" step="0.01" name="vat_rate" value="{{ form.vat_rate or 15.00 }}" style="max-width:100px;">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo" value="{{ form.memo or '' }}" placeholder="e.g. reason for the credit">
+    </div>
+
+    <table class="journal-lines-table">
+      <thead>
+        <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Expense/Asset Account</th><th>Taxable</th><th>Return to Vendor</th><th></th></tr>
+      </thead>
+      <tbody id="lines-body">
+        <tr>
+          <td>
+            <select class="item-select">
+              <option value="">-- manual line --</option>
+              {% for it in items %}
+              {% if it.is_tracked %}
+              <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+            <input type="hidden" name="item_id" class="item-id-input" value="">
+          </td>
+          <td><input type="text" name="description"></td>
+          <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
+          <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
+          <td>
+            <select name="expense_account_id" class="account-select">
+              {% for a in expense_accounts %}
+              <option value="{{ a.id }}" {% if default_expense and a.id == default_expense.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+          <td style="text-align:center;"><input type="checkbox" name="return_to_vendor" value="0" checked></td>
+          <td><button type="button" class="btn small secondary remove-line">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
+    <p style="color:var(--muted);font-size:0.85rem;">"Return to Vendor" only matters for inventory items — check it if goods are physically going back to them.</p>
+
+    <div class="stat-row" style="margin-top:1rem;">
+      <div class="stat"><div class="label">Subtotal</div><div class="value" id="subtotal">0.00</div></div>
+      <div class="stat"><div class="label">VAT</div><div class="value" id="vat-amount">0.00</div></div>
+      <div class="stat"><div class="label">Total Credit</div><div class="value" id="total">0.00</div></div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Save & Post Vendor Credit</button>
+      <a class="btn secondary" href="{{ url_for('purchases.vendor_credit_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const linesBody = document.getElementById('lines-body');
+const rowTemplate = linesBody.querySelector('tr').cloneNode(true);
+
+function reindexCheckboxes() {
+  linesBody.querySelectorAll('tr').forEach((row, i) => {
+    row.querySelector('input[name=taxable]').value = i;
+    row.querySelector('input[name=return_to_vendor]').value = i;
+  });
+}
+
+function clearRowInputs(row) {
+  row.querySelectorAll('input[type=text], input[type=number]').forEach(i => i.value = '');
+  row.querySelector('.qty-input').value = 1;
+  row.querySelectorAll('input[type=checkbox]').forEach(i => i.checked = true);
+  row.querySelector('.item-select').selectedIndex = 0;
+  row.querySelector('.item-id-input').value = '';
+}
+
+function recalcTotals() {
+  let subtotal = 0, vat = 0;
+  const vatRate = parseFloat(document.querySelector('input[name=vat_rate]').value) || 0;
+  linesBody.querySelectorAll('tr').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const amount = qty * price;
+    subtotal += amount;
+    if (row.querySelector('input[name=taxable]').checked) {
+      vat += amount * vatRate / 100;
+    }
+  });
+  document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+  document.getElementById('vat-amount').textContent = vat.toFixed(2);
+  document.getElementById('total').textContent = (subtotal + vat).toFixed(2);
+}
+
+document.getElementById('add-line').addEventListener('click', () => {
+  const row = rowTemplate.cloneNode(true);
+  clearRowInputs(row);
+  linesBody.appendChild(row);
+  reindexCheckboxes();
+});
+
+linesBody.addEventListener('click', (e) => {
+  if (e.target.classList.contains('remove-line')) {
+    if (linesBody.querySelectorAll('tr').length > 1) {
+      e.target.closest('tr').remove();
+      reindexCheckboxes();
+      recalcTotals();
+    }
+  }
+});
+
+linesBody.addEventListener('change', (e) => {
+  if (e.target.classList.contains('item-select')) {
+    e.target.closest('tr').querySelector('.item-id-input').value = e.target.value || '';
+  }
+});
+
+linesBody.addEventListener('input', recalcTotals);
+document.querySelector('input[name=vat_rate]').addEventListener('input', recalcTotals);
+reindexCheckboxes();
+</script>
+{% endblock %}

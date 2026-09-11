@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Accounts Payable Aging</h1>
+<p style="color:var(--muted);">As of {{ today }}</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Current</div><div class="value">{{ '%.2f'|format(totals.current) }}</div></div>
+  <div class="stat"><div class="label">1-30 Days</div><div class="value">{{ '%.2f'|format(totals['1_30']) }}</div></div>
+  <div class="stat"><div class="label">31-60 Days</div><div class="value">{{ '%.2f'|format(totals['31_60']) }}</div></div>
+  <div class="stat"><div class="label">61-90 Days</div><div class="value">{{ '%.2f'|format(totals['61_90']) }}</div></div>
+  <div class="stat"><div class="label">90+ Days</div><div class="value">{{ '%.2f'|format(totals['90_plus']) }}</div></div>
+  <div class="stat"><div class="label">Total Outstanding</div><div class="value">{{ '%.2f'|format(grand_total) }}</div></div>
+</div>
+
+{% for key, label in [('current','Current'), ('1_30','1-30 Days'), ('31_60','31-60 Days'), ('61_90','61-90 Days'), ('90_plus','90+ Days')] %}
+{% if buckets[key] %}
+<h2 class="section-title">{{ label }}</h2>
+<div class="card">
+  <table>
+    <thead><tr><th>Bill #</th><th>Vendor</th><th>Due Date</th><th class="num">Days Overdue</th><th class="num">Balance Due</th></tr></thead>
+    <tbody>
+      {% for b in buckets[key] %}
+      <tr>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=b.id) }}">{{ b.bill_no }}</a></td>
+        <td><a href="{{ url_for('purchases.vendor_detail', vendor_id=b.vendor.id) }}">{{ b.vendor.name }}</a></td>
+        <td>{{ b.due_date }}</td>
+        <td class="num">{{ b.days_overdue }}</td>
+        <td class="num">{{ '%.2f'|format(b.balance_due) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if grand_total == 0 %}
+<p>No outstanding payables. 🎉</p>
+{% endif %}
+{% endblock %}

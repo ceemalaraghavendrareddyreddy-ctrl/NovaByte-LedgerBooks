@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Make Deposit</h1>
+<p style="color:var(--muted);">Batch several payments sitting in Undeposited Funds into the one lump-sum deposit that shows up on your bank statement.</p>
+
+<div class="card">
+  {% if undeposited_payments %}
+  <form method="post">
+    <table>
+      <thead><tr><th></th><th>Date</th><th>Customer</th><th>Method</th><th>Reference</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+        {% for p in undeposited_payments %}
+        <tr>
+          <td><input type="checkbox" name="payment_id" value="{{ p.id }}" class="deposit-check" checked></td>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ p.customer.name }}</td>
+          <td>{{ p.method }}</td>
+          <td>{{ p.reference_no or '-' }}</td>
+          <td class="num deposit-amount" data-amount="{{ p.amount }}">{{ '%.2f'|format(p.amount) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="stat-row" style="margin-top:1rem;">
+      <div class="stat"><div class="label">Total to Deposit</div><div class="value" id="deposit-total">0.00</div></div>
+    </div>
+
+    <div class="form-row" style="margin-top:1rem;">
+      <label>Deposit To</label>
+      <select name="destination_account_id" required>
+        {% for a in destination_accounts %}
+        <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Deposit Date</label>
+      <input type="date" name="deposit_date" required value="{{ today }}">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo">
+    </div>
+
+    <button class="btn" type="submit">Record Deposit</button>
+  </form>
+  {% else %}
+  <p>No undeposited payments right now. When you record a customer payment into "Undeposited Funds" instead of Cash/Bank directly, it'll show up here to be batched.</p>
+  {% endif %}
+</div>
+
+<script>
+function recalc() {
+  let total = 0;
+  document.querySelectorAll('.deposit-check:checked').forEach(cb => {
+    total += parseFloat(cb.closest('tr').querySelector('.deposit-amount').dataset.amount) || 0;
+  });
+  const totalEl = document.getElementById('deposit-total');
+  if (totalEl) totalEl.textContent = total.toFixed(2);
+}
+document.querySelectorAll('.deposit-check').forEach(cb => cb.addEventListener('change', recalc));
+recalc();
+</script>
+{% endblock %}

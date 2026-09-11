@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}LedgerBooks{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <div class="app-shell">
+    {% if current_user.is_authenticated %}
+    <nav class="sidebar">
+      <a href="{{ url_for('dashboard.index') }}" class="sidebar-brand">📒 LedgerBooks</a>
+
+      {% set my_companies = current_user.accessible_companies() %}
+      {% if my_companies|length > 1 %}
+      <details class="sidebar-group">
+        <summary>🏢 {{ current_company().business_name if current_company() else 'Switch Company' }}</summary>
+        {% for co in my_companies %}
+        <form method="post" action="{{ url_for('auth.switch_company', company_id=co.id) }}">
+          <button type="submit" class="sidebar-link" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;{{ 'font-weight:bold;' if co.id == current_company_id() else '' }}">
+            {{ co.business_name }}{{ ' ✓' if co.id == current_company_id() else '' }}
+          </button>
+        </form>
+        {% endfor %}
+      </details>
+      {% elif current_company() %}
+      <div class="sidebar-link" style="color:var(--muted);">🏢 {{ current_company().business_name }}</div>
+      {% endif %}
+
+      <a class="sidebar-link" href="{{ url_for('dashboard.index') }}">🏠 Dashboard</a>
+
+      <details class="sidebar-group" open>
+        <summary>🏦 Banking</summary>
+        <a href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+        <a href="{{ url_for('banking.reconcile_history') }}">Reconciliation History</a>
+        <a href="{{ url_for('banking.transfer') }}">Transfer Funds</a>
+        <a href="{{ url_for('banking.make_deposit') }}">Make Deposit</a>
+        <a href="{{ url_for('banking.deposit_list') }}">Deposits</a>
+        <a href="{{ url_for('banking.import_start') }}">Import Statement</a>
+      </details>
+
+      <details class="sidebar-group">
+        <summary>📇 Sales</summary>
+        <a href="{{ url_for('sales.customer_list') }}">Customers</a>
+        <a href="{{ url_for('sales.estimate_list') }}">Estimates</a>
+        <a href="{{ url_for('sales.invoice_list') }}">Invoices</a>
+        <a href="{{ url_for('sales.recurring_list') }}">Recurring Invoices</a>
+        <a href="{{ url_for('sales.credit_memo_list') }}">Credit Memos</a>
+        <a href="{{ url_for('sales.payment_list') }}">Receive Payment</a>
+        <a href="{{ url_for('sales.aging_report') }}">AR Aging</a>
+      </details>
+
+      <details class="sidebar-group">
+        <summary>🧾 Expenses</summary>
+        <a href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
+        <a href="{{ url_for('purchases.po_list') }}">Purchase Orders</a>
+        <a href="{{ url_for('purchases.bill_list') }}">Bills</a>
+        <a href="{{ url_for('purchases.vendor_credit_list') }}">Vendor Credits</a>
+        <a href="{{ url_for('purchases.payment_list') }}">Pay Bills</a>
+        <a href="{{ url_for('purchases.aging_report') }}">AP Aging</a>
+      </details>
+
+      <details class="sidebar-group">
+        <summary>📦 Inventory</summary>
+        <a href="{{ url_for('inventory.item_list') }}">Items</a>
+      </details>
+
+      <details class="sidebar-group">
+        <summary>🏷️ Fixed Assets</summary>
+        <a href="{{ url_for('assets.asset_list') }}">Asset Register</a>
+      </details>
+
+      <details class="sidebar-group">
+        <summary>📚 Accounting</summary>
+        <a href="{{ url_for('ledger.account_list') }}">Chart of Accounts</a>
+        <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
+        <a href="{{ url_for('ledger.trial_balance') }}">Trial Balance</a>
+      </details>
+
+      <details class="sidebar-group">
+        <summary>📊 Reports</summary>
+        <a href="{{ url_for('reports.profit_loss') }}">Profit &amp; Loss</a>
+        <a href="{{ url_for('reports.balance_sheet') }}">Balance Sheet</a>
+        <a href="{{ url_for('reports.cash_flow') }}">Cash Flow</a>
+        <a href="{{ url_for('reports.vat_return') }}">VAT Return</a>
+        <a href="{{ url_for('reports.custom_report') }}">Custom Report</a>
+        <a href="{{ url_for('budgets.budget_entry') }}">Budget</a>
+        <a href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs Actual</a>
+      </details>
+
+      {% if current_user.role == 'owner' %}
+      <details class="sidebar-group">
+        <summary>⚙️ Admin</summary>
+        <a href="{{ url_for('users.user_list') }}">Users</a>
+        <a href="{{ url_for('settings.company') }}">Settings</a>
+        <a href="{{ url_for('audit.audit_log') }}">Audit Log</a>
+        <a href="{{ url_for('backup.backup_home') }}">Backup</a>
+        <a href="{{ url_for('mra_sync.sync_status') }}">MRA Sync</a>
+      </details>
+      {% endif %}
+
+      <div class="sidebar-footer">
+        <a href="{{ url_for('auth.change_password') }}">{{ current_user.name }} ({{ current_user.role }})</a>
+        <a href="{{ url_for('auth.logout') }}">Logout</a>
+      </div>
+    </nav>
+    {% endif %}
+
+    <main class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</body>
+</html>

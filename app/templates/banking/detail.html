@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Reconciliation — {{ recon.account.code }} - {{ recon.account.name }}</h1>
+<p style="color:var(--muted);">Statement date: {{ recon.statement_date }} &middot; Completed {{ recon.completed_at.strftime('%d %b %Y %H:%M') if recon.completed_at else '' }}</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Beginning Balance</div><div class="value">{{ '%.2f'|format(recon.beginning_balance) }}</div></div>
+  <div class="stat"><div class="label">Statement Ending Balance</div><div class="value">{{ '%.2f'|format(recon.statement_ending_balance) }}</div></div>
+  <div class="stat"><div class="label">Cleared Balance</div><div class="value">{{ '%.2f'|format(recon.cleared_balance) }}</div></div>
+</div>
+
+<div class="card">
+  <h3>Cleared Transactions</h3>
+  <table>
+    <thead><tr><th>Date</th><th>Memo</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+    <tbody>
+      {% for line in cleared_lines %}
+      <tr>
+        <td><a href="{{ url_for('ledger.journal_detail', entry_id=line.entry.id) }}">{{ line.entry.entry_date }}</a></td>
+        <td>{{ line.memo or line.entry.memo or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(line.debit) if line.debit else '' }}</td>
+        <td class="num">{{ '%.2f'|format(line.credit) if line.credit else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<a class="btn secondary" href="{{ url_for('banking.reconcile_history') }}">Back to History</a>
+{% endblock %}

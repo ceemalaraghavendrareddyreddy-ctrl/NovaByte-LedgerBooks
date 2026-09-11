@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Receive Goods — {{ po.po_no }}</h1>
+<p style="color:var(--muted);">Enter the quantity actually received/billed for each line. Leave a line at 0 to skip it (e.g. if it hasn't arrived yet) — you can come back and bill the rest later.</p>
+
+<div class="card">
+  <form method="post">
+    <div class="form-row">
+      <label>Bill Date</label>
+      <input type="date" name="bill_date" required value="{{ today }}">
+    </div>
+    <div class="form-row">
+      <label>Due Date</label>
+      <input type="date" name="due_date" value="{{ today }}">
+    </div>
+    <div class="form-row">
+      <label>Vendor's Bill Ref</label>
+      <input type="text" name="vendor_ref" placeholder="their invoice number">
+    </div>
+
+    <table>
+      <thead><tr><th>Description</th><th class="num">Remaining</th><th class="num">Unit Price</th><th class="num">Qty to Bill</th></tr></thead>
+      <tbody>
+        {% for line in po.lines %}
+        {% if line.quantity_remaining > 0 %}
+        <tr>
+          <td>{{ line.description }}</td>
+          <td class="num">{{ line.quantity_remaining }}</td>
+          <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+          <td><input type="number" step="0.001" name="qty_{{ line.id }}" value="{{ line.quantity_remaining }}" max="{{ line.quantity_remaining }}"></td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Create Bill</button>
+      <a class="btn secondary" href="{{ url_for('purchases.po_detail', po_id=po.id) }}">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

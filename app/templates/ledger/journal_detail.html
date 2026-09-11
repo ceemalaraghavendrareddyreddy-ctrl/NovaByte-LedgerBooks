@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Journal Entry #{{ entry.id }}</h1>
+<p style="color:var(--muted);">
+  {{ entry.entry_date }}
+  {% if entry.reference_no %} &middot; Ref: {{ entry.reference_no }}{% endif %}
+  &middot; Source: <span class="badge">{{ entry.source_type }}</span>
+</p>
+{% if entry.memo %}<p>{{ entry.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Account</th><th>Memo</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+    <tbody>
+      {% for line in entry.lines %}
+      <tr>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=line.account.id) }}">{{ line.account.code }} - {{ line.account.name }}</a></td>
+        <td>{{ line.memo or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(line.debit) if line.debit else '' }}</td>
+        <td class="num">{{ '%.2f'|format(line.credit) if line.credit else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><th></th><th style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(entry.total_debit) }}</th><th class="num">{{ '%.2f'|format(entry.total_credit) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if entry.source_type in ('manual', 'transfer') %}
+<a class="btn secondary" href="{{ url_for('ledger.journal_edit', entry_id=entry.id) }}">Edit</a>
+<form class="inline" method="post" action="{{ url_for('ledger.journal_delete', entry_id=entry.id) }}" onsubmit="return confirm('Delete this journal entry? This cannot be undone.');">
+  <button class="btn danger" type="submit">Delete Entry</button>
+</form>
+{% else %}
+<p style="color:var(--muted);">This entry was auto-posted by a {{ entry.source_type }} — edit or void that document instead.</p>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('ledger.journal_list') }}">Back to Journal</a>
+
+{% with entity_type='journal_entry', entity_id=entry.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

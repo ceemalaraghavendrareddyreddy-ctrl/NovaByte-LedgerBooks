@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Edit Journal Entry #' ~ entry.id if editing else 'New Journal Entry' }}</h1>
+<div class="card">
+  <form method="post" id="journal-form" action="{{ url_for('ledger.journal_edit', entry_id=entry.id) if editing else url_for('ledger.journal_new') }}">
+    <div class="form-row">
+      <label>Date</label>
+      <input type="date" name="entry_date" required value="{{ form.entry_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>Reference #</label>
+      <input type="text" name="reference_no" value="{{ form.reference_no or '' }}" placeholder="optional">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo" value="{{ form.memo or '' }}" placeholder="what is this entry for?">
+    </div>
+
+    <table class="journal-lines-table">
+      <thead>
+        <tr><th>Account</th><th class="num">Debit</th><th class="num">Credit</th><th>Line Memo</th><th></th></tr>
+      </thead>
+      <tbody id="lines-body">
+        {% if editing %}
+        {% for line in entry.lines %}
+        <tr>
+          <td>
+            <select name="account_id">
+              <option value="">-- select account --</option>
+              {% for a in accounts %}
+              <option value="{{ a.id }}" {% if a.id == line.account_id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><input type="number" step="0.01" name="debit" class="debit-input" value="{{ line.debit if line.debit else '' }}"></td>
+          <td><input type="number" step="0.01" name="credit" class="credit-input" value="{{ line.credit if line.credit else '' }}"></td>
+          <td><input type="text" name="line_memo" value="{{ line.memo or '' }}"></td>
+          <td><button type="button" class="btn small secondary remove-line">✕</button></td>
+        </tr>
+        {% endfor %}
+        {% else %}
+        {% for i in range(2) %}
+        <tr>
+          <td>
+            <select name="account_id">
+              <option value="">-- select account --</option>
+              {% for a in accounts %}
+              <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td><input type="number" step="0.01" name="debit" class="debit-input"></td>
+          <td><input type="number" step="0.01" name="credit" class="credit-input"></td>
+          <td><input type="text" name="line_memo"></td>
+          <td><button type="button" class="btn small secondary remove-line">✕</button></td>
+        </tr>
+        {% endfor %}
+        {% endif %}
+      </tbody>
+    </table>
+    <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
+
+    <div class="stat-row" style="margin-top:1rem;">
+      <div class="stat"><div class="label">Total Debit</div><div class="value" id="total-debit">0.00</div></div>
+      <div class="stat"><div class="label">Total Credit</div><div class="value" id="total-credit">0.00</div></div>
+      <div class="stat"><div class="label">Difference</div><div class="value" id="difference">0.00</div></div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">{{ 'Save Changes' if editing else 'Post Journal Entry' }}</button>
+      <a class="btn secondary" href="{{ url_for('ledger.journal_detail', entry_id=entry.id) if editing else url_for('ledger.journal_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const linesBody = document.getElementById('lines-body');
+const rowTemplate = linesBody.querySelector('tr').cloneNode(true);
+
+function clearRowInputs(row) {
+  row.querySelectorAll('input').forEach(i => i.value = '');
+  row.querySelector('select').selectedIndex = 0;
+}
+
+function recalcTotals() {
+  let debit = 0, credit = 0;
+  linesBody.querySelectorAll('tr').forEach(row => {
+    debit += parseFloat(row.querySelector('.debit-input').value) || 0;
+    credit += parseFloat(row.querySelector('.credit-input').value) || 0;
+  });
+  document.getElementById('total-debit').textContent = debit.toFixed(2);
+  document.getElementById('total-credit').textContent = credit.toFixed(2);
+  const diff = document.getElementById('difference');
+  diff.textContent = (debit - credit).toFixed(2);
+  diff.style.color = Math.abs(debit - credit) < 0.005 ? 'var(--success)' : 'var(--error)';
+}
+
+document.getElementById('add-line').addEventListener('click', () => {
+  const row = rowTemplate.cloneNode(true);
+  clearRowInputs(row);
+  linesBody.appendChild(row);
+});
+
+linesBody.addEventListener('click', (e) => {
+  if (e.target.classList.contains('remove-line')) {
+    if (linesBody.querySelectorAll('tr').length > 1) {
+      e.target.closest('tr').remove();
+      recalcTotals();
+    }
+  }
+});
+
+linesBody.addEventListener('input', recalcTotals);
+recalcTotals();
+</script>
+{% endblock %}

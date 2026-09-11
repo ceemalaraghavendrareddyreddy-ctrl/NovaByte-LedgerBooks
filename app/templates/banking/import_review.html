@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Review Import — {{ batch.account.code }} - {{ batch.account.name }}</h1>
+<p style="color:var(--muted);">{{ batch.filename }} &middot; imported {{ batch.imported_at.strftime('%d %b %Y %H:%M') }}</p>
+
+<div class="card">
+  <form method="post" action="{{ url_for('banking.import_process', import_id=batch.id) }}">
+    <table>
+      <thead><tr><th>Date</th><th>Description</th><th class="num">Amount</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>
+        {% for line in batch.lines %}
+        <tr>
+          <td>{{ line.stmt_date }}</td>
+          <td>{{ line.description or '-' }}</td>
+          <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+          <td>
+            {% if line.status == 'matched' %}
+              <span class="badge debit">Matched</span>
+            {% elif line.status == 'created' %}
+              <span class="badge debit">Resolved</span>
+            {% else %}
+              <span class="badge">Unmatched</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if line.status == 'matched' %}
+              <label style="font-weight:normal;">
+                <input type="checkbox" name="confirm_{{ line.id }}" value="1" checked>
+                Confirm match: {{ line.matched_journal_line.entry.entry_date }} — {{ line.matched_journal_line.memo or line.matched_journal_line.entry.memo or '(no memo)' }}
+              </label>
+            {% elif line.status == 'unmatched' %}
+              <select name="category_{{ line.id }}">
+                <option value="">-- choose category account --</option>
+                {% for a in accounts %}
+                <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+                {% endfor %}
+              </select>
+            {% else %}
+              {% if line.matched_journal_line %}Cleared existing transaction{% elif line.created_journal_entry_id %}
+              <a href="{{ url_for('ledger.journal_detail', entry_id=line.created_journal_entry_id) }}">View entry</a>
+              {% endif %}
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <button class="btn" type="submit" style="margin-top:1rem;">Process Selected</button>
+  </form>
+</div>
+<a class="btn secondary" href="{{ url_for('banking.import_start') }}">Import Another File</a>
+{% endblock %}

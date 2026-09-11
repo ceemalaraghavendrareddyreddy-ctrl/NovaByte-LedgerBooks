@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ asset.name }}</h1>
+<p style="color:var(--muted);">
+  {{ asset.asset_account.code }} - {{ asset.asset_account.name }}
+  &middot; Purchased {{ asset.purchase_date }}
+  &middot;
+  {% if asset.status == 'disposed' %}<span class="badge">disposed {{ asset.disposal_date }}</span>
+  {% elif asset.status == 'fully_depreciated' %}<span class="badge">fully depreciated</span>
+  {% else %}<span class="badge debit">active</span>{% endif %}
+  {% if asset.is_due %}<span class="badge" style="background:#fbe6e4;color:var(--error);">depreciation due</span>{% endif %}
+</p>
+{% if asset.description %}<p>{{ asset.description }}</p>{% endif %}
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Purchase Cost</div><div class="value">{{ '%.2f'|format(asset.purchase_cost) }}</div></div>
+  <div class="stat"><div class="label">Salvage Value</div><div class="value">{{ '%.2f'|format(asset.salvage_value) }}</div></div>
+  <div class="stat"><div class="label">Monthly Depreciation</div><div class="value">{{ '%.2f'|format(asset.monthly_depreciation) }}</div></div>
+  <div class="stat"><div class="label">Accumulated Depreciation</div><div class="value">{{ '%.2f'|format(asset.accumulated_depreciation) }}</div></div>
+  <div class="stat"><div class="label">Net Book Value</div><div class="value">{{ '%.2f'|format(asset.net_book_value) }}</div></div>
+</div>
+
+<div class="card">
+  <p>
+    Useful life: {{ asset.useful_life_months }} months &middot;
+    Periods depreciated: {{ asset.periods_depreciated }} &middot;
+    {% if asset.status == 'active' %}Next run: {{ asset.next_depreciation_date }}
+    {% elif asset.status == 'fully_depreciated' %}Fully depreciated — nothing left to post.
+    {% endif %}
+  </p>
+  {% if asset.status == 'active' %}
+  <a class="btn secondary" href="{{ url_for('assets.asset_dispose', asset_id=asset.id) }}">Dispose of Asset</a>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3>Depreciation History</h3>
+  {% if asset.depreciation_entries %}
+  <table>
+    <thead><tr><th>Period</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for e in asset.depreciation_entries|reverse %}
+      <tr>
+        <td>{{ e.period_date.strftime('%B %Y') }}</td>
+        <td class="num">{{ '%.2f'|format(e.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No depreciation posted yet.</p>
+  {% endif %}
+</div>
+
+{% if asset.status == 'disposed' %}
+<div class="card">
+  <h3>Disposal</h3>
+  <p>Disposed of on {{ asset.disposal_date }} for {{ '%.2f'|format(asset.disposal_proceeds) }}.</p>
+</div>
+{% endif %}
+
+<a class="btn secondary" href="{{ url_for('assets.asset_list') }}">Back to Asset Register</a>
+{% endblock %}

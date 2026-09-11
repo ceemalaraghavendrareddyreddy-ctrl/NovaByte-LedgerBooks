@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New User</h1>
+<div class="card" style="max-width:500px;">
+  <form method="post">
+    <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ form.name or '' }}"></div>
+    <div class="form-row"><label>Username</label><input type="text" name="username" required value="{{ form.username or '' }}"></div>
+    <div class="form-row"><label>Password</label><input type="password" name="password" required minlength="6"></div>
+    <div class="form-row">
+      <label>Role</label>
+      <select name="role">
+        {% for r in roles %}
+        <option value="{{ r }}" {% if form.role == r %}selected{% endif %}>{{ r|title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <p style="color:var(--muted);font-size:0.85rem;">
+      <b>Owner</b>: full access, including Settings and User Management.<br>
+      <b>Accountant</b>: everything else — invoices, bills, payments, reports, reconciliation — but not Settings or Users.
+    </p>
+    <button class="btn" type="submit">Create User</button>
+    <a class="btn secondary" href="{{ url_for('users.user_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

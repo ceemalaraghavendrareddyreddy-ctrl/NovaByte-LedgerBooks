@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Credit Memo</h1>
+<div class="card">
+  <form method="post" id="credit-memo-form">
+    <div class="form-row">
+      <label>Customer</label>
+      <select name="customer_id" id="customer-select" required>
+        <option value="">-- select customer --</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}" {% if form.customer_id|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Related Invoice</label>
+      <select name="related_invoice_id" id="related-invoice-select">
+        <option value="">-- none / not tied to one sale --</option>
+      </select>
+      <p style="color:var(--muted); font-size:0.82rem; margin-top:0.2rem;">
+        Which sale this credit relates to. Required for MRA to accept it as a proper credit note —
+        leave blank only for a goodwill credit or balance correction not tied to a specific invoice.
+      </p>
+    </div>
+    <div class="form-row">
+      <label>Credit Date</label>
+      <input type="date" name="credit_date" required value="{{ form.credit_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>VAT Rate %</label>
+      <input type="number" step="0.01" name="vat_rate" value="{{ form.vat_rate or 15.00 }}" style="max-width:100px;">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo" value="{{ form.memo or '' }}" placeholder="e.g. reason for the credit">
+    </div>
+
+    <table class="journal-lines-table">
+      <thead>
+        <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Income Account</th><th>Taxable</th><th>Return to Stock</th><th></th></tr>
+      </thead>
+      <tbody id="lines-body">
+        <tr>
+          <td>
+            <select class="item-select">
+              <option value="">-- manual line --</option>
+              {% for it in items %}
+              <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="item_id" class="item-id-input" value="">
+          </td>
+          <td><input type="text" name="description"></td>
+          <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
+          <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
+          <td>
+            <select name="income_account_id">
+              {% for a in income_accounts %}
+              <option value="{{ a.id }}" {% if default_income and a.id == default_income.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+          <td style="text-align:center;"><input type="checkbox" name="return_to_stock" value="0" checked class="return-checkbox"></td>
+          <td><button type="button" class="btn small secondary remove-line">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
+    <p style="color:var(--muted);font-size:0.85rem;">"Return to Stock" only matters for inventory items — check it if the goods are physically coming back.</p>
+
+    <div class="stat-row" style="margin-top:1rem;">
+      <div class="stat"><div class="label">Subtotal</div><div class="value" id="subtotal">0.00</div></div>
+      <div class="stat"><div class="label">VAT</div><div class="value" id="vat-amount">0.00</div></div>
+      <div class="stat"><div class="label">Total Credit</div><div class="value" id="total">0.00</div></div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Save & Post Credit Memo</button>
+      <a class="btn secondary" href="{{ url_for('sales.credit_memo_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const invoicesByCustomer = {{ invoices_by_customer | tojson }};
+const customerSelect = document.getElementById('customer-select');
+const relatedInvoiceSelect = document.getElementById('related-invoice-select');
+
+function refreshRelatedInvoices() {
+  const custId = customerSelect.value;
+  const invoices = (invoicesByCustomer[custId] || []).filter(inv => inv.mra_invoice_number);
+  relatedInvoiceSelect.innerHTML = '<option value="">-- none / not tied to one sale --</option>' +
+    invoices.map(inv => `<option value="${inv.id}">${inv.invoice_no} — ${inv.total} (MRA ${inv.mra_invoice_number})</option>`).join('');
+  if (invoices.length === 0 && custId) {
+    relatedInvoiceSelect.innerHTML += '<option value="" disabled>(no MRA-fiscalised invoice for this customer yet)</option>';
+  }
+}
+customerSelect.addEventListener('change', refreshRelatedInvoices);
+refreshRelatedInvoices();
+
+const linesBody = document.getElementById('lines-body');
+const rowTemplate = linesBody.querySelector('tr').cloneNode(true);
+
+function reindexCheckboxes() {
+  linesBody.querySelectorAll('tr').forEach((row, i) => {
+    row.querySelector('input[name=taxable]').value = i;
+    row.querySelector('input[name=return_to_stock]').value = i;
+  });
+}
+
+function clearRowInputs(row) {
+  row.querySelectorAll('input[type=text], input[type=number]').forEach(i => i.value = '');
+  row.querySelector('.qty-input').value = 1;
+  row.querySelectorAll('input[type=checkbox]').forEach(i => i.checked = true);
+  row.querySelector('.item-select').selectedIndex = 0;
+  row.querySelector('.item-id-input').value = '';
+}
+
+function recalcTotals() {
+  let subtotal = 0, vat = 0;
+  const vatRate = parseFloat(document.querySelector('input[name=vat_rate]').value) || 0;
+  linesBody.querySelectorAll('tr').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const amount = qty * price;
+    subtotal += amount;
+    if (row.querySelector('input[name=taxable]').checked) {
+      vat += amount * vatRate / 100;
+    }
+  });
+  document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+  document.getElementById('vat-amount').textContent = vat.toFixed(2);
+  document.getElementById('total').textContent = (subtotal + vat).toFixed(2);
+}
+
+document.getElementById('add-line').addEventListener('click', () => {
+  const row = rowTemplate.cloneNode(true);
+  clearRowInputs(row);
+  linesBody.appendChild(row);
+  reindexCheckboxes();
+});
+
+linesBody.addEventListener('click', (e) => {
+  if (e.target.classList.contains('remove-line')) {
+    if (linesBody.querySelectorAll('tr').length > 1) {
+      e.target.closest('tr').remove();
+      reindexCheckboxes();
+      recalcTotals();
+    }
+  }
+});
+
+linesBody.addEventListener('change', (e) => {
+  if (e.target.classList.contains('item-select')) {
+    const row = e.target.closest('tr');
+    row.querySelector('.item-id-input').value = e.target.value || '';
+  }
+});
+
+linesBody.addEventListener('input', recalcTotals);
+document.querySelector('input[name=vat_rate]').addEventListener('input', recalcTotals);
+reindexCheckboxes();
+</script>
+{% endblock %}

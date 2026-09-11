@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Invoice</h1>
+<div class="card">
+  <form method="post" id="invoice-form">
+    <div class="form-row">
+      <label>Customer</label>
+      <select name="customer_id" required>
+        <option value="">-- select customer --</option>
+        {% for c in customers %}
+        <option value="{{ c.id }}" {% if form.customer_id|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Invoice Date</label>
+      <input type="date" name="invoice_date" required value="{{ form.invoice_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>Due Date</label>
+      <input type="date" name="due_date" required value="{{ form.due_date or today }}">
+    </div>
+    <div class="form-row">
+      <label>VAT Rate %</label>
+      <input type="number" step="0.01" name="vat_rate" value="{{ form.vat_rate or 15.00 }}" style="max-width:100px;">
+    </div>
+    <div class="form-row">
+      <label>Currency</label>
+      <select name="currency" id="currency-select" style="max-width:120px;">
+        {% for c in currencies %}
+        <option value="{{ c }}" {% if (form.currency or base_currency) == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row" id="exchange-rate-row" style="display:none;">
+      <label>Exchange Rate <span style="font-weight:normal; color:var(--muted);">(1 unit = ? {{ base_currency }})</span></label>
+      <input type="number" step="0.000001" name="exchange_rate" id="exchange-rate-input" value="{{ form.exchange_rate or 1.0 }}" style="max-width:140px;">
+    </div>
+    <div class="form-row">
+      <label>Memo</label>
+      <input type="text" name="memo" value="{{ form.memo or '' }}">
+    </div>
+
+    <table class="journal-lines-table">
+      <thead>
+        <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Income Account</th><th>Taxable</th><th></th></tr>
+      </thead>
+      <tbody id="lines-body">
+        <tr>
+          <td>
+            <select class="item-select">
+              <option value="">-- manual line --</option>
+              {% for it in items %}
+              <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}{% if it.is_tracked %} ({{ it.quantity_on_hand }} {{ it.unit }} avail){% endif %}</option>
+              {% endfor %}
+            </select>
+            <input type="hidden" name="item_id" class="item-id-input" value="">
+          </td>
+          <td><input type="text" name="description"></td>
+          <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
+          <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
+          <td>
+            <select name="income_account_id">
+              {% for a in income_accounts %}
+              <option value="{{ a.id }}" {% if default_income and a.id == default_income.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+          <td><button type="button" class="btn small secondary remove-line">✕</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
+
+    <div class="stat-row" style="margin-top:1rem;">
+      <div class="stat"><div class="label">Subtotal</div><div class="value" id="subtotal">0.00</div></div>
+      <div class="stat"><div class="label">VAT</div><div class="value" id="vat-amount">0.00</div></div>
+      <div class="stat"><div class="label">Total</div><div class="value" id="total">0.00</div></div>
+      <div class="stat" id="total-base-stat" style="display:none;">
+        <div class="label">Total ({{ base_currency }})</div><div class="value" id="total-base">0.00</div>
+      </div>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Save & Post Invoice</button>
+      <a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const ITEMS = {
+  {% for it in items %}
+  "{{ it.id }}": {
+    name: {{ it.name|tojson }}, price: {{ it.sales_price }}, incomeAccountId: "{{ it.income_account_id }}",
+    tracked: {{ 'true' if it.is_tracked else 'false' }}, qty: {{ it.quantity_on_hand }}, unit: {{ it.unit|tojson }}
+  },
+  {% endfor %}
+};
+
+const linesBody = document.getElementById('lines-body');
+const rowTemplate = linesBody.querySelector('tr').cloneNode(true);
+
+function reindexCheckboxes() {
+  linesBody.querySelectorAll('tr').forEach((row, i) => {
+    row.querySelector('input[name=taxable]').value = i;
+  });
+}
+
+function clearRowInputs(row) {
+  row.querySelectorAll('input[type=text], input[type=number]').forEach(i => i.value = '');
+  row.querySelector('.qty-input').value = 1;
+  row.querySelector('input[type=checkbox]').checked = true;
+  row.querySelector('.item-select').selectedIndex = 0;
+  row.querySelector('.item-id-input').value = '';
+}
+
+function onItemSelect(row) {
+  const select = row.querySelector('.item-select');
+  const item = ITEMS[select.value];
+  row.querySelector('.item-id-input').value = select.value || '';
+  if (item) {
+    row.querySelector('input[name=description]').value = item.name;
+    row.querySelector('.price-input').value = item.price;
+    const incomeSelect = row.querySelector('select[name=income_account_id]');
+    if (incomeSelect.querySelector(`option[value="${item.incomeAccountId}"]`)) {
+      incomeSelect.value = item.incomeAccountId;
+    }
+  }
+  recalcTotals();
+}
+
+const BASE_CURRENCY = {{ base_currency|tojson }};
+
+function updateCurrencyUI() {
+  const isForeign = document.getElementById('currency-select').value !== BASE_CURRENCY;
+  document.getElementById('exchange-rate-row').style.display = isForeign ? '' : 'none';
+  document.getElementById('total-base-stat').style.display = isForeign ? '' : 'none';
+  recalcTotals();
+}
+
+function recalcTotals() {
+  let subtotal = 0, vat = 0;
+  const vatRate = parseFloat(document.querySelector('input[name=vat_rate]').value) || 0;
+  linesBody.querySelectorAll('tr').forEach(row => {
+    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const amount = qty * price;
+    subtotal += amount;
+    if (row.querySelector('input[type=checkbox]').checked) {
+      vat += amount * vatRate / 100;
+    }
+  });
+  const total = subtotal + vat;
+  document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+  document.getElementById('vat-amount').textContent = vat.toFixed(2);
+  document.getElementById('total').textContent = total.toFixed(2);
+
+  const isForeign = document.getElementById('currency-select').value !== BASE_CURRENCY;
+  if (isForeign) {
+    const rate = parseFloat(document.getElementById('exchange-rate-input').value) || 0;
+    document.getElementById('total-base').textContent = (total * rate).toFixed(2);
+  }
+}
+
+document.getElementById('add-line').addEventListener('click', () => {
+  const row = rowTemplate.cloneNode(true);
+  clearRowInputs(row);
+  linesBody.appendChild(row);
+  reindexCheckboxes();
+});
+
+linesBody.addEventListener('click', (e) => {
+  if (e.target.classList.contains('remove-line')) {
+    if (linesBody.querySelectorAll('tr').length > 1) {
+      e.target.closest('tr').remove();
+      reindexCheckboxes();
+      recalcTotals();
+    }
+  }
+});
+
+linesBody.addEventListener('change', (e) => {
+  if (e.target.classList.contains('item-select')) {
+    onItemSelect(e.target.closest('tr'));
+  }
+});
+
+linesBody.addEventListener('input', recalcTotals);
+document.querySelector('input[name=vat_rate]').addEventListener('input', recalcTotals);
+document.getElementById('currency-select').addEventListener('change', updateCurrencyUI);
+document.getElementById('exchange-rate-input').addEventListener('input', recalcTotals);
+reindexCheckboxes();
+updateCurrencyUI();
+</script>
+{% endblock %}

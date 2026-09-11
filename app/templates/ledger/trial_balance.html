@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Trial Balance</h1>
+
+<form method="get" class="form-row">
+  <label>As of</label>
+  <input type="date" name="as_of" value="{{ as_of }}" onchange="this.form.submit()">
+</form>
+
+<div class="card">
+  <table>
+    <thead><tr><th>Code</th><th>Account</th><th class="num">Debit</th><th class="num">Credit</th></tr></thead>
+    <tbody>
+      {% for r in rows %}
+      <tr>
+        <td>{{ r.account.code }}</td>
+        <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">{{ r.account.name }}</a></td>
+        <td class="num">{{ '%.2f'|format(r.debit) if r.debit else '' }}</td>
+        <td class="num">{{ '%.2f'|format(r.credit) if r.credit else '' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th></th><th style="text-align:right;">Total</th>
+        <th class="num">{{ '%.2f'|format(total_debit) }}</th>
+        <th class="num">{{ '%.2f'|format(total_credit) }}</th>
+      </tr>
+    </tfoot>
+  </table>
+  {% if (total_debit - total_credit)|abs > 0.005 %}
+  <p class="flash flash-error" style="margin-top:1rem;">Out of balance by {{ '%.2f'|format(total_debit - total_credit) }} — check your journal entries.</p>
+  {% else %}
+  <p class="flash flash-success" style="margin-top:1rem;">Books are balanced.</p>
+  {% endif %}
+</div>
+{% endblock %}

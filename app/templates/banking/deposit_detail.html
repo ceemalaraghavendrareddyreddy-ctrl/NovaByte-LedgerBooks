@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Deposit — {{ deposit.deposit_date }}</h1>
+<p style="color:var(--muted);">To {{ deposit.destination_account.code }} - {{ deposit.destination_account.name }}</p>
+{% if deposit.memo %}<p>{{ deposit.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Payment Date</th><th>Customer</th><th>Reference</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in deposit.lines %}
+      <tr>
+        <td><a href="{{ url_for('sales.payment_detail', payment_id=line.payment.id) }}">{{ line.payment.payment_date }}</a></td>
+        <td>{{ line.payment.customer.name }}</td>
+        <td>{{ line.payment.reference_no or '-' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><th colspan="3">Total Deposited</th><th class="num">{{ '%.2f'|format(deposit.total) }}</th></tr></tfoot>
+  </table>
+</div>
+
+{% if deposit.journal_entry_id %}
+<p><a href="{{ url_for('ledger.journal_detail', entry_id=deposit.journal_entry_id) }}">View journal entry &rarr;</a></p>
+{% endif %}
+<a class="btn secondary" href="{{ url_for('banking.deposit_list') }}">Back to Deposits</a>
+{% endblock %}

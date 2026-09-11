@@ -1,0 +1,135 @@
+Demo Rehearsal Script
+Practice guide for the live &quot;register → invoice → fiscalize → switch&quot; demo, click by click.
+Before You Practice: Quick Reference
+<w:tblPr><w:tblW w:type="dxa" w:w="9400"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="2600"/><w:gridCol w:w="3400"/><w:gridCol w:w="3400"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2600"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">URL
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Existing login (for Step 4&apos;s contrast company)
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">LedgerBooks
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">http://localhost:5057
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">admin / admin123
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">MRA_TaxInvoice_System
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">http://localhost:5059
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">(create your own demo login — see One-Time Prep)
+Both are started the same way you&apos;ve been running them all along — the Browser pane, or by hand if you&apos;re rehearsing outside this session. Nothing below needs internet access; it all runs on your own machine.
+⚠ A one-time registration named &apos;demo_reference&apos; on MRA_TaxInvoice_System (company &apos;LoomStack Demo Reference Ltd&apos;) already exists from an earlier verification pass — reuse it, or register your own; either works. Check Settings → External Integration on that login before re-registering, to avoid creating a duplicate reference company.
+One-Time Prep (do this once, before your first rehearsal)
+This is the part that must NOT happen live in front of a prospect — it&apos;s slow and fiddly the first time. Do it once, now, and you&apos;ll never need to repeat it.
+Open http://localhost:5059/register and register a permanent &quot;reference&quot; company you&apos;ll reuse for every practice run and every real demo. Suggested values:
+<w:tblPr><w:tblW w:type="dxa" w:w="9000"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="3200"/><w:gridCol w:w="5800"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Field
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Value to type
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Legal Name
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">LoomStack Demo Reference Ltd
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">VAT Registration No.
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">12345678
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">BRN
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">C99999999
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Business Address
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">1 Demo Street, Port Louis
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Full name
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">your own name
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Username
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">demo_reference
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Password / Confirm
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">demo123456
+Log in with that username/password. Go to Settings (left nav) → find &quot;External Integration (API Key)&quot; near the bottom.
+Click &quot;Regenerate API Key&quot; once. A key appears — something like adc1bad8...c9de9d21. This is the key every practice LedgerBooks company will connect through.
+Copy that key into a plain text file on your Desktop — e.g. demo_mra_key.txt — alongside the URL http://localhost:5059. Keep that file open every time you rehearse or demo. This is your &quot;cheat sheet&quot; for the fast paste in Step 2 of each run below.
+⚠ Do this prep at least once before your first rehearsal — skip it and Step 3 of every run below will silently show nothing (see the callout in Step 2).
+The 90-Second Talk Track
+Say this while you click — don&apos;t narrate the software, narrate what it means for them:
+SAY: &quot;This is a brand-new client company — I haven&apos;t touched this before today.&quot;
+SAY: &quot;Watch the clock — registering, creating a real invoice, and getting it MRA-compliant takes under a minute.&quot;
+SAY: &quot;...and if you have fifteen clients, each one looks exactly like this — fully separate books, one login for you.&quot;
+Example Run #1 — Services Business
+Practice this one first. A consulting company issuing one invoice for advisory work.
+Step 1 — Register the company (aim: 30–40 seconds)
+Go to http://localhost:5057/register.
+Fill in exactly:
+<w:tblPr><w:tblW w:type="dxa" w:w="9000"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="3200"/><w:gridCol w:w="5800"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Field
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Type this
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Business Name
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Rainbow Consulting Ltd
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Your Name
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">your own name
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Username
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">demo_owner
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Password
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">demo123456
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3200"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Confirm Password
+<w:tcPr><w:tcW w:type="dxa" w:w="5800"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">demo123456
+Click &quot;Create Company&quot;. You land straight on the Dashboard, already logged in — no separate login step.
+SAY: &quot;That&apos;s it — a fully isolated set of books, its own Chart of Accounts already seeded, ready to invoice from.&quot;
+Step 2 — Connect it to MRA (aim: 15–20 seconds)
+⚠ This step is easy to forget in rehearsal — a brand-new company has NO MRA connection configured until you do this. Skip it and the invoice you&apos;re about to create will show no MRA status at all, with no error to explain why.
+Click Settings in the left sidebar (under Admin).
+Scroll to &quot;MRA API URL&quot; and &quot;MRA API Key&quot;.
+Paste in http://localhost:5059 and the key from your demo_mra_key.txt file.
+Click &quot;Save Settings&quot;.
+SAY: &quot;This one-time link is what turns on automatic compliance — from here every invoice fiscalizes itself.&quot;
+Step 3 — Create the customer (aim: 15 seconds)
+Sales → Customers → &quot;+ New Customer&quot;.
+Name: Baobab Textiles Ltd — leave every other field blank, click Save Customer.
+Step 4 — Create and post the invoice (aim: 40–50 seconds)
+Sales → Invoices → New Invoice.
+Customer: Baobab Textiles Ltd.
+Leave Invoice Date and Due Date at their defaults.
+Memo: Consulting services - August.
+On the line: leave the Item dropdown at &quot;-- manual line --&quot; (a brand-new company has no items yet — that&apos;s expected, not a bug). Description: Business advisory - August. Qty: 1. Unit Price: 5000. Leave Taxable checked.
+Watch the Subtotal / VAT / Total boxes update live as you type — the screen will read Subtotal 5000.00, VAT 750.00, Total 5750.00 (LedgerBooks doesn&apos;t use thousand-separator commas on screen).
+Click &quot;Save &amp; Post Invoice&quot;.
+SAY: &quot;That single click just posted a balanced double-entry journal entry AND sent it to MRA for fiscalisation — both in one step.&quot;
+Step 5 — Show it landed on the MRA side (aim: 15 seconds)
+On the invoice detail page you&apos;re now viewing, point at the line under the header: &quot;MRA: OFFLINE · [invoice number] · IRN [...]&quot; — this appeared automatically, nothing was clicked to make it happen.
+Switch to your already-open MRA_TaxInvoice_System tab (logged in as demo_reference), click Invoices in the nav, and point at the newest row — same customer, same total, already there.
+SAY: &quot;I didn&apos;t touch that system — LedgerBooks called it directly the moment I saved the invoice.&quot;
+Step 6 — Switch companies to show isolation (aim: 15 seconds)
+Back in LedgerBooks, log out and log back in as admin / admin123 (this account has access to more than one company, so the switcher will appear in the sidebar).
+Click the company switcher at the top of the sidebar, and pick a different company from the list.
+Land on that company&apos;s Dashboard — different invoices, different balances, completely separate.
+SAY: &quot;This is what it looks like when you have fifteen clients — one login, a dropdown, zero chance of one client ever seeing another&apos;s numbers.&quot;
+Example Run #2 — Retail Business (practice variant)
+Once Run #1 feels smooth, do it again with different data so you&apos;re not just reciting memorized values — you&apos;re comfortable with the shape of the flow.
+<w:tblPr><w:tblW w:type="dxa" w:w="9000"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="2400"/><w:gridCol w:w="6600"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2400"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Step
+<w:tcPr><w:tcW w:type="dxa" w:w="6600"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Use this instead
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Register
+<w:tcPr><w:tcW w:type="dxa" w:w="6600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Business Name: Ocean Breeze Retail Ltd  ·  Username: demo_owner2
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Customer
+<w:tcPr><w:tcW w:type="dxa" w:w="6600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Coastal Hardware Mauritius
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Invoice memo
+<w:tcPr><w:tcW w:type="dxa" w:w="6600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">POS restock - August batch
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Invoice line
+<w:tcPr><w:tcW w:type="dxa" w:w="6600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Description: Assorted hardware supplies · Qty: 3 · Unit Price: 850.00
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="2400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Expected totals
+<w:tcPr><w:tcW w:type="dxa" w:w="6600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Subtotal 2550.00 · VAT 382.50 · Total 2932.50
+Everything else — connect to MRA, save &amp; post, show it landed, switch companies — is identical to Run #1. Repeating the same six steps with different numbers is exactly the muscle memory you want before doing this in front of someone.
+Self-Timing Checklist
+<w:tblPr><w:tblW w:type="dxa" w:w="9000"/><w:tblBorders><w:top w:val="single" w:color="auto" w:sz="4"/><w:left w:val="single" w:color="auto" w:sz="4"/><w:bottom w:val="single" w:color="auto" w:sz="4"/><w:right w:val="single" w:color="auto" w:sz="4"/><w:insideH w:val="single" w:color="auto" w:sz="4"/><w:insideV w:val="single" w:color="auto" w:sz="4"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="3000"/><w:gridCol w:w="2600"/><w:gridCol w:w="3400"/></w:tblGrid><w:tr><w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Step
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Target time
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/><w:shd w:fill="EEE8D8" w:val="clear"/></w:tcPr><w:p><w:r><w:rPr><w:b/><w:bCs/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Your time (fill in as you practice)
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">1. Register company
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">30–40 sec
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">2. Connect to MRA
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">15–20 sec
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">3. Create customer
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">15 sec
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">4. Create &amp; post invoice
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">40–50 sec
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">5. Show MRA side
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">15 sec
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">6. Switch companies
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">15 sec
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+<w:tc><w:tcPr><w:tcW w:type="dxa" w:w="3000"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">Total
+<w:tcPr><w:tcW w:type="dxa" w:w="2600"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">under 3 minutes
+<w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">
+Note the original target in Step 3 of your outreach plan was &quot;under a minute&quot; for registration alone — the full six-step demo above (including the MRA connect and the company switch) realistically runs closer to 2–3 minutes once smooth. That&apos;s still well inside a 10-minute meeting slot with room for questions.
+If Something Goes Wrong Mid-Demo
+No MRA line appears on the invoice → you skipped Step 2 (connect to MRA) for this company. Recovery: go to Settings now, paste the key, then void and recreate the invoice — or simply say &quot;let me show you that connection step separately&quot; and move to Step 5 using an existing invoice.
+Username already taken → someone practiced with demo_owner already today. Just add a number: demo_owner3.
+Forgot exact numbers mid-sentence → that&apos;s fine, say the real number is less important than the fact that both systems agree on it — then let the on-screen totals speak for themselves.
+Nothing loads → check both servers are actually running before the meeting starts, not during it.
