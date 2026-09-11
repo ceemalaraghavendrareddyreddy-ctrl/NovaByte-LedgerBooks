@@ -9,6 +9,13 @@ services:
     # scheduler), and it respects $PORT the way Render expects.
     startCommand: "python serve.py"
     envVars:
+      # Render's native Python runtime ignores runtime.txt (that's Heroku's
+      # convention) — this env var is the actual documented way to pin it.
+      # Without it, Render defaults to whatever its latest image ships (3.14
+      # at the time this was set up), which broke psycopg2-binary's compiled
+      # wheel (built against an older CPython C API).
+      - key: PYTHON_VERSION
+        value: 3.12.10
       - key: SECRET_KEY
         generateValue: true
       - key: DATABASE_URL
