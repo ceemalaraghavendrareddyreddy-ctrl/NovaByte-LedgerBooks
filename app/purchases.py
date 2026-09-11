@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
 
 from app import db
@@ -11,7 +11,9 @@ from app.models import (
     StockMovement, Vendor, VendorCredit, VendorCreditApplication, VendorCreditLine, VendorPayment,
     VendorPaymentApplication,
 )
+from app.pdf import generate_bill_pdf
 from app.scoping import scoped_get, scoped_or_404, scoped_query
+from app.share_links import share_url, whatsapp_link
 
 purchases_bp = Blueprint("purchases", __name__, url_prefix="/purchases")
 
@@ -454,7 +456,24 @@ def post_bill(bill):
 @login_required
 def bill_detail(bill_id):
     bill = scoped_or_404(Bill, bill_id)
-    return render_template("purchases/bill_detail.html", bill=bill)
+    share_link = share_url("bill", bill.id, bill.company_id, "share.bill_pdf")
+    whatsapp_message = (
+        f"Bill {bill.bill_no} from {current_company().business_name} — "
+        f"{bill.currency} {bill.total:.2f}, due {bill.due_date.strftime('%d %b %Y')}. "
+        f"View/download: {share_link}"
+    )
+    return render_template(
+        "purchases/bill_detail.html", bill=bill,
+        whatsapp_href=whatsapp_link(bill.vendor.phone, whatsapp_message),
+    )
+
+
+@purchases_bp.route("/bills/<int:bill_id>/pdf")
+@login_required
+def bill_pdf(bill_id):
+    bill = scoped_or_404(Bill, bill_id)
+    buffer = generate_bill_pdf(bill, current_company())
+    return send_file(buffer, mimetype="application/pdf", as_attachment=False, download_name=f"{bill.bill_no}.pdf")
 
 
 @purchases_bp.route("/bills/<int:bill_id>/void", methods=["POST"])

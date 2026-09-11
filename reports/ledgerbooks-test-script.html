@@ -1,0 +1,497 @@
+<title>LedgerBooks Verification Script</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f5f3ec;
+  --surface:#ffffff;
+  --surface-2:#ece7da;
+  --ink:#182620;
+  --ink-soft:#4c574e;
+  --muted:#7d8579;
+  --line:#dcd6c4;
+  --accent:#146b5c;
+  --accent-ink:#0c4038;
+  --accent-soft:#dcece5;
+  --blue:#2c5c8a;
+  --blue-soft:#dde7f0;
+  --amber:#a3701f;
+  --amber-soft:#f2e6cc;
+  --rust:#a34432;
+  --rust-soft:#f2e0da;
+  --shadow:0 1px 2px rgba(24,38,32,.06), 0 8px 22px rgba(24,38,32,.06);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#10160f; --surface:#171f18; --surface-2:#1e2820; --ink:#e7ebe2; --ink-soft:#b9c2b6;
+    --muted:#84907f; --line:#2c372f; --accent:#5fc2a8; --accent-ink:#bdeadb; --accent-soft:#1c332a;
+    --blue:#8db3d9; --blue-soft:#1c2733; --amber:#e0b562; --amber-soft:#332a17; --rust:#e0917c; --rust-soft:#3a241d;
+    --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 22px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#10160f; --surface:#171f18; --surface-2:#1e2820; --ink:#e7ebe2; --ink-soft:#b9c2b6;
+  --muted:#84907f; --line:#2c372f; --accent:#5fc2a8; --accent-ink:#bdeadb; --accent-soft:#1c332a;
+  --blue:#8db3d9; --blue-soft:#1c2733; --amber:#e0b562; --amber-soft:#332a17; --rust:#e0917c; --rust-soft:#3a241d;
+  --shadow:0 1px 2px rgba(0,0,0,.35), 0 8px 22px rgba(0,0,0,.4);
+}
+*{box-sizing:border-box;}
+body{background:var(--bg); color:var(--ink); font-family:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif; font-size:16px; line-height:1.6;}
+h1,h2,h3{font-family:'Sora',ui-sans-serif,system-ui,sans-serif; text-wrap:balance; color:var(--ink); margin:0;}
+.mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+.tab{font-variant-numeric:tabular-nums;}
+a{color:var(--accent);}
+.wrap{max-width:900px; margin:0 auto; padding:0 clamp(1.1rem,3.5vw,2rem) 4rem;}
+
+/* Masthead */
+.masthead{padding:2.75rem 0 1.75rem; border-bottom:1px solid var(--line);}
+.eyebrow{font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.12em; text-transform:uppercase; color:var(--accent);}
+.masthead h1{font-size:clamp(1.7rem,4vw,2.3rem); font-weight:700; margin:.5rem 0 .6rem;}
+.masthead p{color:var(--ink-soft); max-width:62ch; margin:0 0 1rem;}
+.progress-row{display:flex; align-items:center; gap:.75rem; font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--muted);}
+.progress-track{flex:1; max-width:260px; height:6px; background:var(--surface-2); border-radius:3px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--accent); width:0%; transition:width .25s ease;}
+
+.setup{background:var(--accent-soft); border:1px solid var(--line); border-radius:10px; padding:1rem 1.25rem; margin:1.5rem 0 0;}
+.setup h3{font-size:.95rem; margin-bottom:.4rem;}
+.setup p{margin:0; font-size:.9rem; color:var(--ink-soft);}
+
+/* Test sections */
+.test{margin-top:2.5rem;}
+.test-head{display:flex; align-items:baseline; gap:.75rem; margin-bottom:.3rem;}
+.test-num{font-family:'IBM Plex Mono',monospace; font-size:.78rem; color:var(--accent); background:var(--accent-soft); padding:.15rem .6rem; border-radius:999px; font-weight:600;}
+.test h2{font-size:1.3rem;}
+.test-covers{color:var(--muted); font-size:.85rem; margin:.3rem 0 1.2rem; max-width:62ch;}
+
+.step{display:flex; gap:.9rem; padding:1rem 0; border-top:1px solid var(--line);}
+.step:first-of-type{border-top:none;}
+.step-check{flex-shrink:0; padding-top:.15rem;}
+.step-check input{width:18px; height:18px; accent-color:var(--accent); cursor:pointer;}
+.step-body{flex:1; min-width:0;}
+.step-title{font-weight:600; margin-bottom:.4rem;}
+.step-title .where{font-weight:400; color:var(--muted); font-size:.85rem;}
+
+.fields{display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:.5rem .9rem; margin:.5rem 0 .7rem; font-size:.87rem;}
+.field{display:flex; flex-direction:column; gap:.15rem;}
+.field .k{color:var(--muted); font-size:.72rem; text-transform:uppercase; letter-spacing:.05em;}
+.field .v{font-family:'IBM Plex Mono',monospace; color:var(--ink); background:var(--surface); border:1px solid var(--line); border-radius:5px; padding:.3rem .5rem;}
+
+.expect{background:var(--blue-soft); border-left:3px solid var(--blue); border-radius:0 8px 8px 0; padding:.7rem 1rem; font-size:.87rem; margin-top:.5rem;}
+.expect .lbl{font-family:'IBM Plex Mono',monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.08em; color:var(--blue); display:block; margin-bottom:.35rem;}
+.expect table{border-collapse:collapse; width:100%; margin-top:.3rem;}
+.expect td{padding:.2rem .4rem .2rem 0; font-family:'IBM Plex Mono',monospace; font-size:.86rem;}
+.expect td.amt{text-align:right; font-variant-numeric:tabular-nums;}
+.expect tr.total td{border-top:1px solid var(--line); padding-top:.35rem; font-weight:600;}
+
+.callout{background:var(--amber-soft); border-left:3px solid var(--amber); border-radius:0 8px 8px 0; padding:.7rem 1rem; font-size:.87rem; margin-top:.6rem; color:var(--ink-soft);}
+.callout b{color:var(--ink);}
+
+/* Tie-out */
+.tieout{margin-top:2.5rem; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:1.4rem 1.5rem; box-shadow:var(--shadow);}
+.tieout h2{font-size:1.2rem; margin-bottom:.3rem;}
+.tieout p.lede{color:var(--ink-soft); font-size:.88rem; margin-bottom:1.1rem; max-width:62ch;}
+.tiewrap{overflow-x:auto;}
+table.tie{border-collapse:collapse; width:100%; font-size:.86rem; min-width:520px;}
+table.tie th{text-align:left; font-family:'IBM Plex Mono',monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); background:var(--surface-2); padding:.5rem .7rem; border-bottom:1px solid var(--line);}
+table.tie td{padding:.45rem .7rem; border-bottom:1px solid var(--line); color:var(--ink-soft);}
+table.tie td:first-child{color:var(--ink); font-weight:500;}
+table.tie td.amt{text-align:right; font-family:'IBM Plex Mono',monospace; font-variant-numeric:tabular-nums;}
+table.tie tr.grand td{border-top:2px solid var(--ink); border-bottom:none; font-weight:700; color:var(--ink); padding-top:.6rem;}
+.check-your{background:var(--surface-2); border:1px dashed var(--line); border-radius:5px; padding:.15rem .5rem; font-family:'IBM Plex Mono',monospace; font-size:.8rem; color:var(--muted); display:inline-block; min-width:90px;}
+
+.pl-bs{display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1.2rem;}
+@media (max-width:640px){.pl-bs{grid-template-columns:1fr;}}
+.mini-card{background:var(--surface-2); border-radius:8px; padding:.9rem 1rem;}
+.mini-card h4{font-size:.85rem; margin-bottom:.5rem; color:var(--ink);}
+.mini-card .row{display:flex; justify-content:space-between; font-size:.85rem; padding:.15rem 0; color:var(--ink-soft);}
+.mini-card .row.total{border-top:1px solid var(--line); margin-top:.3rem; padding-top:.4rem; font-weight:600; color:var(--ink);}
+.mini-card .row .amt{font-family:'IBM Plex Mono',monospace;}
+
+footer{margin-top:3rem; padding-top:1.5rem; border-top:1px solid var(--line); color:var(--muted); font-size:.82rem;}
+</style>
+
+<div class="wrap">
+  <div class="masthead">
+    <span class="eyebrow">LedgerBooks · NovaByte-LedgerBooks company</span>
+    <h1>Three transactions that test everything</h1>
+    <p>Type each step's values into the live app exactly as shown, then compare what LedgerBooks shows you against the boxed "Expected" numbers. Every number here was hand-calculated first — if your screen doesn't match, that's worth flagging, not a sign you did something wrong.</p>
+    <div class="progress-row">
+      <span id="progress-label">0 / 15 steps checked</span>
+      <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+    <div class="setup">
+      <h3>Before you start</h3>
+      <p>Use the company you already registered (<b>NovaByte-LedgerBooks</b>, logged in as Ashok) — it starts at zero everywhere, which is exactly why these numbers will match exactly. Do the three tests in order; Test 3's reports only tie out correctly if Tests 1 and 2 were done first.</p>
+    </div>
+  </div>
+
+  <!-- ============ TEST 1 ============ -->
+  <div class="test">
+    <div class="test-head"><span class="test-num">Test 1</span><h2>Domestic sale, partial payment, and a credit memo</h2></div>
+    <p class="test-covers">Covers: Customers · Invoices · VAT · Receive Payment · Credit Memos · Journal entries · AR Aging</p>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="1"></div>
+      <div class="step-body">
+        <div class="step-title">Create the customer <span class="where">Sales → Customers → + New Customer</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Name</span><span class="v">Blue Horizon Traders</span></div>
+        </div>
+        <p style="font-size:.85rem;color:var(--muted);margin:0;">Leave every other field blank.</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="2"></div>
+      <div class="step-body">
+        <div class="step-title">Create the invoice <span class="where">Sales → Invoices → + New Invoice</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Customer</span><span class="v">Blue Horizon Traders</span></div>
+          <div class="field"><span class="k">VAT Rate %</span><span class="v">15.0</span></div>
+          <div class="field"><span class="k">Currency</span><span class="v">MUR</span></div>
+          <div class="field"><span class="k">Description</span><span class="v">Website Design Package</span></div>
+          <div class="field"><span class="k">Qty</span><span class="v">1</span></div>
+          <div class="field"><span class="k">Unit Price</span><span class="v">20000</span></div>
+          <div class="field"><span class="k">Taxable</span><span class="v">✓ checked</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — on the invoice screen</span>
+          <table>
+            <tr><td>Subtotal</td><td class="amt tab">20,000.00</td></tr>
+            <tr><td>VAT (15%)</td><td class="amt tab">3,000.00</td></tr>
+            <tr class="total"><td>Total</td><td class="amt tab">23,000.00</td></tr>
+          </table>
+        </div>
+        <div class="expect" style="margin-top:.5rem;">
+          <span class="lbl">Expected — click "View journal entry"</span>
+          <table>
+            <tr><td>1200 Accounts Receivable — debit</td><td class="amt tab">23,000.00</td></tr>
+            <tr><td>4000 Sales Revenue — credit</td><td class="amt tab">20,000.00</td></tr>
+            <tr><td>2100 VAT Payable — credit</td><td class="amt tab">3,000.00</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="3"></div>
+      <div class="step-body">
+        <div class="step-title">Record a partial payment <span class="where">Sales → Receive Payment</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Customer</span><span class="v">Blue Horizon Traders</span></div>
+          <div class="field"><span class="k">Amount Received</span><span class="v">15000</span></div>
+          <div class="field"><span class="k">Deposit To</span><span class="v">1010 Bank Account</span></div>
+          <div class="field"><span class="k">Apply to invoice</span><span class="v">15000.00 (full box)</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — invoice detail page updates to</span>
+          <table>
+            <tr><td>Status</td><td class="amt">partial</td></tr>
+            <tr><td>Paid</td><td class="amt tab">15,000.00</td></tr>
+            <tr class="total"><td>Balance Due</td><td class="amt tab">8,000.00</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="4"></div>
+      <div class="step-body">
+        <div class="step-title">Issue a credit memo, applied to the same invoice <span class="where">Sales → Credit Memos → + New Credit Memo</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Customer</span><span class="v">Blue Horizon Traders</span></div>
+          <div class="field"><span class="k">Related Invoice</span><span class="v">this invoice</span></div>
+          <div class="field"><span class="k">Description</span><span class="v">Goodwill discount</span></div>
+          <div class="field"><span class="k">Qty</span><span class="v">1</span></div>
+          <div class="field"><span class="k">Unit Price</span><span class="v">2000</span></div>
+          <div class="field"><span class="k">Taxable</span><span class="v">✓ checked</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — credit memo total</span>
+          <table>
+            <tr><td>Subtotal</td><td class="amt tab">2,000.00</td></tr>
+            <tr><td>VAT (15%)</td><td class="amt tab">300.00</td></tr>
+            <tr class="total"><td>Total</td><td class="amt tab">2,300.00</td></tr>
+          </table>
+        </div>
+        <div class="callout"><b>Then apply it</b> to the invoice from the credit memo's own detail page (or the invoice's "Apply Credit" action, if that's where this build puts it). After applying: invoice Balance Due should read <b class="mono">5,700.00</b> (8,000.00 − 2,300.00), status stays <b>partial</b>.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="5"></div>
+      <div class="step-body">
+        <div class="step-title">Check AR Aging <span class="where">Sales → AR Aging</span></div>
+        <div class="expect">
+          <span class="lbl">Expected</span>
+          <table><tr><td>Blue Horizon Traders, current bucket</td><td class="amt tab">5,700.00</td></tr></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TEST 2 ============ -->
+  <div class="test">
+    <div class="test-head"><span class="test-num">Test 2</span><h2>Foreign-currency sale and purchase, both settled at a different rate</h2></div>
+    <p class="test-covers">Covers: Vendors · Bills · Vendor Payments · multi-currency · realized FX gain/loss · AP Aging</p>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="6"></div>
+      <div class="step-body">
+        <div class="step-title">USD invoice, booked at 45 <span class="where">Sales → Invoices → + New Invoice</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Customer</span><span class="v">Blue Horizon Traders</span></div>
+          <div class="field"><span class="k">Currency</span><span class="v">USD</span></div>
+          <div class="field"><span class="k">Exchange Rate</span><span class="v">45</span></div>
+          <div class="field"><span class="k">Description</span><span class="v">Export Consulting</span></div>
+          <div class="field"><span class="k">Qty</span><span class="v">1</span></div>
+          <div class="field"><span class="k">Unit Price</span><span class="v">500</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — on screen</span>
+          <table>
+            <tr><td>Total (USD)</td><td class="amt tab">575.00</td></tr>
+            <tr class="total"><td>Total (base currency, @ 45.0)</td><td class="amt tab">25,875.00</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="7"></div>
+      <div class="step-body">
+        <div class="step-title">Receive the USD payment — but the rate moved to 46 <span class="where">Sales → Receive Payment</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Customer</span><span class="v">Blue Horizon Traders</span></div>
+          <div class="field"><span class="k">Currency</span><span class="v">USD</span></div>
+          <div class="field"><span class="k">Exchange Rate</span><span class="v">46</span></div>
+          <div class="field"><span class="k">Amount Received</span><span class="v">575</span></div>
+          <div class="field"><span class="k">Apply to invoice</span><span class="v">575.00 (full)</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — click "View journal entry" on the payment</span>
+          <table>
+            <tr><td>1010 Bank Account — debit</td><td class="amt tab">26,450.00</td></tr>
+            <tr><td>1200 Accounts Receivable — credit</td><td class="amt tab">25,875.00</td></tr>
+            <tr><td>4920 Realized Gain/Loss on Exchange — credit</td><td class="amt tab">575.00</td></tr>
+          </table>
+        </div>
+        <div class="callout">The rate rose between invoice and payment, so you received more MUR-equivalent than the receivable was booked at — that's a real <b>gain</b>, correctly credited. Invoice status → <b>paid</b>.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="8"></div>
+      <div class="step-body">
+        <div class="step-title">Vendor + EUR bill, booked at 49 <span class="where">Expenses → Vendors → + New Vendor, then Expenses → Bills → + New Bill</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Vendor name</span><span class="v">Print Solutions Ltd</span></div>
+          <div class="field"><span class="k">Currency</span><span class="v">EUR</span></div>
+          <div class="field"><span class="k">Exchange Rate</span><span class="v">49</span></div>
+          <div class="field"><span class="k">Description</span><span class="v">Design Software Subscription</span></div>
+          <div class="field"><span class="k">Qty</span><span class="v">1</span></div>
+          <div class="field"><span class="k">Unit Price</span><span class="v">300</span></div>
+          <div class="field"><span class="k">Account</span><span class="v">6900 Misc. Expense</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected</span>
+          <table>
+            <tr><td>Total (EUR)</td><td class="amt tab">345.00</td></tr>
+            <tr class="total"><td>Total (base currency, @ 49.0)</td><td class="amt tab">16,905.00</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="9"></div>
+      <div class="step-body">
+        <div class="step-title">Pay the EUR bill — rate moved to 48 <span class="where">Expenses → Pay Bills</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Vendor</span><span class="v">Print Solutions Ltd</span></div>
+          <div class="field"><span class="k">Currency</span><span class="v">EUR</span></div>
+          <div class="field"><span class="k">Exchange Rate</span><span class="v">48</span></div>
+          <div class="field"><span class="k">Amount Paid</span><span class="v">345</span></div>
+          <div class="field"><span class="k">Apply to bill</span><span class="v">345.00 (full)</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — journal entry</span>
+          <table>
+            <tr><td>2000 Accounts Payable — debit</td><td class="amt tab">16,905.00</td></tr>
+            <tr><td>1010 Bank Account — credit</td><td class="amt tab">16,560.00</td></tr>
+            <tr><td>4920 Realized Gain/Loss on Exchange — credit</td><td class="amt tab">345.00</td></tr>
+          </table>
+        </div>
+        <div class="callout">The rate <em>fell</em> between the bill and payment, so settling it actually cost less MUR than the liability was booked at — another real <b>gain</b>. Bill status → <b>paid</b>.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TEST 3 ============ -->
+  <div class="test">
+    <div class="test-head"><span class="test-num">Test 3</span><h2>A real asset purchase, its depreciation, and a recurring invoice</h2></div>
+    <p class="test-covers">Covers: Bills (asset purchase) · Fixed Asset Register · depreciation run · Recurring Invoices · P&amp;L · Balance Sheet</p>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="10"></div>
+      <div class="step-body">
+        <div class="step-title">Bill the printer purchase first <span class="where">Expenses → Bills → + New Bill</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Vendor</span><span class="v">Print Solutions Ltd</span></div>
+          <div class="field"><span class="k">Currency</span><span class="v">MUR</span></div>
+          <div class="field"><span class="k">Description</span><span class="v">Office Printer — Canon XYZ</span></div>
+          <div class="field"><span class="k">Qty</span><span class="v">1</span></div>
+          <div class="field"><span class="k">Unit Price</span><span class="v">36000</span></div>
+          <div class="field"><span class="k">Account</span><span class="v">1500 Equipment</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected</span>
+          <table>
+            <tr><td>Subtotal</td><td class="amt tab">36,000.00</td></tr>
+            <tr><td>VAT (15%)</td><td class="amt tab">5,400.00</td></tr>
+            <tr class="total"><td>Total</td><td class="amt tab">41,400.00</td></tr>
+          </table>
+        </div>
+        <div class="callout"><b>Leave this bill unpaid</b> — don't record a payment for it. It'll show as an open Accounts Payable balance, which is part of what we're checking in the tie-out below.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="11"></div>
+      <div class="step-body">
+        <div class="step-title">Register the fixed asset <span class="where">Fixed Assets → Asset Register → + New Asset</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Asset Name</span><span class="v">Office Printer</span></div>
+          <div class="field"><span class="k">Asset Account</span><span class="v">1500 Equipment</span></div>
+          <div class="field"><span class="k">Purchase Date</span><span class="v">~35 days ago</span></div>
+          <div class="field"><span class="k">Purchase Cost</span><span class="v">36000</span></div>
+          <div class="field"><span class="k">Salvage Value</span><span class="v">0</span></div>
+          <div class="field"><span class="k">Useful Life</span><span class="v">36 months</span></div>
+        </div>
+        <div class="expect">
+          <span class="lbl">Expected — on the asset's detail page</span>
+          <table><tr><td>Monthly Depreciation</td><td class="amt tab">1,000.00</td></tr></table>
+        </div>
+        <div class="callout">Backdating the purchase date is what makes depreciation <b>due</b> immediately — the schedule starts the month <em>after</em> purchase. This does not touch the ledger by itself (that's deliberate — see the note on the New Asset screen); the Bill above already recorded the real cost.</div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="12"></div>
+      <div class="step-body">
+        <div class="step-title">Run depreciation <span class="where">Fixed Assets → Asset Register → Run Depreciation</span></div>
+        <div class="expect">
+          <span class="lbl">Expected — journal entry for this run</span>
+          <table>
+            <tr><td>6400 Depreciation Expense — debit</td><td class="amt tab">1,000.00</td></tr>
+            <tr><td>1590 Accumulated Depreciation — credit</td><td class="amt tab">1,000.00</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="13"></div>
+      <div class="step-body">
+        <div class="step-title">Create a recurring invoice template <span class="where">Sales → Recurring Invoices → + New Recurring Invoice</span></div>
+        <div class="fields">
+          <div class="field"><span class="k">Template Name</span><span class="v">Monthly Support Retainer</span></div>
+          <div class="field"><span class="k">Customer</span><span class="v">Blue Horizon Traders</span></div>
+          <div class="field"><span class="k">Frequency</span><span class="v">Monthly</span></div>
+          <div class="field"><span class="k">Start Date</span><span class="v">today</span></div>
+          <div class="field"><span class="k">Description</span><span class="v">Support Retainer</span></div>
+          <div class="field"><span class="k">Qty</span><span class="v">1</span></div>
+          <div class="field"><span class="k">Unit Price</span><span class="v">4000</span></div>
+        </div>
+        <div class="expect"><span class="lbl">Expected — total per invoice</span><table><tr><td>Total</td><td class="amt tab">4,600.00</td></tr></table></div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-check"><input type="checkbox" data-step="14"></div>
+      <div class="step-body">
+        <div class="step-title">Generate it <span class="where">Sales → Recurring Invoices → Generate Due Invoices</span></div>
+        <div class="expect">
+          <span class="lbl">Expected — new invoice's journal entry</span>
+          <table>
+            <tr><td>1200 Accounts Receivable — debit</td><td class="amt tab">4,600.00</td></tr>
+            <tr><td>4000 Sales Revenue — credit</td><td class="amt tab">4,000.00</td></tr>
+            <tr><td>2100 VAT Payable — credit</td><td class="amt tab">600.00</td></tr>
+          </table>
+        </div>
+        <div class="callout">Leave this one unpaid too — it feeds the tie-out below.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TIE-OUT ============ -->
+  <div class="tieout">
+    <div class="step-check" style="display:inline-block; vertical-align:middle;"><input type="checkbox" data-step="15"></div>
+    <h2 style="display:inline;">The tie-out: everything above, added up</h2>
+    <p class="lede" style="margin-top:.6rem;">This is the real test. Three unrelated transactions, entered independently — if the reports below match to the cent, the whole engine (VAT, FX, depreciation, AR/AP) is working correctly together, not just in isolation.</p>
+
+    <div class="tiewrap">
+      <table class="tie">
+        <thead><tr><th>Where to look</th><th>Account</th><th style="text-align:right;">Expected</th><th style="text-align:right;">Your result</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="2">Accounting → Trial Balance</td><td>1200 Accounts Receivable</td><td class="amt tab">5,700.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>(5,700 from Test 1 + 4,600 from Test 3, both still open)</td><td class="amt tab">10,300.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>1010 Bank Account</td><td class="amt tab">24,890.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>1500 Equipment</td><td class="amt tab">36,000.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>1590 Accumulated Depreciation</td><td class="amt tab">1,000.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>2000 Accounts Payable</td><td class="amt tab">41,400.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>2100 VAT Payable</td><td class="amt tab">6,675.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>2110 VAT Receivable</td><td class="amt tab">7,605.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr><td>Accounting → Trial Balance</td><td>4920 Realized Gain/Loss on Exchange</td><td class="amt tab">920.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+          <tr class="grand"><td colspan="2">Trial Balance totals — debits vs. credits</td><td class="amt tab">94,495.00</td><td class="amt"><span class="check-your">?</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pl-bs">
+      <div class="mini-card">
+        <h4>Reports → Profit &amp; Loss (this month)</h4>
+        <div class="row"><span>Sales Revenue</span><span class="amt">44,500.00</span></div>
+        <div class="row"><span>Realized FX Gain</span><span class="amt">920.00</span></div>
+        <div class="row"><span>Misc. Expense</span><span class="amt">(14,700.00)</span></div>
+        <div class="row"><span>Depreciation Expense</span><span class="amt">(1,000.00)</span></div>
+        <div class="row total"><span>Net Profit</span><span class="amt">29,720.00</span></div>
+      </div>
+      <div class="mini-card">
+        <h4>Reports → Balance Sheet (as of today)</h4>
+        <div class="row"><span>Total Assets</span><span class="amt">77,795.00</span></div>
+        <div class="row"><span>Total Liabilities</span><span class="amt">48,075.00</span></div>
+        <div class="row"><span>Net Profit (current earnings)</span><span class="amt">29,720.00</span></div>
+        <div class="row total"><span>Liabilities + Equity</span><span class="amt">77,795.00</span></div>
+      </div>
+    </div>
+    <div class="callout" style="margin-top:1rem;"><b>The one number that must match exactly:</b> Total Assets and (Liabilities + Equity) on the Balance Sheet both read <b class="mono">77,795.00</b>. If they don't, something in the chain above didn't post the way it should have — tell me which test's numbers looked off first, and I'll trace it from there.</div>
+  </div>
+
+  <footer>Every figure on this page was calculated independently of the app, by hand, before you ran anything — a mismatch tells us something real, not just a typo in the test.</footer>
+</div>
+
+<script>
+const STORAGE_KEY = 'ledgerbooks-test-script-v1';
+const boxes = document.querySelectorAll('input[type=checkbox][data-step]');
+const total = boxes.length;
+
+function load() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    boxes.forEach(b => { if (saved[b.dataset.step]) b.checked = true; });
+  } catch (e) {}
+  updateProgress();
+}
+function save() {
+  const state = {};
+  boxes.forEach(b => { state[b.dataset.step] = b.checked; });
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {}
+}
+function updateProgress() {
+  const checked = Array.from(boxes).filter(b => b.checked).length;
+  document.getElementById('progress-label').textContent = `${checked} / ${total} steps checked`;
+  document.getElementById('progress-fill').style.width = `${(checked / total) * 100}%`;
+}
+boxes.forEach(b => b.addEventListener('change', () => { save(); updateProgress(); }));
+load();
+</script>

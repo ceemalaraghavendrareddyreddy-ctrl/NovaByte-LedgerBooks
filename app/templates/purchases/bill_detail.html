@@ -45,6 +45,8 @@
 {% if bill.status in ('open', 'partial') %}
 <a class="btn" href="{{ url_for('purchases.payment_new', vendor_id=bill.vendor_id) }}">Pay Vendor</a>
 {% endif %}
+<a class="btn" href="{{ url_for('purchases.bill_pdf', bill_id=bill.id) }}" target="_blank">📄 View / Print PDF</a>
+<a class="btn" style="background:#25D366;" href="{{ whatsapp_href }}" target="_blank" rel="noopener">Share via WhatsApp</a>
 {% if bill.status != 'void' and bill.amount_paid == 0 %}
 <form class="inline" method="post" action="{{ url_for('purchases.bill_void', bill_id=bill.id) }}" onsubmit="return confirm('Void this bill? This reverses its ledger entry.');">
   <button class="btn danger" type="submit">Void Bill</button>

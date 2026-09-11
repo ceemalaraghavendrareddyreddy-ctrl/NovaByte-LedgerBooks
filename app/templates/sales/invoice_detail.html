@@ -54,6 +54,7 @@
 {% endif %}
 
 <a class="btn" href="{{ url_for('sales.invoice_pdf', invoice_id=invoice.id) }}" target="_blank">📄 View / Print PDF</a>
+<a class="btn" style="background:#25D366;" href="{{ whatsapp_href }}" target="_blank" rel="noopener">Share via WhatsApp</a>
 {% if invoice.status in ('open', 'partial') %}
 <a class="btn" href="{{ url_for('sales.payment_new', customer_id=invoice.customer_id) }}">Record Payment</a>
 {% endif %}

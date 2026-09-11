@@ -11,8 +11,9 @@ from app.models import (
     EstimateLine, Invoice, InvoiceLine, Item, JournalEntry, JournalLine, Payment, PaymentApplication,
     RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, StockMovement,
 )
-from app.pdf import generate_invoice_pdf
+from app.pdf import generate_credit_memo_pdf, generate_invoice_pdf
 from app.scoping import scoped_get, scoped_or_404, scoped_query
+from app.share_links import share_url, whatsapp_link
 from app.mra_bridge import (
     fiscalize_invoice_with_mra, fiscalize_credit_memo_with_mra,
     void_invoice_via_credit_note, void_credit_memo_via_debit_note,
@@ -488,7 +489,16 @@ def post_invoice(invoice):
 @login_required
 def invoice_detail(invoice_id):
     invoice = scoped_or_404(Invoice, invoice_id)
-    return render_template("sales/invoice_detail.html", invoice=invoice)
+    share_link = share_url("invoice", invoice.id, invoice.company_id, "share.invoice_pdf")
+    whatsapp_message = (
+        f"Hi {invoice.customer.name}, here's Invoice {invoice.invoice_no} from {current_company().business_name} — "
+        f"{invoice.currency} {invoice.total:.2f}, due {invoice.due_date.strftime('%d %b %Y')}. "
+        f"View/download: {share_link}"
+    )
+    return render_template(
+        "sales/invoice_detail.html", invoice=invoice,
+        whatsapp_href=whatsapp_link(invoice.customer.phone, whatsapp_message),
+    )
 
 
 @sales_bp.route("/invoices/<int:invoice_id>/pdf")
@@ -972,7 +982,26 @@ def credit_memo_detail(credit_memo_id):
         [inv for inv in credit_memo.customer.invoices if inv.status in ("open", "partial")],
         key=lambda i: i.due_date,
     )
-    return render_template("sales/credit_memo_detail.html", credit_memo=credit_memo, open_invoices=open_invoices)
+    share_link = share_url("credit_memo", credit_memo.id, credit_memo.company_id, "share.credit_memo_pdf")
+    whatsapp_message = (
+        f"Hi {credit_memo.customer.name}, Credit Memo {credit_memo.credit_no} from "
+        f"{current_company().business_name} — total {credit_memo.total:.2f}. View/download: {share_link}"
+    )
+    return render_template(
+        "sales/credit_memo_detail.html", credit_memo=credit_memo, open_invoices=open_invoices,
+        whatsapp_href=whatsapp_link(credit_memo.customer.phone, whatsapp_message),
+    )
+
+
+@sales_bp.route("/credit-memos/<int:credit_memo_id>/pdf")
+@login_required
+def credit_memo_pdf(credit_memo_id):
+    credit_memo = scoped_or_404(CreditMemo, credit_memo_id)
+    buffer = generate_credit_memo_pdf(credit_memo, current_company())
+    return send_file(
+        buffer, mimetype="application/pdf", as_attachment=False,
+        download_name=f"{credit_memo.credit_no}.pdf",
+    )
 
 
 @sales_bp.route("/credit-memos/<int:credit_memo_id>/apply", methods=["POST"])
