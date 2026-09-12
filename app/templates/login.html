@@ -1,16 +1,42 @@
 {% extends "base.html" %}
+{% set hide_default_flash = true %}
 {% block content %}
-<div class="card" style="max-width:360px;margin:3rem auto;">
-  <h2>📒 LedgerBooks Login</h2>
-  <form method="post">
-    <div class="form-row" style="flex-direction:column;align-items:stretch;">
-      <label>Username</label>
-      <input type="text" name="username" required autofocus>
-      <label>Password</label>
-      <input type="password" name="password" required>
+<div class="auth-shell">
+  <div class="auth-brand">
+    <div class="mark">📒 LedgerBooks</div>
+    <h1>Run the books for every company you manage, from one login.</h1>
+    <p class="tagline">Double-entry accounting, multi-currency, and fixed asset tracking — built for accountants serving more than one client.</p>
+    <ul class="auth-features">
+      <li><span class="check">✓</span> Multi-company books, fully isolated per client</li>
+      <li><span class="check">✓</span> Multi-currency invoicing with real FX gain/loss</li>
+      <li><span class="check">✓</span> Recurring invoices &amp; fixed asset depreciation, automated</li>
+      <li><span class="check">✓</span> MRA e-invoicing built in, for Mauritius compliance</li>
+    </ul>
+  </div>
+  <div class="auth-form-side">
+    <div class="auth-card">
+      <h2>Welcome back</h2>
+      <p class="sub">Log in to your company's books.</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <form method="post">
+        <div class="form-row">
+          <label>Username</label>
+          <input type="text" name="username" required autofocus>
+          <label>Password</label>
+          <input type="password" name="password" required>
+        </div>
+        <button class="btn" type="submit">Log in</button>
+      </form>
+      <p class="switch">New here? <a href="{{ url_for('auth.register') }}">Create a company account</a></p>
     </div>
-    <button class="btn" type="submit">Log in</button>
-  </form>
-  <p style="margin-top:1rem;"><a href="{{ url_for('auth.register') }}">Create a new company account</a></p>
+  </div>
 </div>
 {% endblock %}

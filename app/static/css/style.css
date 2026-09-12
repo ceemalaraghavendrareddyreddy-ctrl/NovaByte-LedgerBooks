@@ -50,6 +50,7 @@ body {
   border-bottom: 1px solid rgba(255,255,255,0.15);
   margin-bottom: 0.4rem;
 }
+.sidebar-logo { max-height: 36px; max-width: 100%; object-fit: contain; display: block; }
 
 .sidebar-link {
   display: block;
@@ -173,6 +174,20 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .btn.danger { background: var(--error); }
 .btn.small { padding: 0.3rem 0.7rem; font-size: 0.85rem; }
 
+.onboarding-card { border-left: 4px solid var(--accent); }
+.onboarding-list { list-style: none; margin: 0.6rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.onboarding-list li { display: flex; align-items: center; gap: 0.7rem; font-size: 0.95rem; }
+.onboarding-list .tick {
+  flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 700; color: white;
+}
+.onboarding-list li.done .tick { background: var(--accent); border-color: var(--accent); }
+.onboarding-list li.done { color: var(--muted); text-decoration: line-through; }
+.onboarding-list li a { color: var(--accent-dark); font-weight: 600; text-decoration: none; }
+.onboarding-list li a:hover { text-decoration: underline; }
+
 .stat-row { display: flex; gap: 1rem; flex-wrap: wrap; }
 .stat { flex: 1; min-width: 160px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; }
 .stat .label { color: var(--muted); font-size: 0.85rem; text-transform: uppercase; }
@@ -244,3 +259,62 @@ form.inline { display: inline; }
   .badge.debit { background: #1f3a2a; }
   .badge.credit { background: #1b2f47; color: #9dc2f7; }
 }
+
+/* ── Auth screens (login / register) — split panel, full viewport ── */
+.auth-shell {
+  min-height: 100vh;
+  margin: -1.2rem;                 /* cancels .container's own padding so this reaches every edge */
+  display: flex;
+}
+@media (max-width: 800px) { .auth-shell { flex-direction: column; min-height: auto; } }
+
+.auth-brand {
+  flex: 1 1 42%;
+  background: linear-gradient(160deg, var(--accent-dark), var(--accent));
+  color: white;
+  padding: 3rem 3rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100vh;
+}
+@media (max-width: 800px) { .auth-brand { min-height: auto; padding: 2.5rem 1.5rem; } }
+
+.auth-brand .mark { font-size: 1.6rem; font-weight: 700; margin-bottom: 2.5rem; }
+.auth-brand h1 { color: white; font-size: 1.9rem; font-weight: 700; line-height: 1.25; margin: 0 0 0.75rem; max-width: 22ch; }
+.auth-brand p.tagline { color: rgba(255,255,255,0.82); font-size: 1rem; max-width: 38ch; margin: 0 0 2.2rem; }
+
+.auth-features { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.9rem; }
+.auth-features li { display: flex; gap: 0.7rem; align-items: flex-start; font-size: 0.92rem; color: rgba(255,255,255,0.92); }
+.auth-features .check {
+  flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+  background: rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center;
+  font-size: 0.7rem; margin-top: 0.1rem;
+}
+
+.auth-form-side {
+  flex: 1 1 58%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2.5rem 1.5rem;
+  background: var(--bg);
+}
+.auth-card { width: 100%; max-width: 380px; }
+.auth-card h2 { font-size: 1.4rem; margin: 0 0 0.3rem; }
+.auth-card .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1.6rem; }
+.auth-card .form-row { flex-direction: column; align-items: stretch; margin-bottom: 0; }
+.auth-card label { font-size: 0.85rem; font-weight: 600; color: var(--text); margin-top: 0.9rem; margin-bottom: 0.3rem; }
+.auth-card input {
+  padding: 0.65rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  background: var(--card);
+  color: var(--text);
+}
+.auth-card input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(26,127,90,0.15); }
+.auth-card .btn { width: 100%; text-align: center; margin-top: 1.4rem; padding: 0.75rem 1.2rem; font-weight: 600; }
+.auth-card .switch { margin-top: 1.4rem; font-size: 0.9rem; text-align: center; color: var(--muted); }
+.auth-card .switch a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.auth-card .switch a:hover { text-decoration: underline; }

@@ -91,6 +91,12 @@ class CompanySettings(db.Model):
     email = db.Column(db.String(120))
     vat_number = db.Column(db.String(30))
     invoice_footer_note = db.Column(db.String(255), default="Thank you for your business.")
+    # A full data: URI ("data:image/png;base64,...."), stored directly rather than as a
+    # file on disk — Render's free web service has no persistent disk, so anything
+    # written to the filesystem vanishes on the next deploy/restart; this survives in
+    # the database like everything else. Capped at a small size in settings.py (well
+    # under MySQL's plain TEXT column limit of ~64KB) — a sidebar logo, not a photo.
+    logo_data = db.Column(db.Text)
     # The currency every ledger entry is posted in, regardless of what currency an
     # invoice/bill/payment is issued or received in — see Invoice.currency for how a
     # foreign-currency document still lands in the GL correctly.

@@ -1,3 +1,4 @@
+import base64
 import secrets
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
@@ -8,6 +9,30 @@ from app.auth import current_company, owner_required
 from app.models import CURRENCIES, CompanySettings
 
 settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
+
+# Kept well under MySQL's plain TEXT column limit (~64KB) once base64-inflated
+# (~33% larger than the raw file) — a sidebar logo, not a photo upload.
+MAX_LOGO_BYTES = 40 * 1024
+ALLOWED_LOGO_TYPES = {"image/png", "image/jpeg", "image/svg+xml", "image/webp"}
+
+
+def _handle_logo_upload(settings):
+    """Reads request.files['logo'] (if present) into settings.logo_data as a data:
+    URI. Never raises on a bad upload — flashes an error and leaves the existing
+    logo untouched, since a mistake here shouldn't block saving the rest of the form."""
+    file = request.files.get("logo")
+    if not file or not file.filename:
+        return
+    if file.mimetype not in ALLOWED_LOGO_TYPES:
+        flash(f"Logo must be PNG, JPEG, WebP, or SVG (got {file.mimetype}). Logo not changed.", "error")
+        return
+    raw = file.read()
+    if len(raw) > MAX_LOGO_BYTES:
+        flash(f"Logo must be under {MAX_LOGO_BYTES // 1024}KB (got {len(raw) // 1024}KB). "
+              f"Resize/compress it and try again. Logo not changed.", "error")
+        return
+    encoded = base64.b64encode(raw).decode("ascii")
+    settings.logo_data = f"data:{file.mimetype};base64,{encoded}"
 
 
 @settings_bp.route("/company", methods=["GET", "POST"])
@@ -33,6 +58,10 @@ def company():
                 "success",
             )
         settings.base_currency = new_base_currency
+        if request.form.get("remove_logo"):
+            settings.logo_data = None
+        else:
+            _handle_logo_upload(settings)
         db.session.commit()
         flash("Company settings updated.", "success")
         return redirect(url_for("settings.company"))

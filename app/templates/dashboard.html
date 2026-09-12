@@ -2,6 +2,31 @@
 {% block content %}
 <h1>Dashboard</h1>
 
+{% if show_onboarding %}
+<div class="card onboarding-card">
+  <h3 style="margin-top:0;">Getting started</h3>
+  <p style="color:var(--muted); font-size:.9rem; margin-top:-.4rem;">Four things worth doing before you rely on this company's books day to day.</p>
+  <ul class="onboarding-list">
+    <li class="{{ 'done' if onboarding.has_customer }}">
+      <span class="tick">{{ '✓' if onboarding.has_customer else '' }}</span>
+      {% if onboarding.has_customer %}Add your first customer{% else %}<a href="{{ url_for('sales.customer_new') }}">Add your first customer</a>{% endif %}
+    </li>
+    <li class="{{ 'done' if onboarding.has_invoice }}">
+      <span class="tick">{{ '✓' if onboarding.has_invoice else '' }}</span>
+      {% if onboarding.has_invoice %}Create your first invoice{% else %}<a href="{{ url_for('sales.invoice_new') }}">Create your first invoice</a>{% endif %}
+    </li>
+    <li class="{{ 'done' if onboarding.has_payment }}">
+      <span class="tick">{{ '✓' if onboarding.has_payment else '' }}</span>
+      {% if onboarding.has_payment %}Record a payment received{% else %}<a href="{{ url_for('sales.payment_new') }}">Record a payment received</a>{% endif %}
+    </li>
+    <li class="{{ 'done' if onboarding.has_vendor_bill }}">
+      <span class="tick">{{ '✓' if onboarding.has_vendor_bill else '' }}</span>
+      {% if onboarding.has_vendor_bill %}Add a vendor and record a bill{% else %}<a href="{{ url_for('purchases.vendor_new') }}">Add a vendor and record a bill</a>{% endif %}
+    </li>
+  </ul>
+</div>
+{% endif %}
+
 <div class="card">
   <h3 style="margin-top:0;">Quick Actions</h3>
   <a class="btn" href="{{ url_for('sales.invoice_new') }}">+ Invoice</a>

@@ -3,7 +3,24 @@
 <h1>Company Settings</h1>
 <p style="color:var(--muted);">Shown on the header and footer of every invoice PDF.</p>
 <div class="card" style="max-width:600px;">
-  <form method="post">
+  <form method="post" enctype="multipart/form-data">
+    <div class="form-row">
+      <label>Logo</label>
+      <div style="display:flex; align-items:center; gap:1rem;">
+        {% if settings.logo_data %}
+        <img src="{{ settings.logo_data }}" alt="Company logo" style="height:48px; max-width:120px; object-fit:contain; border:1px solid var(--border); border-radius:6px; padding:.25rem; background:white;">
+        {% endif %}
+        <div>
+          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
+          {% if settings.logo_data %}
+          <label style="display:block; font-weight:normal; font-size:.85rem; margin-top:.3rem;">
+            <input type="checkbox" name="remove_logo" value="1" style="width:auto;"> Remove current logo
+          </label>
+          {% endif %}
+        </div>
+      </div>
+      <p style="color:var(--muted); font-size:.8rem; margin:.3rem 0 0;">PNG, JPEG, WebP, or SVG — under 40KB. Shows at the top of the sidebar instead of the default icon.</p>
+    </div>
     <div class="form-row"><label>Business Name</label><input type="text" name="business_name" required value="{{ settings.business_name }}"></div>
     <div class="form-row"><label>Address</label><textarea name="address" rows="2">{{ settings.address or '' }}</textarea></div>
     <div class="form-row"><label>Phone</label><input type="text" name="phone" value="{{ settings.phone or '' }}"></div>

@@ -3,7 +3,7 @@ from datetime import date, timedelta
 from flask import Blueprint, render_template
 from flask_login import login_required
 
-from app.models import Account, Bill, Invoice, Item, JournalEntry, Payment
+from app.models import Account, Bill, Customer, Invoice, Item, JournalEntry, Payment, Vendor
 from app.scoping import scoped_query
 
 dashboard_bp = Blueprint("dashboard", __name__)
@@ -83,6 +83,17 @@ def index():
     # ── Recent activity ──────────────────────────────────────────────
     recent_entries = scoped_query(JournalEntry).order_by(JournalEntry.entry_date.desc(), JournalEntry.id.desc()).limit(8).all()
 
+    # ── Getting-started checklist — real counts, not a static "welcome" banner.
+    # Shows until every step is done, then disappears on its own; a company that's
+    # already active just never sees it re-appear once all four are checked.
+    onboarding = {
+        "has_customer": scoped_query(Customer).first() is not None,
+        "has_invoice": scoped_query(Invoice).first() is not None,
+        "has_payment": scoped_query(Payment).first() is not None,
+        "has_vendor_bill": scoped_query(Vendor).first() is not None and scoped_query(Bill).first() is not None,
+    }
+    show_onboarding = not all(onboarding.values())
+
     return render_template(
         "dashboard.html",
         bank_rows=bank_rows, bank_total=bank_total,
@@ -92,4 +103,5 @@ def index():
         income_mtd=income_mtd, expense_mtd=expense_mtd, net_income_mtd=net_income_mtd, pl_max=pl_max,
         low_stock_items=low_stock_items, recent_entries=recent_entries,
         month_name=today.strftime("%B"),
+        onboarding=onboarding, show_onboarding=show_onboarding,
     )

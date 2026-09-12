@@ -127,8 +127,46 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+        _sync_missing_columns()
 
     from app.scheduler import init_scheduler
     init_scheduler(app)
 
     return app
+
+
+def _sync_missing_columns():
+    """Adds any column that exists on a model but not yet in the actual database —
+    a small safety net for exactly the situation this app hit with company_settings.logo_data:
+    a hosting platform's free tier (Render) has no Shell access to run a one-off
+    migrate_*.py script against the live database.
+
+    Deliberately conservative: only ADDs a plain nullable column with no backfill.
+    A column that needs a NOT NULL constraint, a default applied to existing rows, or
+    any other real migration logic still belongs in its own migrate_*.py script (see
+    migrate_multicurrency.py, migrate_payroll_bridge.py for that pattern) — this only
+    covers the "forgot a column exists on a platform with no shell" case.
+    db.create_all() already gives a brand-new table every column it needs; this only
+    ever touches tables that already existed before this app boot.
+    """
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(db.engine)
+    existing_tables = set(inspector.get_table_names())
+    for table in db.metadata.sorted_tables:
+        if table.name not in existing_tables:
+            continue  # db.create_all() just created this one fresh, with every column already
+        existing_columns = {col["name"] for col in inspector.get_columns(table.name)}
+        for column in table.columns:
+            if column.name in existing_columns:
+                continue
+            try:
+                col_type = column.type.compile(dialect=db.engine.dialect)
+                with db.engine.begin() as conn:
+                    conn.execute(text(f"ALTER TABLE {table.name} ADD COLUMN {column.name} {col_type}"))
+                print(f"[auto-migrate] added {table.name}.{column.name}")
+            except Exception as exc:
+                # Never let a startup-time schema sync take the whole app down — worst
+                # case, that one column stays missing and whatever route needs it errors
+                # normally, same as before this safety net existed.
+                print(f"[auto-migrate] could not add {table.name}.{column.name}: {exc}")
