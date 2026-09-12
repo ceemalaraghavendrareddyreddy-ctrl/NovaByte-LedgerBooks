@@ -4,31 +4,25 @@
 
 <div class="card">
   <h3 style="margin-top:0;">Download Backup</h3>
-  {% if mysqldump_available %}
-  <p>Downloads a full SQL dump of the entire database — every account, transaction, customer, and setting.</p>
+  <p>Downloads a complete snapshot of the database — every account, transaction, customer, and
+     setting — as a single compressed file. Works the same way regardless of whether this
+     company runs on MySQL or Postgres.</p>
   <a class="btn" href="{{ url_for('backup.download_backup') }}">Download Backup Now</a>
-  {% else %}
-  <p class="flash flash-error">mysqldump.exe wasn't found on this machine. Backups can't be generated from here — use MySQL Workbench or the command line directly.</p>
-  {% endif %}
 </div>
 
 <div class="card">
   <h3 style="margin-top:0;">Restore from Backup</h3>
-  {% if mysql_available %}
   <p class="flash flash-error">
     <b>This replaces every account, transaction, customer, and setting currently in the system</b> with
     whatever is in the uploaded file. There is no undo — take a fresh backup first if you're unsure.
   </p>
   <form method="post" action="{{ url_for('backup.restore_backup') }}" enctype="multipart/form-data">
-    <div class="form-row"><label>Backup File (.sql)</label><input type="file" name="backup_file" accept=".sql" required></div>
+    <div class="form-row"><label>Backup File (.json.gz)</label><input type="file" name="backup_file" accept=".gz" required></div>
     <div class="form-row">
       <label>Type RESTORE to confirm</label>
       <input type="text" name="confirm_text" required placeholder="RESTORE">
     </div>
     <button class="btn danger" type="submit" onclick="return confirm('This will overwrite ALL current data with the uploaded backup. Are you absolutely sure?');">Restore Database</button>
   </form>
-  {% else %}
-  <p class="flash flash-error">mysql.exe wasn't found on this machine. Restore can't run from here.</p>
-  {% endif %}
 </div>
 {% endblock %}
