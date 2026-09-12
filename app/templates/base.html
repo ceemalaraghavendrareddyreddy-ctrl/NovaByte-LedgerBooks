@@ -28,75 +28,75 @@
       <div class="sidebar-link" style="color:var(--muted);">🏢 {{ current_company().business_name }}</div>
       {% endif %}
 
-      <a class="sidebar-link" href="{{ url_for('dashboard.index') }}">🏠 Dashboard</a>
+      <a class="sidebar-link{{ ' active' if request.endpoint == 'dashboard.index' else '' }}" href="{{ url_for('dashboard.index') }}">🏠 Dashboard</a>
 
-      <details class="sidebar-group" open>
+      <details class="sidebar-group" {{ 'open' if request.blueprint == 'banking' else '' }}>
         <summary>🏦 Banking</summary>
-        <a href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
-        <a href="{{ url_for('banking.reconcile_history') }}">Reconciliation History</a>
-        <a href="{{ url_for('banking.transfer') }}">Transfer Funds</a>
-        <a href="{{ url_for('banking.make_deposit') }}">Make Deposit</a>
-        <a href="{{ url_for('banking.deposit_list') }}">Deposits</a>
-        <a href="{{ url_for('banking.import_start') }}">Import Statement</a>
+        <a class="{{ 'active' if request.endpoint == 'banking.reconcile_start' else '' }}" href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+        <a class="{{ 'active' if request.endpoint == 'banking.reconcile_history' else '' }}" href="{{ url_for('banking.reconcile_history') }}">Reconciliation History</a>
+        <a class="{{ 'active' if request.endpoint == 'banking.transfer' else '' }}" href="{{ url_for('banking.transfer') }}">Transfer Funds</a>
+        <a class="{{ 'active' if request.endpoint == 'banking.make_deposit' else '' }}" href="{{ url_for('banking.make_deposit') }}">Make Deposit</a>
+        <a class="{{ 'active' if request.endpoint == 'banking.deposit_list' else '' }}" href="{{ url_for('banking.deposit_list') }}">Deposits</a>
+        <a class="{{ 'active' if request.endpoint == 'banking.import_start' else '' }}" href="{{ url_for('banking.import_start') }}">Import Statement</a>
       </details>
 
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint == 'sales' else '' }}>
         <summary>📇 Sales</summary>
-        <a href="{{ url_for('sales.customer_list') }}">Customers</a>
-        <a href="{{ url_for('sales.estimate_list') }}">Estimates</a>
-        <a href="{{ url_for('sales.invoice_list') }}">Invoices</a>
-        <a href="{{ url_for('sales.recurring_list') }}">Recurring Invoices</a>
-        <a href="{{ url_for('sales.credit_memo_list') }}">Credit Memos</a>
-        <a href="{{ url_for('sales.payment_list') }}">Receive Payment</a>
-        <a href="{{ url_for('sales.aging_report') }}">AR Aging</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.customer_list' else '' }}" href="{{ url_for('sales.customer_list') }}">Customers</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.estimate_list' else '' }}" href="{{ url_for('sales.estimate_list') }}">Estimates</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.invoice_list' else '' }}" href="{{ url_for('sales.invoice_list') }}">Invoices</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.recurring_list' else '' }}" href="{{ url_for('sales.recurring_list') }}">Recurring Invoices</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.credit_memo_list' else '' }}" href="{{ url_for('sales.credit_memo_list') }}">Credit Memos</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.payment_list' else '' }}" href="{{ url_for('sales.payment_list') }}">Receive Payment</a>
+        <a class="{{ 'active' if request.endpoint == 'sales.aging_report' else '' }}" href="{{ url_for('sales.aging_report') }}">AR Aging</a>
       </details>
 
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint == 'purchases' else '' }}>
         <summary>🧾 Expenses</summary>
-        <a href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
-        <a href="{{ url_for('purchases.po_list') }}">Purchase Orders</a>
-        <a href="{{ url_for('purchases.bill_list') }}">Bills</a>
-        <a href="{{ url_for('purchases.vendor_credit_list') }}">Vendor Credits</a>
-        <a href="{{ url_for('purchases.payment_list') }}">Pay Bills</a>
-        <a href="{{ url_for('purchases.aging_report') }}">AP Aging</a>
+        <a class="{{ 'active' if request.endpoint == 'purchases.vendor_list' else '' }}" href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
+        <a class="{{ 'active' if request.endpoint == 'purchases.po_list' else '' }}" href="{{ url_for('purchases.po_list') }}">Purchase Orders</a>
+        <a class="{{ 'active' if request.endpoint == 'purchases.bill_list' else '' }}" href="{{ url_for('purchases.bill_list') }}">Bills</a>
+        <a class="{{ 'active' if request.endpoint == 'purchases.vendor_credit_list' else '' }}" href="{{ url_for('purchases.vendor_credit_list') }}">Vendor Credits</a>
+        <a class="{{ 'active' if request.endpoint == 'purchases.payment_list' else '' }}" href="{{ url_for('purchases.payment_list') }}">Pay Bills</a>
+        <a class="{{ 'active' if request.endpoint == 'purchases.aging_report' else '' }}" href="{{ url_for('purchases.aging_report') }}">AP Aging</a>
       </details>
 
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint == 'inventory' else '' }}>
         <summary>📦 Inventory</summary>
-        <a href="{{ url_for('inventory.item_list') }}">Items</a>
+        <a class="{{ 'active' if request.endpoint == 'inventory.item_list' else '' }}" href="{{ url_for('inventory.item_list') }}">Items</a>
       </details>
 
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint == 'assets' else '' }}>
         <summary>🏷️ Fixed Assets</summary>
-        <a href="{{ url_for('assets.asset_list') }}">Asset Register</a>
+        <a class="{{ 'active' if request.endpoint == 'assets.asset_list' else '' }}" href="{{ url_for('assets.asset_list') }}">Asset Register</a>
       </details>
 
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint == 'ledger' else '' }}>
         <summary>📚 Accounting</summary>
-        <a href="{{ url_for('ledger.account_list') }}">Chart of Accounts</a>
-        <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
-        <a href="{{ url_for('ledger.trial_balance') }}">Trial Balance</a>
+        <a class="{{ 'active' if request.endpoint == 'ledger.account_list' else '' }}" href="{{ url_for('ledger.account_list') }}">Chart of Accounts</a>
+        <a class="{{ 'active' if request.endpoint == 'ledger.journal_list' else '' }}" href="{{ url_for('ledger.journal_list') }}">Journal</a>
+        <a class="{{ 'active' if request.endpoint == 'ledger.trial_balance' else '' }}" href="{{ url_for('ledger.trial_balance') }}">Trial Balance</a>
       </details>
 
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint in ('reports', 'budgets') else '' }}>
         <summary>📊 Reports</summary>
-        <a href="{{ url_for('reports.profit_loss') }}">Profit &amp; Loss</a>
-        <a href="{{ url_for('reports.balance_sheet') }}">Balance Sheet</a>
-        <a href="{{ url_for('reports.cash_flow') }}">Cash Flow</a>
-        <a href="{{ url_for('reports.vat_return') }}">VAT Return</a>
-        <a href="{{ url_for('reports.custom_report') }}">Custom Report</a>
-        <a href="{{ url_for('budgets.budget_entry') }}">Budget</a>
-        <a href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs Actual</a>
+        <a class="{{ 'active' if request.endpoint == 'reports.profit_loss' else '' }}" href="{{ url_for('reports.profit_loss') }}">Profit &amp; Loss</a>
+        <a class="{{ 'active' if request.endpoint == 'reports.balance_sheet' else '' }}" href="{{ url_for('reports.balance_sheet') }}">Balance Sheet</a>
+        <a class="{{ 'active' if request.endpoint == 'reports.cash_flow' else '' }}" href="{{ url_for('reports.cash_flow') }}">Cash Flow</a>
+        <a class="{{ 'active' if request.endpoint == 'reports.vat_return' else '' }}" href="{{ url_for('reports.vat_return') }}">VAT Return</a>
+        <a class="{{ 'active' if request.endpoint == 'reports.custom_report' else '' }}" href="{{ url_for('reports.custom_report') }}">Custom Report</a>
+        <a class="{{ 'active' if request.endpoint == 'budgets.budget_entry' else '' }}" href="{{ url_for('budgets.budget_entry') }}">Budget</a>
+        <a class="{{ 'active' if request.endpoint == 'budgets.budget_vs_actual' else '' }}" href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs Actual</a>
       </details>
 
       {% if current_user.role == 'owner' %}
-      <details class="sidebar-group">
+      <details class="sidebar-group" {{ 'open' if request.blueprint in ('users', 'settings', 'audit', 'backup', 'mra_sync') else '' }}>
         <summary>⚙️ Admin</summary>
-        <a href="{{ url_for('users.user_list') }}">Users</a>
-        <a href="{{ url_for('settings.company') }}">Settings</a>
-        <a href="{{ url_for('audit.audit_log') }}">Audit Log</a>
-        <a href="{{ url_for('backup.backup_home') }}">Backup</a>
-        <a href="{{ url_for('mra_sync.sync_status') }}">MRA Sync</a>
+        <a class="{{ 'active' if request.endpoint == 'users.user_list' else '' }}" href="{{ url_for('users.user_list') }}">Users</a>
+        <a class="{{ 'active' if request.endpoint == 'settings.company' else '' }}" href="{{ url_for('settings.company') }}">Settings</a>
+        <a class="{{ 'active' if request.endpoint == 'audit.audit_log' else '' }}" href="{{ url_for('audit.audit_log') }}">Audit Log</a>
+        <a class="{{ 'active' if request.endpoint == 'backup.backup_home' else '' }}" href="{{ url_for('backup.backup_home') }}">Backup</a>
+        <a class="{{ 'active' if request.endpoint == 'mra_sync.sync_status' else '' }}" href="{{ url_for('mra_sync.sync_status') }}">MRA Sync</a>
       </details>
       {% endif %}
 

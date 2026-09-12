@@ -59,6 +59,11 @@ body {
   padding: 0.6rem 1.2rem;
 }
 .sidebar-link:hover { background: rgba(255,255,255,0.12); }
+.sidebar-link.active {
+  background: rgba(255,255,255,0.18);
+  border-left: 3px solid white;
+  padding-left: calc(1.2rem - 3px);
+}
 
 .sidebar-group summary {
   display: block;
@@ -81,6 +86,13 @@ body {
   padding: 0.45rem 1.2rem 0.45rem 2.2rem;
 }
 .sidebar-group a:hover { background: rgba(255,255,255,0.12); color: white; }
+.sidebar-group a.active {
+  background: rgba(255,255,255,0.18);
+  color: white;
+  font-weight: 600;
+  border-left: 3px solid white;
+  padding-left: calc(2.2rem - 3px);
+}
 
 .sidebar-footer {
   margin-top: auto;
