@@ -71,6 +71,10 @@ def create_app():
     from app.assets import assets_bp
     from app.payroll_bridge import payroll_bridge_bp
     from app.share import share_bp
+    from app.search import search_bp
+    from app.reminders import reminders_bp
+    from app.imports import imports_bp
+    from app.features_pdf import features_pdf_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(ledger_bp)
@@ -90,6 +94,10 @@ def create_app():
     app.register_blueprint(assets_bp)
     app.register_blueprint(payroll_bridge_bp)
     app.register_blueprint(share_bp)
+    app.register_blueprint(search_bp)
+    app.register_blueprint(reminders_bp)
+    app.register_blueprint(imports_bp)
+    app.register_blueprint(features_pdf_bp)
 
     app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # hard cap on any request body (uploads, backup restore)
 

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Reminders · LedgerBooks{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('dashboard.index') }}">Home</a> / Sales / Reminders</div>
+    <h1>Payment reminders</h1>
+  </div>
+</div>
+
+<div class="stat-row" style="margin-bottom:1.15rem;">
+  <div class="stat">
+    <div class="label">Overdue</div>
+    <div class="value negative">{{ '%.2f'|format(total_overdue) }}</div>
+    <div class="sub">Across {{ overdue|length }} invoice{{ '' if overdue|length == 1 else 's' }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Due in next 7 days</div>
+    <div class="value">{{ '%.2f'|format(total_upcoming) }}</div>
+    <div class="sub">Across {{ upcoming|length }} invoice{{ '' if upcoming|length == 1 else 's' }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">As of</div>
+    <div class="value" style="font-size:1.1rem;">{{ today.strftime('%d %b %Y') }}</div>
+    <div class="sub">Horizon: {{ horizon.strftime('%d %b') }}</div>
+  </div>
+</div>
+
+{% if not by_customer %}
+<div class="card">
+  <div class="empty-state">
+    <div>Nothing to remind about — every invoice is on time.</div>
+  </div>
+</div>
+{% else %}
+
+<div class="card" style="background:{{ 'var(--success-bg)' if smtp_ready else 'var(--warning-bg)' }}; border-color:{{ '#BBE5C9' if smtp_ready else '#F5D9AA' }};">
+  {% if smtp_ready %}
+    <strong>SMTP ready.</strong> Click <em>Send email</em> to dispatch a reminder directly, or use <em>Copy message</em> to grab the text and send it manually.
+  {% else %}
+    <strong>Preview mode.</strong> Email dispatch isn't configured — set SMTP host/port/from in <a href="{{ url_for('settings.company') }}">Settings → Company</a> to enable one-click sending. Meanwhile, use <em>Copy message</em>.
+  {% endif %}
+</div>
+
+{% for row in by_customer %}
+<div class="card">
+  <div class="flex-between" style="margin-bottom:0.75rem;">
+    <div>
+      <h3 class="mt-0">{{ row.customer.name }}</h3>
+      <div class="text-muted" style="font-size:0.82rem;">
+        {% if row.customer.email %}{{ row.customer.email }} · {% endif %}
+        Owed: <strong>{{ '%.2f'|format(row.total) }}</strong>
+      </div>
+    </div>
+    <div class="btn-group">
+      {% if smtp_ready and row.customer.email %}
+      <form method="post" action="{{ url_for('reminders.send', customer_id=row.customer.id) }}" style="display:inline;"
+            onsubmit="return confirm('Send reminder email to {{ row.customer.name }} at {{ row.customer.email }}?');">
+        <button type="submit" class="btn primary small">Send email</button>
+      </form>
+      {% elif not row.customer.email %}
+      <span class="badge draft" title="No email address on file">No email</span>
+      {% endif %}
+      <button type="button" class="btn secondary small copy-msg-btn" data-target="msg-{{ loop.index }}">Copy message</button>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Invoice</th><th>Due</th><th>Days late</th><th class="num">Balance</th></tr>
+    </thead>
+    <tbody>
+      {% for inv in row.invoices %}
+      <tr>
+        <td><a href="{{ url_for('sales.invoice_detail', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+        <td>{{ inv.due_date.strftime('%d %b %Y') }}</td>
+        <td>
+          {% if inv.days_overdue %}
+            <span class="badge overdue">{{ inv.days_overdue }} days</span>
+          {% else %}
+            <span class="badge open">Due soon</span>
+          {% endif %}
+        </td>
+        <td class="num">{{ '%.2f'|format(inv.balance_due) }} {{ inv.currency }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <textarea id="msg-{{ loop.index }}" class="reminder-msg" readonly rows="6"
+            style="width:100%; margin-top:0.9rem; font-family: 'Inter', sans-serif;
+                   font-size:0.85rem; padding:0.7rem; border:1px solid var(--border);
+                   border-radius:var(--radius); resize:vertical; background:var(--bg); color:var(--text);">Hi {{ row.customer.name }},
+
+A quick reminder from {{ company_name }} about the following invoice{{ '' if row.invoices|length == 1 else 's' }}:
+{% for inv in row.invoices %}
+• {{ inv.invoice_no }} — {{ inv.currency }} {{ '%.2f'|format(inv.balance_due) }}, due {{ inv.due_date.strftime('%d %b %Y') }}{% if inv.days_overdue %} ({{ inv.days_overdue }} day{{ '' if inv.days_overdue == 1 else 's' }} overdue){% endif %}{% endfor %}
+
+Total outstanding: {{ '%.2f'|format(row.total) }}
+
+Could you let me know when we can expect payment? Happy to send fresh copies if useful.
+
+Thanks,
+{{ company_name }}</textarea>
+</div>
+{% endfor %}
+{% endif %}
+
+<script>
+document.querySelectorAll('.copy-msg-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const ta = document.getElementById(btn.dataset.target);
+    ta.select();
+    navigator.clipboard.writeText(ta.value).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = 'Copied ✓';
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 1500);
+    }).catch(() => {
+      document.execCommand('copy');
+    });
+  });
+});
+</script>
+{% endblock %}

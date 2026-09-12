@@ -1,92 +1,151 @@
 {% extends "base.html" %}
+{% block title %}New invoice · LedgerBooks{% endblock %}
 {% block content %}
-<h1>New Invoice</h1>
-<div class="card">
-  <form method="post" id="invoice-form">
-    <div class="form-row">
-      <label>Customer</label>
-      <select name="customer_id" required>
-        <option value="">-- select customer --</option>
-        {% for c in customers %}
-        <option value="{{ c.id }}" {% if form.customer_id|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="form-row">
-      <label>Invoice Date</label>
-      <input type="date" name="invoice_date" required value="{{ form.invoice_date or today }}">
-    </div>
-    <div class="form-row">
-      <label>Due Date</label>
-      <input type="date" name="due_date" required value="{{ form.due_date or today }}">
-    </div>
-    <div class="form-row">
-      <label>VAT Rate %</label>
-      <input type="number" step="0.01" name="vat_rate" value="{{ form.vat_rate or 15.00 }}" style="max-width:100px;">
-    </div>
-    <div class="form-row">
-      <label>Currency</label>
-      <select name="currency" id="currency-select" style="max-width:120px;">
-        {% for c in currencies %}
-        <option value="{{ c }}" {% if (form.currency or base_currency) == c %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <div class="form-row" id="exchange-rate-row" style="display:none;">
-      <label>Exchange Rate <span style="font-weight:normal; color:var(--muted);">(1 unit = ? {{ base_currency }})</span></label>
-      <input type="number" step="0.000001" name="exchange_rate" id="exchange-rate-input" value="{{ form.exchange_rate or 1.0 }}" style="max-width:140px;">
-    </div>
-    <div class="form-row">
-      <label>Memo</label>
-      <input type="text" name="memo" value="{{ form.memo or '' }}">
-    </div>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('sales.invoice_list') }}">Sales</a> / Invoices / New</div>
+    <h1>New invoice</h1>
+  </div>
+</div>
 
-    <table class="journal-lines-table">
-      <thead>
-        <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Income Account</th><th>Taxable</th><th></th></tr>
-      </thead>
-      <tbody id="lines-body">
-        <tr>
-          <td>
-            <select class="item-select">
-              <option value="">-- manual line --</option>
-              {% for it in items %}
-              <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}{% if it.is_tracked %} ({{ it.quantity_on_hand }} {{ it.unit }} avail){% endif %}</option>
-              {% endfor %}
-            </select>
-            <input type="hidden" name="item_id" class="item-id-input" value="">
-          </td>
-          <td><input type="text" name="description"></td>
-          <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
-          <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
-          <td>
-            <select name="income_account_id">
-              {% for a in income_accounts %}
-              <option value="{{ a.id }}" {% if default_income and a.id == default_income.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
-              {% endfor %}
-            </select>
-          </td>
-          <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
-          <td><button type="button" class="btn small secondary remove-line">✕</button></td>
-        </tr>
-      </tbody>
-    </table>
-    <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
+<div class="invoice-workspace">
+  {# ── LEFT: FORM ─────────────────────────────────────────────── #}
+  <div class="card">
+    <form method="post" id="invoice-form">
+      <div class="form-row">
+        <label>Customer</label>
+        <select name="customer_id" id="customer-select" required>
+          <option value="">— select customer —</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}" data-name="{{ c.name }}" data-email="{{ c.email or '' }}"
+                  {% if form.customer_id|string == c.id|string %}selected{% endif %}>{{ c.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Invoice date</label>
+        <input type="date" name="invoice_date" id="invoice-date" required value="{{ form.invoice_date or today }}">
+      </div>
+      <div class="form-row">
+        <label>Due date</label>
+        <input type="date" name="due_date" id="due-date" required value="{{ form.due_date or today }}">
+      </div>
+      <div class="form-row">
+        <label>VAT rate %</label>
+        <input type="number" step="0.01" name="vat_rate" value="{{ form.vat_rate or 15.00 }}" style="max-width:100px;">
+      </div>
+      <div class="form-row">
+        <label>Currency</label>
+        <select name="currency" id="currency-select" style="max-width:120px;">
+          {% for c in currencies %}
+          <option value="{{ c }}" {% if (form.currency or base_currency) == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row" id="exchange-rate-row" style="display:none;">
+        <label>Exchange rate <span class="text-muted" style="font-weight:normal;">(1 unit = ? {{ base_currency }})</span></label>
+        <input type="number" step="0.000001" name="exchange_rate" id="exchange-rate-input" value="{{ form.exchange_rate or 1.0 }}" style="max-width:140px;">
+      </div>
+      <div class="form-row">
+        <label>Memo</label>
+        <input type="text" name="memo" id="memo-input" value="{{ form.memo or '' }}">
+      </div>
 
-    <div class="stat-row" style="margin-top:1rem;">
-      <div class="stat"><div class="label">Subtotal</div><div class="value" id="subtotal">0.00</div></div>
-      <div class="stat"><div class="label">VAT</div><div class="value" id="vat-amount">0.00</div></div>
-      <div class="stat"><div class="label">Total</div><div class="value" id="total">0.00</div></div>
-      <div class="stat" id="total-base-stat" style="display:none;">
-        <div class="label">Total ({{ base_currency }})</div><div class="value" id="total-base">0.00</div>
+      <div class="section-title">Line items</div>
+      <table class="journal-lines-table">
+        <thead>
+          <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th>Income account</th><th>Taxable</th><th></th></tr>
+        </thead>
+        <tbody id="lines-body">
+          <tr>
+            <td>
+              <select class="item-select">
+                <option value="">— manual line —</option>
+                {% for it in items %}
+                <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}{% if it.is_tracked %} ({{ it.quantity_on_hand }} {{ it.unit }} avail){% endif %}</option>
+                {% endfor %}
+              </select>
+              <input type="hidden" name="item_id" class="item-id-input" value="">
+            </td>
+            <td><input type="text" name="description" class="desc-input"></td>
+            <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
+            <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
+            <td>
+              <select name="income_account_id">
+                {% for a in income_accounts %}
+                <option value="{{ a.id }}" {% if default_income and a.id == default_income.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+                {% endfor %}
+              </select>
+            </td>
+            <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+            <td><button type="button" class="btn small secondary remove-line" aria-label="Remove line">×</button></td>
+          </tr>
+        </tbody>
+      </table>
+      <button type="button" class="btn small secondary" id="add-line">+ Add line</button>
+
+      <div class="stat-row" style="margin-top:1rem;">
+        <div class="stat"><div class="label">Subtotal</div><div class="value" id="subtotal">0.00</div></div>
+        <div class="stat"><div class="label">VAT</div><div class="value" id="vat-amount">0.00</div></div>
+        <div class="stat"><div class="label">Total</div><div class="value" id="total">0.00</div></div>
+        <div class="stat" id="total-base-stat" style="display:none;">
+          <div class="label">Total ({{ base_currency }})</div><div class="value" id="total-base">0.00</div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;" class="btn-group">
+        <button class="btn primary" type="submit">Save &amp; post invoice</button>
+        <a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+
+  {# ── RIGHT: LIVE PREVIEW ────────────────────────────────────── #}
+  <aside class="invoice-preview" id="invoice-preview" aria-label="Invoice preview">
+    <div class="invoice-preview-label">Live preview</div>
+    <div class="invoice-preview-head">
+      <div class="from">
+        <strong>{{ current_company().business_name if current_company() else 'Your Company' }}</strong>
+        <span>Powered by LedgerBooks</span>
+      </div>
+      <div class="invoice-title">
+        <h2>INVOICE</h2>
+        <div class="meta"><span class="invoice-preview-status">Draft</span></div>
       </div>
     </div>
 
-    <div style="margin-top:1rem;">
-      <button class="btn" type="submit">Save & Post Invoice</button>
-      <a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Cancel</a>
+    <div class="invoice-preview-meta-row">
+      <div>
+        <div class="lbl">Bill to</div>
+        <div class="val" id="pv-customer">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="lbl">Invoice date</div>
+        <div class="val" id="pv-invdate">—</div>
+      </div>
+      <div style="text-align:right;">
+        <div class="lbl">Due date</div>
+        <div class="val" id="pv-duedate">—</div>
+      </div>
     </div>
-  </form>
+
+    <table>
+      <thead>
+        <tr><th style="text-align:left;">Description</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr>
+      </thead>
+      <tbody id="pv-lines">
+        <tr><td colspan="4" class="invoice-preview-empty">Add a line item to preview</td></tr>
+      </tbody>
+    </table>
+
+    <div class="invoice-preview-totals">
+      <div class="row sub"><span>Subtotal</span><span class="num" id="pv-subtotal">0.00</span></div>
+      <div class="row sub"><span>VAT (<span id="pv-vatrate">15</span>%)</span><span class="num" id="pv-vat">0.00</span></div>
+      <div class="row total"><span>Total <span class="text-muted" id="pv-currency" style="font-weight:500;font-size:0.75rem;">MUR</span></span><span class="num" id="pv-total">0.00</span></div>
+    </div>
+
+    <div class="invoice-preview-memo" id="pv-memo" hidden></div>
+  </aside>
 </div>
 
 <script>
@@ -99,7 +158,7 @@ const ITEMS = {
   {% endfor %}
 };
 
-const linesBody = document.getElementById('lines-body');
+const linesBody   = document.getElementById('lines-body');
 const rowTemplate = linesBody.querySelector('tr').cloneNode(true);
 
 function reindexCheckboxes() {
@@ -134,24 +193,39 @@ function onItemSelect(row) {
 const BASE_CURRENCY = {{ base_currency|tojson }};
 
 function updateCurrencyUI() {
-  const isForeign = document.getElementById('currency-select').value !== BASE_CURRENCY;
+  const cur = document.getElementById('currency-select').value;
+  const isForeign = cur !== BASE_CURRENCY;
   document.getElementById('exchange-rate-row').style.display = isForeign ? '' : 'none';
-  document.getElementById('total-base-stat').style.display = isForeign ? '' : 'none';
+  document.getElementById('total-base-stat').style.display   = isForeign ? '' : 'none';
+  document.getElementById('pv-currency').textContent = cur;
   recalcTotals();
+}
+
+function fmt(n) {
+  return (n || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+function fmtDate(v) {
+  if (!v) return '—';
+  try { return new Date(v).toLocaleDateString(undefined, {year:'numeric', month:'short', day:'numeric'}); }
+  catch (e) { return v; }
 }
 
 function recalcTotals() {
   let subtotal = 0, vat = 0;
   const vatRate = parseFloat(document.querySelector('input[name=vat_rate]').value) || 0;
+  const previewRows = [];
+
   linesBody.querySelectorAll('tr').forEach(row => {
-    const qty = parseFloat(row.querySelector('.qty-input').value) || 0;
+    const qty   = parseFloat(row.querySelector('.qty-input').value) || 0;
     const price = parseFloat(row.querySelector('.price-input').value) || 0;
+    const desc  = row.querySelector('input[name=description]').value || '';
+    const taxable = row.querySelector('input[type=checkbox]').checked;
     const amount = qty * price;
     subtotal += amount;
-    if (row.querySelector('input[type=checkbox]').checked) {
-      vat += amount * vatRate / 100;
-    }
+    if (taxable) vat += amount * vatRate / 100;
+    if (qty > 0 || price > 0 || desc) previewRows.push({desc, qty, price, amount});
   });
+
   const total = subtotal + vat;
   document.getElementById('subtotal').textContent = subtotal.toFixed(2);
   document.getElementById('vat-amount').textContent = vat.toFixed(2);
@@ -162,6 +236,40 @@ function recalcTotals() {
     const rate = parseFloat(document.getElementById('exchange-rate-input').value) || 0;
     document.getElementById('total-base').textContent = (total * rate).toFixed(2);
   }
+
+  // ── Preview ──────────────────────────────────────────────
+  const escape = s => String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+  const custSel = document.getElementById('customer-select');
+  const custOpt = custSel.options[custSel.selectedIndex];
+  const custName = (custOpt && custOpt.value) ? custOpt.dataset.name : '—';
+  const custEmail = (custOpt && custOpt.value) ? custOpt.dataset.email : '';
+  document.getElementById('pv-customer').innerHTML =
+    escape(custName) + (custEmail ? `<div class="text-muted" style="font-size:0.75rem;">${escape(custEmail)}</div>` : '');
+
+  document.getElementById('pv-invdate').textContent = fmtDate(document.getElementById('invoice-date').value);
+  document.getElementById('pv-duedate').textContent = fmtDate(document.getElementById('due-date').value);
+  document.getElementById('pv-vatrate').textContent = vatRate;
+  document.getElementById('pv-subtotal').textContent = fmt(subtotal);
+  document.getElementById('pv-vat').textContent = fmt(vat);
+  document.getElementById('pv-total').textContent = fmt(total);
+
+  const pvLines = document.getElementById('pv-lines');
+  if (previewRows.length === 0) {
+    pvLines.innerHTML = '<tr><td colspan="4" class="invoice-preview-empty">Add a line item to preview</td></tr>';
+  } else {
+    pvLines.innerHTML = previewRows.map(r => `
+      <tr>
+        <td class="desc">${escape(r.desc) || '<span class="text-muted">Line item</span>'}</td>
+        <td class="num">${r.qty.toLocaleString()}</td>
+        <td class="num">${fmt(r.price)}</td>
+        <td class="num" style="font-weight:600;">${fmt(r.amount)}</td>
+      </tr>`).join('');
+  }
+
+  const memo = document.getElementById('memo-input').value;
+  const pvMemo = document.getElementById('pv-memo');
+  if (memo) { pvMemo.textContent = 'Memo: ' + memo; pvMemo.hidden = false; }
+  else      { pvMemo.hidden = true; }
 }
 
 document.getElementById('add-line').addEventListener('click', () => {
@@ -170,7 +278,6 @@ document.getElementById('add-line').addEventListener('click', () => {
   linesBody.appendChild(row);
   reindexCheckboxes();
 });
-
 linesBody.addEventListener('click', (e) => {
   if (e.target.classList.contains('remove-line')) {
     if (linesBody.querySelectorAll('tr').length > 1) {
@@ -180,18 +287,22 @@ linesBody.addEventListener('click', (e) => {
     }
   }
 });
-
 linesBody.addEventListener('change', (e) => {
-  if (e.target.classList.contains('item-select')) {
-    onItemSelect(e.target.closest('tr'));
-  }
+  if (e.target.classList.contains('item-select')) onItemSelect(e.target.closest('tr'));
 });
-
 linesBody.addEventListener('input', recalcTotals);
-document.querySelector('input[name=vat_rate]').addEventListener('input', recalcTotals);
+
+['input[name=vat_rate]', '#customer-select', '#invoice-date', '#due-date', '#memo-input']
+  .forEach(sel => {
+    const el = document.querySelector(sel);
+    if (el) el.addEventListener('input', recalcTotals);
+    if (el) el.addEventListener('change', recalcTotals);
+  });
 document.getElementById('currency-select').addEventListener('change', updateCurrencyUI);
 document.getElementById('exchange-rate-input').addEventListener('input', recalcTotals);
+
 reindexCheckboxes();
 updateCurrencyUI();
+recalcTotals();
 </script>
 {% endblock %}

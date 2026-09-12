@@ -1,42 +1,26 @@
 {% extends "base.html" %}
-{% set hide_default_flash = true %}
+{% block title %}Sign in · LedgerBooks{% endblock %}
 {% block content %}
-<div class="auth-shell">
+<div class="auth-card">
   <div class="auth-brand">
-    <div class="mark">📒 LedgerBooks</div>
-    <h1>Run the books for every company you manage, from one login.</h1>
-    <p class="tagline">Double-entry accounting, multi-currency, and fixed asset tracking — built for accountants serving more than one client.</p>
-    <ul class="auth-features">
-      <li><span class="check">✓</span> Multi-company books, fully isolated per client</li>
-      <li><span class="check">✓</span> Multi-currency invoicing with real FX gain/loss</li>
-      <li><span class="check">✓</span> Recurring invoices &amp; fixed asset depreciation, automated</li>
-      <li><span class="check">✓</span> MRA e-invoicing built in, for Mauritius compliance</li>
-    </ul>
+    <span class="brand-logo">LB</span>
+    <span class="auth-brand-title">LedgerBooks</span>
   </div>
-  <div class="auth-form-side">
-    <div class="auth-card">
-      <h2>Welcome back</h2>
-      <p class="sub">Log in to your company's books.</p>
-
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-          {% for category, message in messages %}
-            <div class="flash flash-{{ category }}">{{ message }}</div>
-          {% endfor %}
-        {% endif %}
-      {% endwith %}
-
-      <form method="post">
-        <div class="form-row">
-          <label>Username</label>
-          <input type="text" name="username" required autofocus>
-          <label>Password</label>
-          <input type="password" name="password" required>
-        </div>
-        <button class="btn" type="submit">Log in</button>
-      </form>
-      <p class="switch">New here? <a href="{{ url_for('auth.register') }}">Create a company account</a></p>
+  <h1 class="auth-title">Welcome back</h1>
+  <p class="auth-sub">Sign in to continue managing your books.</p>
+  <form method="post">
+    <div class="auth-field">
+      <label for="username">Username</label>
+      <input id="username" type="text" name="username" required autofocus autocomplete="username">
     </div>
+    <div class="auth-field">
+      <label for="password">Password</label>
+      <input id="password" type="password" name="password" required autocomplete="current-password">
+    </div>
+    <button class="btn primary" type="submit">Sign in</button>
+  </form>
+  <div class="auth-footer">
+    New to LedgerBooks? <a href="{{ url_for('auth.register') }}">Create a company account</a>
   </div>
 </div>
 {% endblock %}
