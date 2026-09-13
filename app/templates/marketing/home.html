@@ -1,0 +1,516 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NovaByte LedgerBooks</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ink:#101d30;
+    --ink-soft:#2b3b52;
+    --paper:#f4f5ef;
+    --surface:#ffffff;
+    --rule:#dcdac9;
+    --rule-strong:#b9b6a0;
+    --muted:#5c6577;
+    --brass:#a97a2b;
+    --brass-deep:#8a5f1e;
+    --brass-tint:#f2e4c9;
+    --green:#2f6f4e;
+    --green-tint:#e3ede6;
+    --shadow: 0 1px 2px rgba(16,29,48,.04), 0 8px 24px rgba(16,29,48,.06);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ink:#e9e6da; --ink-soft:#c3c2b6; --paper:#10182a; --surface:#161f35;
+      --rule:#2c3552; --rule-strong:#3c4666; --muted:#9096ab;
+      --brass:#d6a24f; --brass-deep:#e8bd74; --brass-tint:#3a3120;
+      --green:#5aa77e; --green-tint:#183226;
+      --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
+    }
+  }
+
+  *{box-sizing:border-box;}
+  html{ scroll-behavior:smooth; }
+  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3{ font-family:'Fraunces', Georgia, serif; text-wrap:balance; margin:0; }
+  .num{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+  a{ color:inherit; }
+  .page{ max-width:960px; margin:0 auto; padding:0 2rem 5rem; }
+
+  /* ---------- nav ---------- */
+  .topnav{
+    position:sticky; top:0; z-index:20; background:var(--paper);
+    border-bottom:1px solid var(--rule); backdrop-filter:saturate(160%) blur(6px);
+  }
+  .topnav-inner{ max-width:960px; margin:0 auto; padding:0 2rem; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; height:64px; }
+  .brandmark{ display:flex; align-items:center; gap:.7rem; flex:none; }
+  .monogram{
+    width:34px; height:34px; border-radius:8px; flex:none;
+    background:linear-gradient(155deg, var(--brass) 0%, var(--brass-deep) 100%);
+    color:#241606; font-family:'Fraunces', serif; font-weight:700; font-size:.95rem;
+    display:flex; align-items:center; justify-content:center; box-shadow:var(--shadow);
+  }
+  .brand-name{ font-size:.98rem; font-weight:600; white-space:nowrap; }
+  .navlinks{ display:flex; align-items:center; gap:.3rem; }
+  .navlinks a{
+    font-size:.83rem; font-weight:500; text-decoration:none; color:var(--muted);
+    padding:.5rem .75rem; border-radius:6px; white-space:nowrap;
+  }
+  .navlinks a:hover{ color:var(--ink); }
+  .navlinks a.active{ color:var(--ink); background:var(--brass-tint); }
+  .nav-right{ display:flex; align-items:center; gap:.9rem; flex:none; }
+  .nav-signin{ font-size:.83rem; font-weight:500; text-decoration:none; color:var(--muted); white-space:nowrap; }
+  .nav-signin:hover{ color:var(--ink); }
+  .nav-cta{
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; letter-spacing:.04em; text-transform:uppercase;
+    background:var(--ink); color:var(--paper); padding:.55rem 1rem; border-radius:6px; text-decoration:none; white-space:nowrap; flex:none;
+  }
+  @media (max-width:720px){ .navlinks{ display:none; } }
+
+  section.page-section{ display:none; padding-top:2.6rem; }
+  section.page-section.active{ display:block; }
+
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:.5rem; font-family:'IBM Plex Mono', monospace; font-size:.72rem;
+    letter-spacing:.12em; text-transform:uppercase; color:var(--brass-deep); margin-bottom:.9rem;
+  }
+  .eyebrow::before{ content:""; width:1.4rem; height:1px; background:var(--brass); display:inline-block; }
+
+  /* ---------- home ---------- */
+  .hero{ padding-bottom:2rem; border-bottom:1px solid var(--rule); }
+  .hero h1{ font-size:2.7rem; line-height:1.1; font-weight:600; max-width:18ch; }
+  .hero p{ max-width:56ch; color:var(--ink-soft); font-size:1.03rem; line-height:1.65; margin-top:1.1rem; }
+  .hero-ctas{ display:flex; gap:.8rem; margin-top:1.6rem; flex-wrap:wrap; }
+  .btn-primary, .btn-ghost{
+    font-family:'IBM Plex Mono', monospace; font-size:.78rem; letter-spacing:.04em; text-transform:uppercase;
+    padding:.75rem 1.3rem; border-radius:7px; text-decoration:none; font-weight:600; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--brass); color:#241606; }
+  .btn-ghost{ border:1px solid var(--rule-strong); color:var(--ink); }
+
+  .stat-strip{ display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:10px; overflow:hidden; margin-top:2.2rem; }
+  .stat{ background:var(--surface); padding:1.1rem 1rem; text-align:center; }
+  .stat .v{ font-family:'Fraunces', serif; font-size:1.25rem; font-weight:600; color:var(--brass-deep); }
+  .stat .l{ font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.06em; margin-top:.3rem; }
+  @media (max-width:680px){ .stat-strip{ grid-template-columns:repeat(2,1fr); } }
+
+  .section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:1rem; margin:3rem 0 1.4rem; }
+  .section-head h2{ font-size:1.4rem; font-weight:600; }
+  .section-head .tag{ font-family:'IBM Plex Mono', monospace; font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); white-space:nowrap; }
+
+  .trio{ display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+  .trio-card{ background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:1.3rem; box-shadow:var(--shadow); }
+  .trio-card .mark{ font-family:'IBM Plex Mono', monospace; font-size:.72rem; color:var(--brass-deep); }
+  .trio-card h3{ font-size:1.02rem; font-weight:600; margin:.5rem 0 .5rem; }
+  .trio-card p{ font-size:.85rem; color:var(--muted); line-height:1.55; margin:0; }
+  @media (max-width:720px){ .trio{ grid-template-columns:1fr; } }
+
+  .band{ margin-top:3rem; background:linear-gradient(155deg, var(--ink) 0%, var(--ink-soft) 130%); color:var(--paper); border-radius:14px; padding:2rem 2.2rem; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; flex-wrap:wrap; }
+  .band h3{ font-size:1.2rem; color:inherit; }
+  .band p{ margin:.4rem 0 0; opacity:.82; font-size:.88rem; max-width:44ch; }
+
+  /* ---------- features grid ---------- */
+  .feature-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+  .feature-card{ background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:1.2rem; box-shadow:var(--shadow); }
+  .feature-card .fnum{ font-family:'IBM Plex Mono', monospace; font-size:.68rem; color:var(--muted); }
+  .feature-card h3{ font-size:.98rem; font-weight:600; margin:.4rem 0 .45rem; }
+  .feature-card p{ font-size:.83rem; color:var(--muted); line-height:1.55; margin:0; }
+  @media (max-width:720px){ .feature-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:520px){ .feature-grid{ grid-template-columns:1fr; } }
+
+  /* ---------- pricing ---------- */
+  .tiers{ display:grid; grid-template-columns:repeat(3, 1fr); gap:1.1rem; }
+  .tier{ background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:1.5rem 1.35rem 1.6rem; display:flex; flex-direction:column; gap:1.1rem; box-shadow:var(--shadow); position:relative; }
+  .tier.featured{ border-color:var(--brass); border-width:1.5px; }
+  .tier-flag{ position:absolute; top:-.65rem; left:1.35rem; background:var(--brass); color:#241606; font-family:'IBM Plex Mono', monospace; font-size:.62rem; letter-spacing:.09em; text-transform:uppercase; padding:.28rem .6rem; border-radius:5px; font-weight:600; }
+  .tier-name{ font-size:1.15rem; font-weight:600; }
+  .tier-desc{ font-size:.83rem; color:var(--muted); line-height:1.5; min-height:2.6em; }
+  .tier-price{ display:flex; align-items:baseline; gap:.4rem; padding:.9rem 0; border-top:1px solid var(--rule); border-bottom:1px solid var(--rule); }
+  .tier-price .cur{ font-family:'IBM Plex Mono', monospace; font-size:.85rem; color:var(--muted); }
+  .tier-price [contenteditable]{ font-family:'Fraunces', serif; font-size:1.9rem; font-weight:600; min-width:1.6ch; outline:none; border-bottom:1px dashed var(--rule-strong); }
+  .tier-price [contenteditable]:focus{ border-bottom-color:var(--brass); }
+  .tier-price [contenteditable]:empty::before{ content:"____"; color:var(--rule-strong); }
+  .tier-price .per{ font-size:.8rem; color:var(--muted); }
+  .tier-features{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.55rem; flex:1; }
+  .tier-features li{ display:flex; gap:.55rem; font-size:.86rem; line-height:1.4; color:var(--ink-soft); }
+  .tier-features li::before{ content:"✓"; color:var(--green); font-weight:700; flex:none; width:1.1rem; font-family:'IBM Plex Mono', monospace; }
+  .tier-cta{ text-align:center; font-family:'IBM Plex Mono', monospace; font-size:.74rem; letter-spacing:.06em; text-transform:uppercase; color:var(--brass-deep); border:1px solid var(--brass); border-radius:6px; padding:.6rem; margin-top:.2rem; text-decoration:none; display:block; }
+  .pricing-note{ margin-top:1.1rem; font-size:.78rem; color:var(--muted); font-style:italic; border-left:2px solid var(--brass); padding-left:.7rem; }
+
+  .table-wrap{ overflow-x:auto; border:1px solid var(--rule); border-radius:10px; background:var(--surface); box-shadow:var(--shadow); }
+  table{ width:100%; border-collapse:collapse; font-size:.86rem; min-width:560px; }
+  thead th{ text-align:left; padding:.85rem 1rem; font-family:'IBM Plex Mono', monospace; font-size:.68rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); border-bottom:1px solid var(--rule); }
+  thead th.tcol{ text-align:center; }
+  tbody td{ padding:.7rem 1rem; border-bottom:1px solid var(--rule); color:var(--ink-soft); }
+  tbody tr:last-child td{ border-bottom:none; }
+  td.tcol{ text-align:center; font-family:'IBM Plex Mono', monospace; }
+  .yes{ color:var(--green); font-weight:600; }
+  .no{ color:var(--rule-strong); }
+
+  .addons{ display:grid; grid-template-columns:repeat(2, 1fr); gap:.9rem; }
+  .addon{ background:var(--surface); border:1px solid var(--rule); border-radius:9px; padding:1.1rem 1.2rem; box-shadow:var(--shadow); }
+  .addon h3{ font-size:.95rem; font-weight:600; margin-bottom:.4rem; }
+  .addon p{ font-size:.82rem; color:var(--muted); line-height:1.55; margin:0; }
+  @media (max-width:680px){ .addons{ grid-template-columns:1fr; } .tiers{ grid-template-columns:1fr; } }
+
+  /* ---------- about ---------- */
+  .principles{ display:grid; grid-template-columns:repeat(2,1fr); gap:1rem; }
+  .principle{ background:var(--surface); border:1px solid var(--rule); border-radius:10px; padding:1.2rem; box-shadow:var(--shadow); display:flex; gap:.9rem; }
+  .principle .pmark{ font-family:'Fraunces', serif; font-weight:600; font-size:1.3rem; color:var(--brass-deep); flex:none; }
+  .principle h3{ font-size:.96rem; font-weight:600; margin:0 0 .35rem; }
+  .principle p{ font-size:.83rem; color:var(--muted); margin:0; line-height:1.55; }
+  @media (max-width:680px){ .principles{ grid-template-columns:1fr; } }
+
+  .lede{ max-width:64ch; color:var(--ink-soft); font-size:1rem; line-height:1.7; }
+
+  /* ---------- contact ---------- */
+  .contact-grid{ display:grid; grid-template-columns:1.05fr .85fr .85fr; gap:1.2rem; align-items:start; }
+  @media (max-width:900px){ .contact-grid{ grid-template-columns:1fr 1fr; } }
+  @media (max-width:640px){ .contact-grid{ grid-template-columns:1fr; } }
+  .contact-card{ background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:1.6rem; box-shadow:var(--shadow); }
+  .contact-card h3{ font-size:1.1rem; font-weight:600; margin-bottom:1rem; }
+  .field-row{ display:flex; flex-direction:column; gap:.3rem; margin-bottom:1.1rem; }
+  .field-row .label{ font-size:.68rem; text-transform:uppercase; letter-spacing:.1em; color:var(--muted); }
+  .field-row [contenteditable]{ font-family:'IBM Plex Mono', monospace; font-size:.92rem; border-bottom:1px dashed var(--rule-strong); padding-bottom:.3rem; outline:none; min-height:1.3em; }
+  .field-row [contenteditable]:focus{ border-bottom-color:var(--brass); }
+  .field-row [contenteditable]:empty::before{ content:attr(data-placeholder); color:var(--muted); }
+  .contact-panel{ background:linear-gradient(155deg, var(--ink) 0%, var(--ink-soft) 130%); color:var(--paper); border-radius:12px; padding:1.6rem; }
+  .contact-panel h3{ color:inherit; font-size:1.05rem; margin-bottom:.6rem; }
+  .contact-panel p{ opacity:.8; font-size:.86rem; line-height:1.6; margin:0 0 1.2rem; }
+
+  /* ---------- digital contact card / QR ---------- */
+  .qr-card{ background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:1.6rem; box-shadow:var(--shadow); text-align:center; }
+  .qr-card h3{ font-size:1.05rem; font-weight:600; margin-bottom:.4rem; }
+  .qr-card .sub{ font-size:.78rem; color:var(--muted); line-height:1.5; margin-bottom:1.1rem; }
+  .qr-frame{
+    display:inline-flex; align-items:center; justify-content:center; background:#ffffff;
+    border:1px solid var(--rule); border-radius:10px; padding:.9rem; min-height:180px; min-width:180px;
+  }
+  .qr-frame img, .qr-frame canvas, .qr-frame table{ image-rendering:pixelated; }
+  .qr-hint{ margin-top:1rem; font-family:'IBM Plex Mono', monospace; font-size:.68rem; letter-spacing:.04em; text-transform:uppercase; color:var(--brass-deep); }
+
+  footer{ margin-top:3rem; text-align:center; font-size:.72rem; color:var(--muted); padding-top:1.5rem; border-top:1px solid var(--rule); }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="topnav-inner">
+    <div class="brandmark">
+      <div class="monogram">NL</div>
+      <div class="brand-name">NovaByte LedgerBooks</div>
+    </div>
+    <div class="navlinks" id="navlinks">
+      <a href="#home" data-route="home">Home</a>
+      <a href="#features" data-route="features">Features</a>
+      <a href="#pricing" data-route="pricing">Pricing</a>
+      <a href="#about" data-route="about">About</a>
+      <a href="#contact" data-route="contact">Contact</a>
+    </div>
+    <div class="nav-right">
+      <a class="nav-signin" href="{{ url_for('auth.login') }}">Sign In</a>
+      <a class="nav-cta" href="#contact" data-route="contact">Book a Demo</a>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- ================= HOME ================= -->
+  <section class="page-section" id="home">
+    <span class="eyebrow">Accounting Software · Mauritius</span>
+    <div class="hero">
+      <h1>Books that balance themselves to the cent.</h1>
+      <p>Double-entry bookkeeping, multi-currency invoicing, and MRA-ready e-invoicing in one system — built for how Mauritius businesses actually trade, across as many companies and currencies as the group needs.</p>
+      <div class="hero-ctas">
+        <a class="btn-primary" href="#pricing" data-route="pricing">See Pricing</a>
+        <a class="btn-ghost" href="#features" data-route="features">Explore Features</a>
+      </div>
+      <div class="stat-strip">
+        <div class="stat"><div class="v num">6</div><div class="l">Currencies</div></div>
+        <div class="stat"><div class="v">MRA</div><div class="l">Fiscalization-ready</div></div>
+        <div class="stat"><div class="v">Multi</div><div class="l">Company ledgers</div></div>
+        <div class="stat"><div class="v num">100%</div><div class="l">Balanced entries</div></div>
+      </div>
+    </div>
+
+    <div class="section-head"><h2>Built for how Mauritius businesses trade</h2></div>
+    <div class="trio">
+      <div class="trio-card">
+        <div class="mark">01</div>
+        <h3>Multi-currency by default</h3>
+        <p>Invoice in USD, bill in EUR, report in MUR — realized FX gain or loss posts automatically the moment a foreign-currency document settles at a different rate.</p>
+      </div>
+      <div class="trio-card">
+        <div class="mark">02</div>
+        <h3>Compliance built in</h3>
+        <p>Invoices and credit memos fiscalize through the MRA bridge as they're posted, with a retry queue that catches anything that didn't get through the first time.</p>
+      </div>
+      <div class="trio-card">
+        <div class="mark">03</div>
+        <h3>Payroll that reconciles itself</h3>
+        <p>Connect your payroll system once — every finalized run posts as one balanced journal entry, so gross pay, PAYE, and net pay payable are never re-typed.</p>
+      </div>
+    </div>
+
+    <div class="band">
+      <div>
+        <h3>See it running on your own numbers</h3>
+        <p>A working demo, not a slide deck — bring a real invoice or payroll run and we'll show you the entry it produces.</p>
+      </div>
+      <a class="btn-primary" href="#contact" data-route="contact">Get in Touch</a>
+    </div>
+  </section>
+
+  <!-- ================= FEATURES ================= -->
+  <section class="page-section" id="features">
+    <span class="eyebrow">Features</span>
+    <h1 style="font-size:2.1rem;">Everything the books need, nothing they don't</h1>
+    <p class="lede" style="margin-top:.9rem;">Every module below is part of the same ledger — a sale, a payroll run, and a depreciation entry all land in the same chart of accounts, in the same currency of record.</p>
+
+    <div class="section-head"><h2>Modules</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">01</div><h3>Multi-Company Ledger</h3><p>Separate books for every registered entity, each with its own chart of accounts, users, and settings — one login.</p></div>
+      <div class="feature-card"><div class="fnum">02</div><h3>Double-Entry Core</h3><p>Every transaction posts as a balanced journal entry. Debits and credits must match to the cent before it saves.</p></div>
+      <div class="feature-card"><div class="fnum">03</div><h3>Multi-Currency &amp; FX</h3><p>MUR, USD, EUR, GBP, ZAR, or INR on any invoice or bill, with realized gain/loss posted automatically on settlement.</p></div>
+      <div class="feature-card"><div class="fnum">04</div><h3>Sales &amp; Purchases</h3><p>Invoices, credit memos, vendor bills, and payments — plus recurring invoices for retainer-style customers.</p></div>
+      <div class="feature-card"><div class="fnum">05</div><h3>Fixed Assets</h3><p>Straight-line depreciation scheduled and posted automatically each month, through to disposal.</p></div>
+      <div class="feature-card"><div class="fnum">06</div><h3>Payroll Bridge</h3><p>A signed API endpoint your payroll system pushes finalized runs to — one balanced entry per run, no re-entry.</p></div>
+      <div class="feature-card"><div class="fnum">07</div><h3>MRA E-Invoicing</h3><p>Invoices and credit memos fiscalize automatically, with a retry queue for anything that fails the first time.</p></div>
+      <div class="feature-card"><div class="fnum">08</div><h3>Share via WhatsApp</h3><p>Every invoice, bill, and credit memo gets a signed, time-limited link a customer can open without logging in.</p></div>
+      <div class="feature-card"><div class="fnum">09</div><h3>Bank Reconciliation</h3><p>Match statement lines to ledger entries and see exactly what's still outstanding before month-end.</p></div>
+      <div class="feature-card"><div class="fnum">10</div><h3>Reports</h3><p>Balance Sheet, Profit &amp; Loss, Trial Balance, and budget-vs-actual — always current, never a month-end scramble.</p></div>
+      <div class="feature-card"><div class="fnum">11</div><h3>Role-Based Access &amp; Audit Trail</h3><p>Owners, accountants, and staff see only what their role allows. Every change is logged, with who and when.</p></div>
+      <div class="feature-card"><div class="fnum">12</div><h3>Backup &amp; Restore</h3><p>A full snapshot of the company's books, downloadable on demand and restorable to the exact row.</p></div>
+    </div>
+
+    <div class="band">
+      <div>
+        <h3>Curious how a specific workflow works?</h3>
+        <p>Ask about payroll posting, MRA retries, or multi-currency settlement — happy to walk through the actual entries.</p>
+      </div>
+      <a class="btn-primary" href="#contact" data-route="contact">Ask a Question</a>
+    </div>
+  </section>
+
+  <!-- ================= PRICING ================= -->
+  <section class="page-section" id="pricing">
+    <span class="eyebrow">Service Packages</span>
+    <h1 style="font-size:2.1rem;">Simple, transparent software pricing</h1>
+    <p class="lede" style="margin-top:.9rem;">Every package below is a starting point, priced to the engagement.</p>
+
+    <div class="section-head"><h2>Choose a package</h2><span class="tag">Billed monthly, per company</span></div>
+    <div class="tiers">
+      <div class="tier">
+        <div class="tier-name">Starter</div>
+        <div class="tier-desc">For sole traders and micro-businesses moving off spreadsheets.</div>
+        <div class="tier-price"><span class="cur num">MUR</span><span contenteditable="true"></span><span class="per">/mo</span></div>
+        <ul class="tier-features">
+          <li>1 company file</li>
+          <li>Chart of accounts &amp; journal entries</li>
+          <li>Sales &amp; purchase invoicing</li>
+          <li>Bank reconciliation</li>
+          <li>P&amp;L, Balance Sheet, Trial Balance</li>
+        </ul>
+        <a class="tier-cta" href="#contact" data-route="contact">Get Started</a>
+      </div>
+      <div class="tier featured">
+        <div class="tier-flag">Most Popular</div>
+        <div class="tier-name">Growth</div>
+        <div class="tier-desc">For SMEs trading across currencies and running payroll.</div>
+        <div class="tier-price"><span class="cur num">MUR</span><span contenteditable="true"></span><span class="per">/mo</span></div>
+        <ul class="tier-features">
+          <li>Everything in Starter</li>
+          <li>Up to 3 company files</li>
+          <li>Multi-currency invoicing &amp; FX gain/loss</li>
+          <li>Recurring invoices &amp; asset depreciation</li>
+          <li>Payroll system bridge</li>
+          <li>Share invoices/bills via WhatsApp</li>
+        </ul>
+        <a class="tier-cta" href="#contact" data-route="contact">Get Started</a>
+      </div>
+      <div class="tier">
+        <div class="tier-name">Enterprise</div>
+        <div class="tier-desc">For groups needing statutory compliance and audit-ready controls.</div>
+        <div class="tier-price"><span class="cur num">MUR</span><span contenteditable="true"></span><span class="per">/mo</span></div>
+        <ul class="tier-features">
+          <li>Everything in Growth</li>
+          <li>Unlimited companies &amp; users</li>
+          <li>MRA e-invoice fiscalization</li>
+          <li>Role-based access &amp; full audit trail</li>
+          <li>Automated backup &amp; restore</li>
+          <li>Priority onboarding &amp; support</li>
+        </ul>
+        <a class="tier-cta" href="#contact" data-route="contact">Get Started</a>
+      </div>
+    </div>
+    <p class="pricing-note">Pricing is scoped per engagement — contact us for a quote tailored to your user count and transaction volume.</p>
+
+    <div class="section-head"><h2>What's included, at a glance</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Feature</th><th class="tcol">Starter</th><th class="tcol">Growth</th><th class="tcol">Enterprise</th></tr></thead>
+        <tbody>
+          <tr><td>Chart of accounts &amp; journal entries</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Bank reconciliation</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Multi-currency &amp; FX gain/loss</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Recurring invoices &amp; fixed assets</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Payroll system bridge</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>WhatsApp document sharing</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>MRA e-invoice fiscalization</td><td class="tcol no">—</td><td class="tcol no">—</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Multiple companies</td><td class="tcol no">1</td><td class="tcol">Up to 3</td><td class="tcol yes">Unlimited</td></tr>
+          <tr><td>Audit trail &amp; role-based access</td><td class="tcol no">—</td><td class="tcol no">Basic</td><td class="tcol yes">Full</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-head"><h2>Beyond the subscription</h2><span class="tag">Quoted separately</span></div>
+    <div class="addons">
+      <div class="addon"><h3>Data migration &amp; onboarding</h3><p>Importing an existing chart of accounts, customer/vendor lists, and opening balances.</p></div>
+      <div class="addon"><h3>Historical books catch-up</h3><p>Reconstructing prior periods where bookkeeping has fallen behind.</p></div>
+      <div class="addon"><h3>Staff training</h3><p>On-site or remote sessions for the team using the system day to day.</p></div>
+      <div class="addon"><h3>Custom reporting</h3><p>Report layouts or exports tailored to a specific lender, board, or regulator.</p></div>
+    </div>
+  </section>
+
+  <!-- ================= ABOUT ================= -->
+  <section class="page-section" id="about">
+    <span class="eyebrow">About</span>
+    <h1 style="font-size:2.1rem;">Software built around one rule: it has to balance</h1>
+    <p class="lede" style="margin-top:.9rem;">NovaByte LedgerBooks started from a simple frustration with spreadsheet bookkeeping in a multi-currency, multi-company setting: it's easy to make the numbers look right without them actually being right. Everything in the product exists to close that gap.</p>
+
+    <div class="section-head"><h2>What guides how it's built</h2></div>
+    <div class="principles">
+      <div class="principle"><div class="pmark">01</div><div><h3>Accuracy first</h3><p>No entry saves unless it balances. No shortcut skips that rule, including the automated ones — payroll, depreciation, and recurring invoices all post through the same check.</p></div></div>
+      <div class="principle"><div class="pmark">02</div><div><h3>Built portable</h3><p>The same code runs on MySQL locally and Postgres in production, so a company's books are never tied to one host or one server.</p></div></div>
+      <div class="principle"><div class="pmark">03</div><div><h3>No lock-in</h3><p>A full backup is one click away, in an open format, restorable to the exact row — your data leaves as easily as it arrived.</p></div></div>
+      <div class="principle"><div class="pmark">04</div><div><h3>Compliance by design</h3><p>MRA fiscalization and audit trails aren't bolted on afterward — they're part of how an invoice or a change gets recorded in the first place.</p></div></div>
+    </div>
+
+    <div class="band">
+      <div>
+        <h3>Want the technical detail?</h3>
+        <p>Happy to walk through the schema, the currency handling, or how the payroll bridge authenticates — no NDA required to ask.</p>
+      </div>
+      <a class="btn-primary" href="#contact" data-route="contact">Start a Conversation</a>
+    </div>
+  </section>
+
+  <!-- ================= CONTACT ================= -->
+  <section class="page-section" id="contact">
+    <span class="eyebrow">Contact</span>
+    <h1 style="font-size:2.1rem;">Let's set up a demo</h1>
+    <p class="lede" style="margin-top:.9rem;">Reach us directly, or scan the card on the right to save our details to your phone.</p>
+
+    <div class="section-head"><h2>Reach us</h2></div>
+    <div class="contact-grid">
+      <div class="contact-card">
+        <h3>Business details</h3>
+        <div class="field-row"><span class="label">Business name</span><span contenteditable="true" data-placeholder="NovaByte LedgerBooks" id="c-name">NovaByte LedgerBooks</span></div>
+        <div class="field-row"><span class="label">Email</span><span contenteditable="true" data-placeholder="name@company.com" id="c-email">hasting.bissesur@gmail.com</span></div>
+        <div class="field-row"><span class="label">Phone</span><span contenteditable="true" data-placeholder="+230 ____ ____" id="c-phone">+230 5422 2407</span></div>
+        <div class="field-row"><span class="label">Address</span><span contenteditable="true" data-placeholder="Street, City, Mauritius" id="c-address">Mauritius</span></div>
+        <div class="field-row"><span class="label">Website</span><span contenteditable="true" data-placeholder="https://yourcompany.com" id="c-website">https://novabyte.mu</span></div>
+      </div>
+
+      <div class="qr-card">
+        <h3>Save our contact</h3>
+        <div class="sub">Scan with a phone camera — these details are added straight to Contacts, no typing.</div>
+        <div class="qr-frame" id="qr-code"></div>
+        <div class="qr-hint">Live · updates as you edit</div>
+      </div>
+
+      <div class="contact-panel">
+        <h3>Prefer email?</h3>
+        <p>Send a note with your company size and which currencies you invoice in — that's usually enough to recommend a package.</p>
+        <a class="btn-primary" href="mailto:hasting.bissesur@gmail.com?subject=NovaByte%20LedgerBooks%20Enquiry">Email Us</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>NovaByte LedgerBooks — a product of Novabyte Solutions Ltd, Mauritius.</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+  (function(){
+    var sections = document.querySelectorAll('.page-section');
+    var navLinks = document.querySelectorAll('[data-route]');
+
+    function show(route){
+      sections.forEach(function(s){ s.classList.toggle('active', s.id === route); });
+      navLinks.forEach(function(a){ a.classList.toggle('active', a.dataset.route === route && a.parentElement.id === 'navlinks'); });
+      window.scrollTo({top:0});
+    }
+    function routeFromHash(){
+      var h = (location.hash || '#home').replace('#','');
+      var valid = ['home','features','pricing','about','contact'];
+      return valid.indexOf(h) === -1 ? 'home' : h;
+    }
+    window.addEventListener('hashchange', function(){ show(routeFromHash()); });
+    show(routeFromHash());
+
+    var ids = ['c-name','c-email','c-phone','c-address','c-website'];
+    ids.forEach(function(id){
+      var el = document.getElementById(id);
+      if(!el) return;
+      try { var saved = localStorage.getItem('lb-site-' + id); if(saved) el.textContent = saved; } catch(e){}
+      el.addEventListener('input', function(){
+        try { localStorage.setItem('lb-site-' + id, el.textContent); } catch(e){}
+        scheduleQR();
+      });
+    });
+    var priceEls = document.querySelectorAll('.tier-price [contenteditable]');
+    priceEls.forEach(function(el, i){
+      try { var saved = localStorage.getItem('lb-site-tier-' + i); if(saved) el.textContent = saved; } catch(e){}
+      el.addEventListener('input', function(){ try { localStorage.setItem('lb-site-tier-' + i, el.textContent); } catch(e){} });
+    });
+
+    function vcardEscape(v){
+      return (v || '').replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n');
+    }
+    function buildVCard(){
+      var name = document.getElementById('c-name').textContent.trim() || 'NovaByte LedgerBooks';
+      var email = document.getElementById('c-email').textContent.trim();
+      var phone = document.getElementById('c-phone').textContent.trim();
+      var address = document.getElementById('c-address').textContent.trim();
+      var website = document.getElementById('c-website').textContent.trim();
+      var lines = ['BEGIN:VCARD', 'VERSION:3.0', 'FN:' + vcardEscape(name), 'ORG:' + vcardEscape(name)];
+      if (phone) lines.push('TEL;TYPE=WORK,VOICE:' + vcardEscape(phone));
+      if (email) lines.push('EMAIL;TYPE=INTERNET:' + vcardEscape(email));
+      if (address) lines.push('ADR;TYPE=WORK:;;' + vcardEscape(address) + ';;;;');
+      if (website) lines.push('URL:' + vcardEscape(website));
+      lines.push('NOTE:Shared via the NovaByte LedgerBooks digital contact card');
+      lines.push('END:VCARD');
+      return lines.join('\n');
+    }
+
+    var qrTarget = document.getElementById('qr-code');
+    var qrInstance = null;
+    var qrTimer = null;
+    function renderQR(){
+      if (typeof QRCode === 'undefined' || !qrTarget) return;
+      var text = buildVCard();
+      if (!qrInstance){
+        qrTarget.innerHTML = '';
+        qrInstance = new QRCode(qrTarget, {
+          text: text, width: 180, height: 180,
+          colorDark: '#101d30', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+      } else {
+        qrInstance.clear();
+        qrInstance.makeCode(text);
+      }
+    }
+    function scheduleQR(){
+      clearTimeout(qrTimer);
+      qrTimer = setTimeout(renderQR, 300);
+    }
+    renderQR();
+  })();
+</script>
+</body>
+</html>

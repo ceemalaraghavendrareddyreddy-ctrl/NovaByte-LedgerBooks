@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from flask import Blueprint, render_template
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from app.models import Account, Bill, Customer, Invoice, Item, JournalEntry, Payment, Vendor
 from app.scoping import scoped_query
@@ -13,8 +13,13 @@ EXPENSE_COLORS = ["#1a7f5a", "#2a5db0", "#c0522d", "#8a6dc9", "#d9a441", "#64788
 
 
 @dashboard_bp.route("/")
-@login_required
 def index():
+    # Signed-out visitors get the public marketing site (Home/Features/Pricing/
+    # About/Contact) instead of being bounced straight to the login form — this
+    # is the one URL a prospect or a client demo link actually gets shared.
+    if not current_user.is_authenticated:
+        return render_template("marketing/home.html")
+
     from app.reports import period_movement  # local import avoids a circular import at module load time
 
     today = date.today()
