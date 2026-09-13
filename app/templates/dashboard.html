@@ -1,46 +1,125 @@
 {% extends "base.html" %}
+{% block title %}Dashboard · LedgerBooks{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
+
+<div class="page-header">
+  <div>
+    <div class="breadcrumb">Home / Dashboard</div>
+    <h1>Dashboard</h1>
+  </div>
+  <div class="btn-group">
+    <a class="btn secondary small" href="{{ url_for('reports.profit_loss') }}">View reports</a>
+    <a class="btn primary small" href="{{ url_for('sales.invoice_new') }}">+ New invoice</a>
+  </div>
+</div>
 
 {% if show_onboarding %}
+{% set step_count = (onboarding.has_customer|int) + (onboarding.has_invoice|int) + (onboarding.has_payment|int) + (onboarding.has_vendor_bill|int) %}
 <div class="card onboarding-card">
-  <h3 style="margin-top:0;">Getting started</h3>
-  <p style="color:var(--muted); font-size:.9rem; margin-top:-.4rem;">Four things worth doing before you rely on this company's books day to day.</p>
-  <ul class="onboarding-list">
-    <li class="{{ 'done' if onboarding.has_customer }}">
-      <span class="tick">{{ '✓' if onboarding.has_customer else '' }}</span>
-      {% if onboarding.has_customer %}Add your first customer{% else %}<a href="{{ url_for('sales.customer_new') }}">Add your first customer</a>{% endif %}
-    </li>
-    <li class="{{ 'done' if onboarding.has_invoice }}">
-      <span class="tick">{{ '✓' if onboarding.has_invoice else '' }}</span>
-      {% if onboarding.has_invoice %}Create your first invoice{% else %}<a href="{{ url_for('sales.invoice_new') }}">Create your first invoice</a>{% endif %}
-    </li>
-    <li class="{{ 'done' if onboarding.has_payment }}">
-      <span class="tick">{{ '✓' if onboarding.has_payment else '' }}</span>
-      {% if onboarding.has_payment %}Record a payment received{% else %}<a href="{{ url_for('sales.payment_new') }}">Record a payment received</a>{% endif %}
-    </li>
-    <li class="{{ 'done' if onboarding.has_vendor_bill }}">
-      <span class="tick">{{ '✓' if onboarding.has_vendor_bill else '' }}</span>
-      {% if onboarding.has_vendor_bill %}Add a vendor and record a bill{% else %}<a href="{{ url_for('purchases.vendor_new') }}">Add a vendor and record a bill</a>{% endif %}
-    </li>
-  </ul>
+  <div class="flex-between" style="margin-bottom:0.6rem;">
+    <div>
+      <h3 class="mt-0" style="margin-bottom:0.15rem;">Get set up</h3>
+      <div class="text-muted" style="font-size:0.82rem;">{{ step_count }} of 4 steps done — this banner disappears once all four are checked.</div>
+    </div>
+    <div style="font-size:1.05rem; font-weight:700; color:var(--primary);">{{ (step_count * 25) }}%</div>
+  </div>
+  <div class="dash-bar" style="margin-bottom:0.9rem;">
+    <div class="dash-bar-segment" style="width:{{ step_count * 25 }}%; background:var(--primary);"></div>
+  </div>
+  <div class="onboarding-steps">
+    <a href="{{ url_for('sales.customer_new') }}" class="onboarding-step {{ 'is-done' if onboarding.has_customer else '' }}">
+      <span class="ob-tick">{{ '✓' if onboarding.has_customer else '1' }}</span>
+      <div>
+        <strong>Add your first customer</strong>
+        <span>Who you'll be invoicing.</span>
+      </div>
+    </a>
+    <a href="{{ url_for('sales.invoice_new') }}" class="onboarding-step {{ 'is-done' if onboarding.has_invoice else '' }}">
+      <span class="ob-tick">{{ '✓' if onboarding.has_invoice else '2' }}</span>
+      <div>
+        <strong>Create an invoice</strong>
+        <span>Try the live preview.</span>
+      </div>
+    </a>
+    <a href="{{ url_for('sales.invoice_list') }}" class="onboarding-step {{ 'is-done' if onboarding.has_payment else '' }}">
+      <span class="ob-tick">{{ '✓' if onboarding.has_payment else '3' }}</span>
+      <div>
+        <strong>Record a payment</strong>
+        <span>Use "Mark paid" on any invoice.</span>
+      </div>
+    </a>
+    <a href="{{ url_for('purchases.bill_new') }}" class="onboarding-step {{ 'is-done' if onboarding.has_vendor_bill else '' }}">
+      <span class="ob-tick">{{ '✓' if onboarding.has_vendor_bill else '4' }}</span>
+      <div>
+        <strong>Log a vendor bill</strong>
+        <span>Track what you owe.</span>
+      </div>
+    </a>
+  </div>
 </div>
+<style>
+.onboarding-card { border-left: 4px solid var(--primary); }
+.onboarding-steps { display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.6rem; }
+.onboarding-step {
+  display:flex; gap:0.7rem; align-items:flex-start;
+  padding:0.7rem 0.85rem; border:1px solid var(--border); border-radius:var(--radius);
+  text-decoration:none; color:var(--text); background:var(--card);
+  transition:border-color 0.15s, background 0.15s;
+}
+.onboarding-step:hover { border-color:var(--primary); background:var(--primary-50); text-decoration:none; }
+.onboarding-step strong { display:block; font-size:0.88rem; font-weight:600; }
+.onboarding-step span:not(.ob-tick) { display:block; font-size:0.76rem; color:var(--text-muted); margin-top:2px; }
+.ob-tick {
+  width:24px; height:24px; border-radius:50%;
+  display:inline-flex; align-items:center; justify-content:center;
+  font-size:0.78rem; font-weight:700; flex-shrink:0;
+  background:var(--bg); color:var(--text-muted); border:1.5px solid var(--border-strong);
+}
+.onboarding-step.is-done .ob-tick { background:var(--primary); color:white; border-color:var(--primary); }
+.onboarding-step.is-done strong { color:var(--text-muted); text-decoration:line-through; }
+</style>
 {% endif %}
 
-<div class="card">
-  <h3 style="margin-top:0;">Quick Actions</h3>
-  <a class="btn" href="{{ url_for('sales.invoice_new') }}">+ Invoice</a>
-  <a class="btn secondary" href="{{ url_for('sales.estimate_new') }}">+ Estimate</a>
-  <a class="btn secondary" href="{{ url_for('sales.payment_new') }}">Receive Payment</a>
-  <a class="btn secondary" href="{{ url_for('purchases.bill_new') }}">+ Bill</a>
-  <a class="btn secondary" href="{{ url_for('ledger.journal_new') }}">+ Journal Entry</a>
-  <a class="btn secondary" href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+<div class="quick-actions">
+  <span class="qa-label">Quick actions</span>
+  <a class="btn secondary small" href="{{ url_for('sales.invoice_new') }}">+ Invoice</a>
+  <a class="btn secondary small" href="{{ url_for('sales.estimate_new') }}">+ Estimate</a>
+  <a class="btn secondary small" href="{{ url_for('sales.payment_new') }}">Receive payment</a>
+  <a class="btn secondary small" href="{{ url_for('purchases.bill_new') }}">+ Bill</a>
+  <a class="btn secondary small" href="{{ url_for('ledger.journal_new') }}">+ Journal entry</a>
+  <a class="btn secondary small" href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+</div>
+
+<div class="stat-row" style="margin-bottom:1.15rem;">
+  <div class="stat">
+    <div class="label">Cash on hand</div>
+    <div class="value">{{ '%.2f'|format(bank_total) }}</div>
+    <div class="sub">Across {{ bank_rows|length }} bank / cash account{{ '' if bank_rows|length == 1 else 's' }}</div>
+  </div>
+  <div class="stat">
+    <div class="label">Income · {{ month_name }} MTD</div>
+    <div class="value positive">{{ '%.2f'|format(income_mtd) }}</div>
+    <div class="sub">Money in this month</div>
+  </div>
+  <div class="stat">
+    <div class="label">Expenses · {{ month_name }} MTD</div>
+    <div class="value negative">{{ '%.2f'|format(expense_mtd) }}</div>
+    <div class="sub">Money out this month</div>
+  </div>
+  <div class="stat">
+    <div class="label">Net · {{ 'Profit' if net_income_mtd >= 0 else 'Loss' }}</div>
+    <div class="value {{ 'positive' if net_income_mtd >= 0 else 'negative' }}">{{ '%.2f'|format(net_income_mtd) }}</div>
+    <div class="sub">Income − expenses (MTD)</div>
+  </div>
 </div>
 
 <div class="dash-grid">
 
   <div class="card">
-    <h3 style="margin-top:0;">Bank Accounts</h3>
+    <div class="flex-between">
+      <h3 class="mt-0">Bank accounts</h3>
+      <a class="btn ghost small" href="{{ url_for('banking.transfer') }}">Transfer</a>
+    </div>
     {% if bank_rows %}
     <table>
       <tbody>
@@ -54,46 +133,51 @@
       <tfoot><tr><th>Total</th><th class="num">{{ '%.2f'|format(bank_total) }}</th></tr></tfoot>
     </table>
     {% else %}
-    <p style="color:var(--muted);">No bank/cash accounts set up.</p>
+    <div class="empty-state">No bank / cash accounts set up yet.</div>
     {% endif %}
-    <a class="btn small secondary" href="{{ url_for('banking.transfer') }}" style="margin-top:0.5rem;">Transfer Funds</a>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Sales &amp; Get Paid</h3>
-    <p style="color:var(--muted); font-size:0.85rem; margin-top:-0.5rem;">Last 30 days</p>
+    <div class="flex-between">
+      <div>
+        <h3 class="mt-0">Sales &amp; get paid</h3>
+        <div class="text-muted" style="font-size:0.8rem;">Last 30 days</div>
+      </div>
+      <a class="btn ghost small" href="{{ url_for('sales.aging_report') }}">A/R aging</a>
+    </div>
     <div class="dash-funnel">
       <div class="dash-funnel-stage">
-        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_not_paid / funnel_max * 100)|round(1) }}%; background: #d9a441;"></div></div>
-        <div class="dash-funnel-label"><span>Not Paid</span><span class="num">{{ '%.2f'|format(funnel_not_paid) }}</span></div>
+        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_not_paid / funnel_max * 100)|round(1) }}%; background: #F59E0B;"></div></div>
+        <div class="dash-funnel-label"><span>Not paid</span><span class="num">{{ '%.2f'|format(funnel_not_paid) }}</span></div>
       </div>
       <div class="dash-funnel-stage">
-        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_paid / funnel_max * 100)|round(1) }}%; background: #2a5db0;"></div></div>
-        <div class="dash-funnel-label"><span>Paid</span><span class="num">{{ '%.2f'|format(funnel_paid) }}</span></div>
+        <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_paid / funnel_max * 100)|round(1) }}%; background: #2563EB;"></div></div>
+        <div class="dash-funnel-label"><span>Paid, not deposited</span><span class="num">{{ '%.2f'|format(funnel_paid) }}</span></div>
       </div>
       <div class="dash-funnel-stage">
         <div class="dash-funnel-bar-track"><div class="dash-funnel-bar" style="width: {{ (funnel_deposited / funnel_max * 100)|round(1) }}%; background: var(--success);"></div></div>
         <div class="dash-funnel-label"><span>Deposited</span><span class="num">{{ '%.2f'|format(funnel_deposited) }}</span></div>
       </div>
     </div>
-    <a class="btn small secondary" href="{{ url_for('sales.aging_report') }}" style="margin-top:0.5rem;">View AR Aging</a>
-    <a class="btn small secondary" href="{{ url_for('banking.make_deposit') }}" style="margin-top:0.5rem;">Make Deposit</a>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Expenses — Last 30 Days</h3>
+    <div class="flex-between">
+      <h3 class="mt-0">Expenses · last 30 days</h3>
+    </div>
     {% if top_expenses %}
-    <div style="display:flex; align-items:center; gap:1.2rem; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:1.5rem; flex-wrap:wrap;">
       <div class="dash-donut" style="background: conic-gradient({{ donut_gradient }});">
         <div class="dash-donut-hole">
           <div class="dash-donut-total">{{ '%.0f'|format(expense_total_30d) }}</div>
+          <div class="dash-donut-label">Total</div>
         </div>
       </div>
       <table style="flex:1; min-width:180px;">
         <tbody>
           {% for r in top_expenses %}
           <tr>
-            <td><span class="dash-dot" style="background:{{ r.color }};"></span> {{ r.account.name if r.account else r.label }}</td>
+            <td><span class="dash-dot" style="background:{{ r.color }};"></span>{{ r.account.name if r.account else r.label }}</td>
             <td class="num">{{ '%.2f'|format(r.amount) }}</td>
           </tr>
           {% endfor %}
@@ -101,50 +185,58 @@
       </table>
     </div>
     {% else %}
-    <p style="color:var(--muted);">No expenses in the last 30 days.</p>
+    <div class="empty-state">No expenses in the last 30 days.</div>
     {% endif %}
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Profit &amp; Loss — {{ month_name }} (Month to Date)</h3>
+    <div class="flex-between">
+      <h3 class="mt-0">Profit &amp; loss · {{ month_name }}</h3>
+      <a class="btn ghost small" href="{{ url_for('reports.profit_loss') }}">Full report</a>
+    </div>
     <div class="form-row" style="align-items:center;">
       <label style="min-width:80px;">Income</label>
       <div class="dash-bar" style="flex:1;"><div class="dash-bar-segment" style="width:{{ (income_mtd / pl_max * 100)|round(1) }}%; background: var(--success);"></div></div>
-      <span class="num" style="min-width:90px; text-align:right;">{{ '%.2f'|format(income_mtd) }}</span>
+      <span class="num" style="min-width:90px; text-align:right; font-weight:600;">{{ '%.2f'|format(income_mtd) }}</span>
     </div>
     <div class="form-row" style="align-items:center;">
       <label style="min-width:80px;">Expenses</label>
       <div class="dash-bar" style="flex:1;"><div class="dash-bar-segment" style="width:{{ (expense_mtd / pl_max * 100)|round(1) }}%; background: var(--error);"></div></div>
-      <span class="num" style="min-width:90px; text-align:right;">{{ '%.2f'|format(expense_mtd) }}</span>
+      <span class="num" style="min-width:90px; text-align:right; font-weight:600;">{{ '%.2f'|format(expense_mtd) }}</span>
     </div>
-    <div class="stat-row" style="margin-top:0.8rem;">
-      <div class="stat">
-        <div class="label">{{ 'Net Profit' if net_income_mtd >= 0 else 'Net Loss' }}</div>
-        <div class="value" style="color: {{ 'var(--success)' if net_income_mtd >= 0 else 'var(--error)' }};">{{ '%.2f'|format(net_income_mtd) }}</div>
-      </div>
+    <div style="margin-top:1rem; padding-top:0.9rem; border-top:1px dashed var(--border); display:flex; align-items:center; justify-content:space-between;">
+      <span class="text-muted" style="font-size:0.85rem; font-weight:500;">{{ 'Net profit' if net_income_mtd >= 0 else 'Net loss' }} (MTD)</span>
+      <span class="num" style="font-size:1.15rem; font-weight:700; color: {{ 'var(--success)' if net_income_mtd >= 0 else 'var(--error)' }};">{{ '%.2f'|format(net_income_mtd) }}</span>
     </div>
-    <a class="btn small secondary" href="{{ url_for('reports.profit_loss') }}" style="margin-top:0.5rem;">Full P&amp;L Report</a>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Bills to Pay</h3>
-    <div class="stat-row">
-      <div class="stat"><div class="label">Overdue</div><div class="value" style="color:var(--error);">{{ '%.2f'|format(bills_overdue_total) }}</div></div>
-      <div class="stat"><div class="label">Not Due Yet</div><div class="value">{{ '%.2f'|format(bills_not_due_total) }}</div></div>
+    <div class="flex-between">
+      <h3 class="mt-0">Bills to pay</h3>
+      <a class="btn ghost small" href="{{ url_for('purchases.aging_report') }}">A/P aging</a>
     </div>
-    <a class="btn small secondary" href="{{ url_for('purchases.aging_report') }}" style="margin-top:0.5rem;">View AP Aging</a>
+    <div class="stat-row">
+      <div class="stat" style="box-shadow:none;border-color:var(--border);">
+        <div class="label">Overdue</div>
+        <div class="value negative">{{ '%.2f'|format(bills_overdue_total) }}</div>
+      </div>
+      <div class="stat" style="box-shadow:none;border-color:var(--border);">
+        <div class="label">Not due yet</div>
+        <div class="value">{{ '%.2f'|format(bills_not_due_total) }}</div>
+      </div>
+    </div>
   </div>
 
   {% if low_stock_items %}
   <div class="card">
-    <h3 style="margin-top:0;">⚠️ Low Stock Alert</h3>
+    <h3 class="mt-0">Low stock alert</h3>
     <table>
-      <thead><tr><th>Item</th><th class="num">On Hand</th><th class="num">Reorder Level</th></tr></thead>
+      <thead><tr><th>Item</th><th class="num">On hand</th><th class="num">Reorder</th></tr></thead>
       <tbody>
         {% for i in low_stock_items %}
         <tr>
-          <td><a href="{{ url_for('inventory.item_detail', item_id=i.id) }}">{{ i.sku }} - {{ i.name }}</a></td>
-          <td class="num" style="color:var(--error);">{{ i.quantity_on_hand }} {{ i.unit }}</td>
+          <td><a href="{{ url_for('inventory.item_detail', item_id=i.id) }}">{{ i.sku }} — {{ i.name }}</a></td>
+          <td class="num" style="color:var(--error);font-weight:600;">{{ i.quantity_on_hand }} {{ i.unit }}</td>
           <td class="num">{{ i.reorder_level }} {{ i.unit }}</td>
         </tr>
         {% endfor %}
@@ -156,7 +248,10 @@
 </div>
 
 <div class="card">
-  <h3 style="margin-top:0;">Recent Journal Activity</h3>
+  <div class="flex-between">
+    <h3 class="mt-0">Recent journal activity</h3>
+    <a class="btn ghost small" href="{{ url_for('ledger.journal_list') }}">View all</a>
+  </div>
   {% if recent_entries %}
   <table>
     <thead><tr><th>Date</th><th>Reference</th><th>Memo</th><th class="num">Amount</th></tr></thead>
@@ -164,15 +259,15 @@
       {% for e in recent_entries %}
       <tr>
         <td><a href="{{ url_for('ledger.journal_detail', entry_id=e.id) }}">{{ e.entry_date }}</a></td>
-        <td>{{ e.reference_no or '-' }}</td>
-        <td>{{ e.memo or '-' }}</td>
+        <td>{{ e.reference_no or '—' }}</td>
+        <td>{{ e.memo or '—' }}</td>
         <td class="num">{{ '%.2f'|format(e.total_debit) }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p>No journal entries yet.</p>
+  <div class="empty-state">No journal entries yet.</div>
   {% endif %}
 </div>
 {% endblock %}

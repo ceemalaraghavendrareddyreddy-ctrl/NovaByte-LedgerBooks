@@ -501,12 +501,63 @@ def invoice_detail(invoice_id):
     )
 
 
+@sales_bp.route("/invoices/<int:invoice_id>/quick-pay", methods=["POST"])
+@login_required
+def invoice_quick_pay(invoice_id):
+    """One-click 'Mark paid' — records a full-balance Payment against this invoice,
+    posts the matching journal entry, and marks the invoice paid.  Deposit goes to
+    the first Cash / Bank asset account (or Undeposited Funds if none is active)."""
+    invoice = scoped_or_404(Invoice, invoice_id)
+    if invoice.status not in ("open", "partial") or invoice.balance_due <= 0:
+        flash(f"Invoice {invoice.invoice_no} is already settled.", "warning")
+        return redirect(url_for("sales.invoice_list"))
+
+    # Pick the first active bank/cash account; fall back to Undeposited Funds.
+    deposit_account = scoped_query(Account).filter(
+        Account.account_type == "Asset", Account.is_active == True,  # noqa: E712
+        Account.subtype == "Cash and Cash Equivalents",
+    ).order_by(Account.code).first()
+    if deposit_account is None:
+        deposit_account = get_account_or_400(UNDEPOSITED_FUNDS_CODE, "Undeposited Funds")
+
+    amount = round(invoice.balance_due, 2)
+    payment = Payment(
+        company_id=current_company_id(),
+        customer_id=invoice.customer_id,
+        payment_date=date.today(),
+        amount=amount,
+        currency=invoice.currency,
+        exchange_rate=invoice.exchange_rate,
+        method="bank",
+        deposit_account_id=deposit_account.id,
+        reference_no=None,
+        memo=f"Quick-pay for {invoice.invoice_no}",
+    )
+    payment.applications.append(PaymentApplication(invoice=invoice, amount_applied=amount))
+
+    post_payment(payment)
+    db.session.add(payment)
+    db.session.flush()
+
+    invoice.status = "paid" if invoice.balance_due <= 0 else "partial"
+    log_audit("create", "payment", payment.id,
+              f"Quick-pay recorded for {invoice.invoice_no}: {amount:.2f} {invoice.currency}")
+    db.session.commit()
+    flash(
+        f"Recorded payment of {amount:.2f} {invoice.currency} for {invoice.invoice_no}.",
+        "success",
+    )
+    return redirect(url_for("sales.invoice_list"))
+
+
+
 @sales_bp.route("/invoices/<int:invoice_id>/pdf")
 @login_required
 def invoice_pdf(invoice_id):
     invoice = scoped_or_404(Invoice, invoice_id)
     company = current_company()
-    buffer = generate_invoice_pdf(invoice, company)
+    template = request.args.get("template")  # optional override, e.g. ?template=coral
+    buffer = generate_invoice_pdf(invoice, company, template=template)
     return send_file(
         buffer, mimetype="application/pdf", as_attachment=False,
         download_name=f"{invoice.invoice_no}.pdf",

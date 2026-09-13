@@ -1,12 +1,25 @@
 {% extends "base.html" %}
+{% block title %}Invoices · LedgerBooks{% endblock %}
 {% block content %}
-<h1>Invoices</h1>
-<a class="btn" href="{{ url_for('sales.invoice_new') }}">+ New Invoice</a>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('dashboard.index') }}">Home</a> / Sales / Invoices</div>
+    <h1>Invoices</h1>
+  </div>
+  <a class="btn primary" href="{{ url_for('sales.invoice_new') }}">+ New invoice</a>
+</div>
 
-<div class="card">
+<div class="table-wrap">
   {% if invoices %}
   <table>
-    <thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Due</th><th>Status</th><th>Currency</th><th class="num">Total</th><th class="num">Balance Due</th></tr></thead>
+    <thead>
+      <tr>
+        <th>Invoice #</th><th>Customer</th><th>Date</th><th>Due</th>
+        <th>Status</th><th>Currency</th>
+        <th class="num">Total</th><th class="num">Balance</th>
+        <th></th>
+      </tr>
+    </thead>
     <tbody>
       {% for inv in invoices %}
       <tr>
@@ -14,16 +27,35 @@
         <td><a href="{{ url_for('sales.customer_detail', customer_id=inv.customer.id) }}">{{ inv.customer.name }}</a></td>
         <td>{{ inv.invoice_date }}</td>
         <td>{{ inv.due_date }}</td>
-        <td><span class="badge {{ 'debit' if inv.status == 'paid' else '' }}">{{ inv.status }}</span></td>
-        <td>{{ inv.currency }}{% if inv.is_foreign %} <span style="color:var(--muted); font-size:.85em;">@{{ inv.exchange_rate }}</span>{% endif %}</td>
+        <td>
+          {% set st = inv.status %}
+          {% if st == 'paid' %}<span class="badge paid">Paid</span>
+          {% elif st == 'partial' %}<span class="badge warning">Partial</span>
+          {% elif st == 'void' %}<span class="badge draft">Void</span>
+          {% elif inv.days_overdue and inv.balance_due > 0 %}<span class="badge overdue">Overdue</span>
+          {% else %}<span class="badge open">Open</span>{% endif %}
+        </td>
+        <td>{{ inv.currency }}{% if inv.is_foreign %} <span class="text-muted" style="font-size:.85em;">@{{ inv.exchange_rate }}</span>{% endif %}</td>
         <td class="num">{{ '%.2f'|format(inv.total) }}</td>
         <td class="num">{{ '%.2f'|format(inv.balance_due) }}</td>
+        <td class="text-right" style="white-space:nowrap;">
+          {% if inv.status in ('open', 'partial') and inv.balance_due > 0 %}
+            <form method="post" action="{{ url_for('sales.invoice_quick_pay', invoice_id=inv.id) }}"
+                  style="display:inline;" onsubmit="return confirm('Mark {{ inv.invoice_no }} as fully paid ({{ '%.2f'|format(inv.balance_due) }} {{ inv.currency }})?');">
+              <button type="submit" class="btn ghost small">Mark paid</button>
+            </form>
+          {% endif %}
+          <a href="{{ url_for('sales.invoice_pdf', invoice_id=inv.id) }}" target="_blank" class="btn ghost small" title="Print / PDF">PDF</a>
+        </td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
   {% else %}
-  <p>No invoices yet.</p>
+  <div class="empty-state">
+    <div>No invoices yet.</div>
+    <a class="btn primary small" style="margin-top:0.75rem;" href="{{ url_for('sales.invoice_new') }}">Create your first invoice</a>
+  </div>
   {% endif %}
 </div>
 {% endblock %}

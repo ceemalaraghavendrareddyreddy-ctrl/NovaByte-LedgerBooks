@@ -49,6 +49,22 @@ def company():
         settings.invoice_footer_note = request.form.get("invoice_footer_note", "").strip() or None
         settings.mra_api_url = request.form.get("mra_api_url", "").strip() or None
         settings.mra_api_key = request.form.get("mra_api_key", "").strip() or None
+        # SMTP settings for payment-reminder emails.
+        settings.smtp_host = request.form.get("smtp_host", "").strip() or None
+        smtp_port_raw = request.form.get("smtp_port", "").strip()
+        settings.smtp_port = int(smtp_port_raw) if smtp_port_raw.isdigit() else 587
+        settings.smtp_username = request.form.get("smtp_username", "").strip() or None
+        # Only overwrite the password if the user actually typed something —
+        # blank means "keep the one on file" so passwords survive routine saves.
+        new_smtp_password = request.form.get("smtp_password", "")
+        if new_smtp_password.strip():
+            settings.smtp_password = new_smtp_password
+        settings.smtp_from = request.form.get("smtp_from", "").strip() or None
+        settings.smtp_use_tls = request.form.get("smtp_use_tls") == "on"
+        # Invoice PDF theme.
+        tpl = request.form.get("invoice_template", "classic").strip()
+        if tpl in ("classic", "minimal", "coral"):
+            settings.invoice_template = tpl
         new_base_currency = request.form.get("base_currency", "").strip() or settings.base_currency
         if new_base_currency != settings.base_currency:
             flash(

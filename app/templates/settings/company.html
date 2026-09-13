@@ -1,75 +1,167 @@
 {% extends "base.html" %}
+{% block title %}Company settings · LedgerBooks{% endblock %}
 {% block content %}
-<h1>Company Settings</h1>
-<p style="color:var(--muted);">Shown on the header and footer of every invoice PDF.</p>
-<div class="card" style="max-width:600px;">
-  <form method="post" enctype="multipart/form-data">
-    <div class="form-row">
-      <label>Logo</label>
-      <div style="display:flex; align-items:center; gap:1rem;">
-        {% if settings.logo_data %}
-        <img src="{{ settings.logo_data }}" alt="Company logo" style="height:48px; max-width:120px; object-fit:contain; border:1px solid var(--border); border-radius:6px; padding:.25rem; background:white;">
-        {% endif %}
-        <div>
-          <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml">
-          {% if settings.logo_data %}
-          <label style="display:block; font-weight:normal; font-size:.85rem; margin-top:.3rem;">
-            <input type="checkbox" name="remove_logo" value="1" style="width:auto;"> Remove current logo
-          </label>
-          {% endif %}
-        </div>
-      </div>
-      <p style="color:var(--muted); font-size:.8rem; margin:.3rem 0 0;">PNG, JPEG, WebP, or SVG — under 40KB. Shows at the top of the sidebar instead of the default icon.</p>
-    </div>
-    <div class="form-row"><label>Business Name</label><input type="text" name="business_name" required value="{{ settings.business_name }}"></div>
-    <div class="form-row"><label>Address</label><textarea name="address" rows="2">{{ settings.address or '' }}</textarea></div>
-    <div class="form-row"><label>Phone</label><input type="text" name="phone" value="{{ settings.phone or '' }}"></div>
-    <div class="form-row"><label>Email</label><input type="email" name="email" value="{{ settings.email or '' }}"></div>
-    <div class="form-row"><label>VAT Number</label><input type="text" name="vat_number" value="{{ settings.vat_number or '' }}"></div>
-    <div class="form-row"><label>Invoice Footer Note</label><input type="text" name="invoice_footer_note" value="{{ settings.invoice_footer_note or '' }}"></div>
-    <div class="form-row">
-      <label>Base Currency</label>
-      <select name="base_currency" style="max-width:120px;">
-        {% for c in currencies %}
-        <option value="{{ c }}" {% if settings.base_currency == c %}selected{% endif %}>{{ c }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <p style="color:var(--muted); font-size:.85rem;">
-      The currency every ledger entry and report is posted in. Invoices, bills, and payments can
-      still be issued in a different currency — they convert to this one at whatever exchange
-      rate is entered when each one is created.
-    </p>
-    <hr>
-    <p style="color:var(--muted); font-size:0.85rem;">
-      Connects this business to MRA_TaxInvoice_System, so every invoice and credit memo is
-      automatically fiscalised. Get the API key from that system's own Settings page
-      (External Integration section) for this company.
-    </p>
-    <div class="form-row"><label>MRA API URL</label><input type="text" name="mra_api_url" placeholder="http://localhost:5059" value="{{ settings.mra_api_url or '' }}"></div>
-    <div class="form-row"><label>MRA API Key</label><input type="text" name="mra_api_key" value="{{ settings.mra_api_key or '' }}"></div>
-    <button class="btn" type="submit">Save Settings</button>
-  </form>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('dashboard.index') }}">Home</a> / Admin / Company</div>
+    <h1>Company settings</h1>
+  </div>
 </div>
 
-<div class="card" style="max-width:600px; margin-top:1rem;">
-  <h3 style="margin-top:0;">Payroll Integration</h3>
-  <p style="color:var(--muted); font-size:.85rem;">
-    Lets an external payroll system (e.g. Sicorax) push one summarized journal entry per
-    Finalized payroll run — gross pay, PAYE, CSG/NSF, and net pay payable — instead of the
-    figures only ever living on a payslip. Generate a key here, then paste it into that
-    system's own LedgerBooks connection settings.
+<form method="post" enctype="multipart/form-data">
+
+  {# ── Identity + logo ───────────────────────────────────────── #}
+  <div class="card">
+    <h3 class="mt-0">Company identity</h3>
+    <p class="text-muted" style="font-size:0.88rem;">Shown on every invoice PDF, the sidebar and reminder emails.</p>
+
+    <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start; margin-bottom:1rem;">
+      <div>
+        <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:0.5rem;">Logo</div>
+        <div style="width:120px; height:120px; border-radius:var(--radius); border:1px dashed var(--border-strong); display:flex; align-items:center; justify-content:center; background:var(--bg); overflow:hidden;">
+          {% if settings.logo_data %}
+            <img src="{{ settings.logo_data }}" alt="Company logo" style="max-width:110px; max-height:110px;">
+          {% else %}
+            <span class="text-muted" style="font-size:0.75rem;">No logo</span>
+          {% endif %}
+        </div>
+        <div style="margin-top:0.6rem;">
+          <input type="file" name="logo" accept=".png,.jpg,.jpeg,.webp,.svg,image/*" style="font-size:0.8rem;">
+          {% if settings.logo_data %}
+            <label style="display:block; margin-top:0.4rem; font-size:0.82rem;">
+              <input type="checkbox" name="remove_logo"> Remove current logo
+            </label>
+          {% endif %}
+          <div class="text-muted" style="font-size:0.72rem; margin-top:0.25rem;">PNG, JPEG, WebP or SVG · up to 40 KB.</div>
+        </div>
+      </div>
+
+      <div style="flex:1; min-width:280px;">
+        <div class="form-row"><label>Business name</label><input type="text" name="business_name" required value="{{ settings.business_name }}"></div>
+        <div class="form-row"><label>Address</label><textarea name="address" rows="2">{{ settings.address or '' }}</textarea></div>
+        <div class="form-row"><label>Phone</label><input type="text" name="phone" value="{{ settings.phone or '' }}"></div>
+        <div class="form-row"><label>Email</label><input type="email" name="email" value="{{ settings.email or '' }}"></div>
+        <div class="form-row"><label>VAT number</label><input type="text" name="vat_number" value="{{ settings.vat_number or '' }}"></div>
+        <div class="form-row"><label>Invoice footer</label><input type="text" name="invoice_footer_note" value="{{ settings.invoice_footer_note or '' }}"></div>
+        <div class="form-row">
+          <label>Base currency</label>
+          <select name="base_currency" style="max-width:120px;">
+            {% for c in currencies %}
+            <option value="{{ c }}" {% if settings.base_currency == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# ── Invoice PDF template ─────────────────────────────────── #}
+  <div class="card">
+    <h3 class="mt-0">Invoice PDF template</h3>
+    <p class="text-muted" style="font-size:0.88rem;">Choose the branded design used when anyone downloads an invoice PDF. You can also override this per-invoice with <code>?template=</code>.</p>
+
+    <div class="tpl-grid">
+      {% set current_tpl = settings.invoice_template or 'classic' %}
+      {% for slug, name, blurb, swatch in [
+          ('classic', 'Classic', 'Teal accent, banded header — the default.',       '#0F766E'),
+          ('minimal', 'Minimal', 'Grayscale header, hairline rules — for pure text.', '#1F2937'),
+          ('coral',   'Coral',   'Warm coral accent to match the app UI.',           '#F97354'),
+      ] %}
+      <label class="tpl-option {{ 'is-selected' if current_tpl == slug else '' }}">
+        <input type="radio" name="invoice_template" value="{{ slug }}" {{ 'checked' if current_tpl == slug else '' }}>
+        <div class="tpl-swatch" style="background:{{ swatch }};"></div>
+        <div>
+          <div class="tpl-title">{{ name }}</div>
+          <div class="tpl-blurb">{{ blurb }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  {# ── SMTP for reminder emails ─────────────────────────────── #}
+  <div class="card">
+    <h3 class="mt-0">Payment-reminder emails</h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      Configure an outgoing SMTP server so the <a href="{{ url_for('reminders.digest') }}">Reminders</a> page can send friendly nudges directly.
+      Leave blank to stay in preview-only (copy/paste) mode.
+    </p>
+    <div class="form-row"><label>SMTP host</label><input type="text" name="smtp_host" value="{{ settings.smtp_host or '' }}" placeholder="smtp.gmail.com"></div>
+    <div class="form-row"><label>SMTP port</label><input type="number" name="smtp_port" value="{{ settings.smtp_port or 587 }}" style="max-width:120px;"></div>
+    <div class="form-row"><label>Username</label><input type="text" name="smtp_username" value="{{ settings.smtp_username or '' }}" autocomplete="off"></div>
+    <div class="form-row">
+      <label>Password</label>
+      <input type="password" name="smtp_password" value="" autocomplete="new-password"
+             placeholder="{{ '••••••••••  (leave blank to keep)' if settings.smtp_password else 'Enter password or app-password' }}">
+    </div>
+    <div class="form-row"><label>From address</label><input type="email" name="smtp_from" value="{{ settings.smtp_from or '' }}" placeholder="billing@yourcompany.com"></div>
+    <div class="form-row">
+      <label>Use TLS</label>
+      <label style="flex:1; min-width:auto; font-weight:normal;">
+        <input type="checkbox" name="smtp_use_tls" {{ 'checked' if settings.smtp_use_tls or settings.smtp_use_tls is none else '' }}>
+        Upgrade the connection with STARTTLS (recommended)
+      </label>
+    </div>
+  </div>
+
+  {# ── MRA connection (kept from original) ──────────────────── #}
+  <div class="card">
+    <h3 class="mt-0">MRA fiscalisation</h3>
+    <p class="text-muted" style="font-size:0.88rem;">Connects this business to MRA_TaxInvoice_System, so every invoice and credit memo is automatically fiscalised.</p>
+    <div class="form-row"><label>API URL</label><input type="text" name="mra_api_url" placeholder="http://localhost:5059" value="{{ settings.mra_api_url or '' }}"></div>
+    <div class="form-row"><label>API key</label><input type="text" name="mra_api_key" value="{{ settings.mra_api_key or '' }}"></div>
+  </div>
+
+  <div class="btn-group" style="margin-bottom:1.5rem;">
+    <button class="btn primary" type="submit">Save settings</button>
+    <a class="btn secondary" href="{{ url_for('dashboard.index') }}">Cancel</a>
+  </div>
+</form>
+
+{# ── Payroll integration section (unchanged behaviour) ───────── #}
+<div class="card">
+  <h3 class="mt-0">Payroll integration</h3>
+  <p class="text-muted" style="font-size:0.88rem;">
+    Lets an external payroll system push one summarized journal entry per finalized payroll run.
+    Generate a key here, then paste it into that system's LedgerBooks connection settings.
   </p>
   {% if settings.payroll_api_key %}
   <div class="form-row">
-    <label>Current API Key</label>
+    <label>Current API key</label>
     <input type="text" readonly value="{{ settings.payroll_api_key }}" style="font-family:monospace;" onclick="this.select();">
   </div>
   {% else %}
-  <p><em>No key generated yet — the payroll system can't push until one exists.</em></p>
+  <p class="text-muted"><em>No key generated yet — the payroll system can't push until one exists.</em></p>
   {% endif %}
-  <form method="post" action="{{ url_for('settings.regenerate_payroll_api_key') }}" onsubmit="return confirm('Regenerate the payroll API key? The old key stops working immediately — update it on the payroll system\'s side too.');">
-    <button class="btn secondary" type="submit">{{ 'Regenerate' if settings.payroll_api_key else 'Generate' }} API Key</button>
+  <form method="post" action="{{ url_for('settings.regenerate_payroll_api_key') }}" onsubmit="return confirm('Regenerate the payroll API key? The old key stops working immediately — update it on the payroll system side too.');">
+    <button class="btn secondary" type="submit">{{ 'Regenerate' if settings.payroll_api_key else 'Generate' }} API key</button>
   </form>
 </div>
+
+<style>
+.tpl-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:0.75rem; }
+.tpl-option {
+  display:flex; align-items:flex-start; gap:0.7rem; padding:0.9rem;
+  border:1.5px solid var(--border); border-radius:var(--radius);
+  cursor:pointer; transition:border-color 0.15s, background 0.15s;
+  background:var(--card);
+}
+.tpl-option:hover { border-color:var(--primary); }
+.tpl-option.is-selected { border-color:var(--primary); background:var(--primary-50); }
+.tpl-option input[type=radio] { margin-top:0.15rem; accent-color: var(--primary); }
+.tpl-swatch { width:32px; height:32px; border-radius:6px; flex-shrink:0; box-shadow:inset 0 0 0 1px rgba(0,0,0,0.08); }
+.tpl-title { font-weight:600; font-size:0.9rem; color:var(--text); }
+.tpl-blurb { font-size:0.78rem; color:var(--text-muted); margin-top:2px; }
+</style>
+
+<script>
+document.querySelectorAll('.tpl-option').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.tpl-option').forEach(o => o.classList.remove('is-selected'));
+    el.classList.add('is-selected');
+    const radio = el.querySelector('input[type=radio]');
+    if (radio) radio.checked = true;
+  });
+});
+</script>
 {% endblock %}

@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Import CSV · LedgerBooks{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('dashboard.index') }}">Home</a> / Admin / Import CSV</div>
+    <h1>Bulk import from CSV</h1>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex; gap:0.25rem; margin-bottom:1rem; border-bottom:1px solid var(--border);">
+    {% for k in ['customers', 'vendors', 'items'] %}
+      <a href="{{ url_for('imports.csv_import', kind=k) }}"
+         class="import-tab {{ 'is-active' if kind == k else '' }}">{{ k|capitalize }}</a>
+    {% endfor %}
+  </div>
+
+  <p class="text-muted" style="font-size:0.88rem;">
+    Upload a UTF-8 CSV file. Rows are matched by
+    <strong>{{ 'sku' if kind == 'items' else 'name' }}</strong> and
+    updated in place — running the same file twice is safe.
+  </p>
+
+  <div style="background:var(--bg); padding:0.75rem 1rem; border-radius:var(--radius); margin-bottom:1rem; border:1px solid var(--border);">
+    <div class="text-muted" style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; font-weight:600; margin-bottom:4px;">Expected columns</div>
+    <code style="font-size:0.85rem; color:var(--text); word-break:break-all;">{{ headers[kind]|join(', ') }}</code>
+  </div>
+
+  <form method="post" enctype="multipart/form-data">
+    <input type="hidden" name="kind" value="{{ kind }}">
+    <div class="form-row">
+      <label>CSV file</label>
+      <input type="file" name="file" accept=".csv,text/csv" required>
+    </div>
+    <div class="btn-group" style="margin-top:0.5rem;">
+      <button type="submit" class="btn primary">Import {{ kind }}</button>
+      <a class="btn secondary" href="{{ url_for('dashboard.index') }}">Cancel</a>
+    </div>
+  </form>
+
+  {% if result %}
+  <div class="section-title">Result</div>
+  <div class="stat-row">
+    <div class="stat"><div class="label">Created</div><div class="value positive">{{ result.created }}</div></div>
+    <div class="stat"><div class="label">Updated</div><div class="value">{{ result.updated }}</div></div>
+    <div class="stat"><div class="label">Skipped</div><div class="value {{ 'negative' if result.errors else '' }}">{{ result.errors|length }}</div></div>
+  </div>
+  {% if result.errors %}
+  <div class="card" style="background:var(--error-bg); border-color:#F5C6C6; margin-top:1rem;">
+    <strong>Skipped rows:</strong>
+    <ul style="margin:0.5rem 0 0 1.2rem;">
+      {% for err in result.errors %}<li>{{ err }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% endif %}
+</div>
+
+<style>
+.import-tab {
+  padding: 0.55rem 1rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.88rem;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.import-tab:hover { color: var(--text); text-decoration: none; }
+.import-tab.is-active { color: var(--primary); border-bottom-color: var(--accent); }
+</style>
+{% endblock %}

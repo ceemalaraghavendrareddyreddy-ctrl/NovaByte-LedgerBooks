@@ -1,130 +1,323 @@
+{# ---------------------------------------------------------------
+   SVG icon macro — keeps templates readable.  Names map to Lucide.
+--------------------------------------------------------------- #}
+{% macro icon(name, cls='nav-ico') -%}
+  {%- set paths = {
+    'layout-dashboard': '<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
+    'building-2':       '<path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2"/><path d="M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2"/><path d="M10 6h4"/><path d="M10 10h4"/><path d="M10 14h4"/><path d="M10 18h4"/>',
+    'landmark':         '<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+    'users':            '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+    'receipt':          '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+    'package':          '<path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/>',
+    'tag':              '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+    'book-open':        '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
+    'bar-chart-3':      '<path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/>',
+    'settings':         '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
+    'log-out':          '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/>',
+    'search':           '<circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>',
+    'bell':             '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    'plus':             '<line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/>',
+    'help-circle':      '<circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
+    'shield':           '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>'
+  } -%}
+  <svg class="{{ cls }}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">{{ paths.get(name, '') | safe }}</svg>
+{%- endmacro %}
+
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}LedgerBooks{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+{% if current_user.is_authenticated %}
   <div class="app-shell">
-    {% if current_user.is_authenticated %}
-    <nav class="sidebar">
+    <nav class="sidebar" aria-label="Primary navigation">
       <a href="{{ url_for('dashboard.index') }}" class="sidebar-brand">
         {% if current_company() and current_company().logo_data %}
-        <img src="{{ current_company().logo_data }}" alt="{{ current_company().business_name }}" class="sidebar-logo">
+          <span class="brand-logo" style="background:transparent; padding:2px; box-sizing:border-box;">
+            <img src="{{ current_company().logo_data }}" alt="Logo"
+                 style="max-width:24px; max-height:24px; display:block;">
+          </span>
         {% else %}
-        📒 LedgerBooks
+          <span class="brand-logo">LB</span>
         {% endif %}
+        <span>LedgerBooks</span>
       </a>
 
       {% set my_companies = current_user.accessible_companies() %}
       {% if my_companies|length > 1 %}
-      <details class="sidebar-group">
-        <summary>🏢 {{ current_company().business_name if current_company() else 'Switch Company' }}</summary>
+      <details class="sidebar-group" style="margin: 0.4rem 0;">
+        <summary style="padding: 0.55rem 1.1rem;">
+          {{ icon('building-2') }}
+          <span style="flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ current_company().business_name if current_company() else 'Switch company' }}</span>
+        </summary>
         {% for co in my_companies %}
-        <form method="post" action="{{ url_for('auth.switch_company', company_id=co.id) }}">
-          <button type="submit" class="sidebar-link" style="background:none;border:none;width:100%;text-align:left;cursor:pointer;{{ 'font-weight:bold;' if co.id == current_company_id() else '' }}">
-            {{ co.business_name }}{{ ' ✓' if co.id == current_company_id() else '' }}
-          </button>
-        </form>
+          <form method="post" action="{{ url_for('auth.switch_company', company_id=co.id) }}">
+            <button type="submit"
+                    style="background:none;border:none;width:100%;text-align:left;cursor:pointer;
+                           color:inherit;font:inherit;padding:0.45rem 1.1rem 0.45rem 2.6rem;
+                           display:block; {{ 'color:#fff;font-weight:600;' if co.id == current_company_id() else '' }}">
+              {{ co.business_name }}{{ ' ✓' if co.id == current_company_id() else '' }}
+            </button>
+          </form>
         {% endfor %}
       </details>
       {% elif current_company() %}
-      <div class="sidebar-link" style="color:var(--muted);">🏢 {{ current_company().business_name }}</div>
+      <div class="company-pill">
+        <span class="company-dot"></span>
+        <span><strong>{{ current_company().business_name }}</strong></span>
+      </div>
       {% endif %}
 
-      <a class="sidebar-link{{ ' active' if request.endpoint == 'dashboard.index' else '' }}" href="{{ url_for('dashboard.index') }}">🏠 Dashboard</a>
+      <div class="sidebar-section-heading">Main</div>
+      <a class="sidebar-link{% if request.endpoint == 'dashboard.index' %} active{% endif %}" href="{{ url_for('dashboard.index') }}">
+        {{ icon('layout-dashboard') }} <span>Dashboard</span>
+      </a>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint == 'banking' else '' }}>
-        <summary>🏦 Banking</summary>
-        <a class="{{ 'active' if request.endpoint == 'banking.reconcile_start' else '' }}" href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
-        <a class="{{ 'active' if request.endpoint == 'banking.reconcile_history' else '' }}" href="{{ url_for('banking.reconcile_history') }}">Reconciliation History</a>
-        <a class="{{ 'active' if request.endpoint == 'banking.transfer' else '' }}" href="{{ url_for('banking.transfer') }}">Transfer Funds</a>
-        <a class="{{ 'active' if request.endpoint == 'banking.make_deposit' else '' }}" href="{{ url_for('banking.make_deposit') }}">Make Deposit</a>
-        <a class="{{ 'active' if request.endpoint == 'banking.deposit_list' else '' }}" href="{{ url_for('banking.deposit_list') }}">Deposits</a>
-        <a class="{{ 'active' if request.endpoint == 'banking.import_start' else '' }}" href="{{ url_for('banking.import_start') }}">Import Statement</a>
+      <div class="sidebar-section-heading">Money in &amp; out</div>
+
+      <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('banking.') %}open{% endif %}>
+        <summary>{{ icon('landmark') }} <span>Banking</span></summary>
+        <a href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+        <a href="{{ url_for('banking.reconcile_history') }}">Reconciliation history</a>
+        <a href="{{ url_for('banking.transfer') }}">Transfer funds</a>
+        <a href="{{ url_for('banking.make_deposit') }}">Make deposit</a>
+        <a href="{{ url_for('banking.deposit_list') }}">Deposits</a>
+        <a href="{{ url_for('banking.import_start') }}">Import statement</a>
       </details>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint == 'sales' else '' }}>
-        <summary>📇 Sales</summary>
-        <a class="{{ 'active' if request.endpoint == 'sales.customer_list' else '' }}" href="{{ url_for('sales.customer_list') }}">Customers</a>
-        <a class="{{ 'active' if request.endpoint == 'sales.estimate_list' else '' }}" href="{{ url_for('sales.estimate_list') }}">Estimates</a>
-        <a class="{{ 'active' if request.endpoint == 'sales.invoice_list' else '' }}" href="{{ url_for('sales.invoice_list') }}">Invoices</a>
-        <a class="{{ 'active' if request.endpoint == 'sales.recurring_list' else '' }}" href="{{ url_for('sales.recurring_list') }}">Recurring Invoices</a>
-        <a class="{{ 'active' if request.endpoint == 'sales.credit_memo_list' else '' }}" href="{{ url_for('sales.credit_memo_list') }}">Credit Memos</a>
-        <a class="{{ 'active' if request.endpoint == 'sales.payment_list' else '' }}" href="{{ url_for('sales.payment_list') }}">Receive Payment</a>
-        <a class="{{ 'active' if request.endpoint == 'sales.aging_report' else '' }}" href="{{ url_for('sales.aging_report') }}">AR Aging</a>
+      <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('sales.') %}open{% endif %}>
+        <summary>{{ icon('users') }} <span>Sales</span></summary>
+        <a href="{{ url_for('sales.customer_list') }}">Customers</a>
+        <a href="{{ url_for('sales.estimate_list') }}">Estimates</a>
+        <a href="{{ url_for('sales.invoice_list') }}">Invoices</a>
+        <a href="{{ url_for('sales.recurring_list') }}">Recurring invoices</a>
+        <a href="{{ url_for('sales.credit_memo_list') }}">Credit memos</a>
+        <a href="{{ url_for('sales.payment_list') }}">Receive payment</a>
+        <a href="{{ url_for('sales.aging_report') }}">A/R aging</a>
+        <a href="{{ url_for('reminders.digest') }}">Reminders</a>
       </details>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint == 'purchases' else '' }}>
-        <summary>🧾 Expenses</summary>
-        <a class="{{ 'active' if request.endpoint == 'purchases.vendor_list' else '' }}" href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
-        <a class="{{ 'active' if request.endpoint == 'purchases.po_list' else '' }}" href="{{ url_for('purchases.po_list') }}">Purchase Orders</a>
-        <a class="{{ 'active' if request.endpoint == 'purchases.bill_list' else '' }}" href="{{ url_for('purchases.bill_list') }}">Bills</a>
-        <a class="{{ 'active' if request.endpoint == 'purchases.vendor_credit_list' else '' }}" href="{{ url_for('purchases.vendor_credit_list') }}">Vendor Credits</a>
-        <a class="{{ 'active' if request.endpoint == 'purchases.payment_list' else '' }}" href="{{ url_for('purchases.payment_list') }}">Pay Bills</a>
-        <a class="{{ 'active' if request.endpoint == 'purchases.aging_report' else '' }}" href="{{ url_for('purchases.aging_report') }}">AP Aging</a>
+      <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('purchases.') %}open{% endif %}>
+        <summary>{{ icon('receipt') }} <span>Expenses</span></summary>
+        <a href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
+        <a href="{{ url_for('purchases.po_list') }}">Purchase orders</a>
+        <a href="{{ url_for('purchases.bill_list') }}">Bills</a>
+        <a href="{{ url_for('purchases.vendor_credit_list') }}">Vendor credits</a>
+        <a href="{{ url_for('purchases.payment_list') }}">Pay bills</a>
+        <a href="{{ url_for('purchases.aging_report') }}">A/P aging</a>
       </details>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint == 'inventory' else '' }}>
-        <summary>📦 Inventory</summary>
-        <a class="{{ 'active' if request.endpoint == 'inventory.item_list' else '' }}" href="{{ url_for('inventory.item_list') }}">Items</a>
+      <div class="sidebar-section-heading">Records</div>
+
+      <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('inventory.') %}open{% endif %}>
+        <summary>{{ icon('package') }} <span>Inventory</span></summary>
+        <a href="{{ url_for('inventory.item_list') }}">Items</a>
       </details>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint == 'assets' else '' }}>
-        <summary>🏷️ Fixed Assets</summary>
-        <a class="{{ 'active' if request.endpoint == 'assets.asset_list' else '' }}" href="{{ url_for('assets.asset_list') }}">Asset Register</a>
+      <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('assets.') %}open{% endif %}>
+        <summary>{{ icon('tag') }} <span>Fixed assets</span></summary>
+        <a href="{{ url_for('assets.asset_list') }}">Asset register</a>
       </details>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint == 'ledger' else '' }}>
-        <summary>📚 Accounting</summary>
-        <a class="{{ 'active' if request.endpoint == 'ledger.account_list' else '' }}" href="{{ url_for('ledger.account_list') }}">Chart of Accounts</a>
-        <a class="{{ 'active' if request.endpoint == 'ledger.journal_list' else '' }}" href="{{ url_for('ledger.journal_list') }}">Journal</a>
-        <a class="{{ 'active' if request.endpoint == 'ledger.trial_balance' else '' }}" href="{{ url_for('ledger.trial_balance') }}">Trial Balance</a>
+      <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('ledger.') %}open{% endif %}>
+        <summary>{{ icon('book-open') }} <span>Accounting</span></summary>
+        <a href="{{ url_for('ledger.account_list') }}">Chart of accounts</a>
+        <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
+        <a href="{{ url_for('ledger.trial_balance') }}">Trial balance</a>
       </details>
 
-      <details class="sidebar-group" {{ 'open' if request.blueprint in ('reports', 'budgets') else '' }}>
-        <summary>📊 Reports</summary>
-        <a class="{{ 'active' if request.endpoint == 'reports.profit_loss' else '' }}" href="{{ url_for('reports.profit_loss') }}">Profit &amp; Loss</a>
-        <a class="{{ 'active' if request.endpoint == 'reports.balance_sheet' else '' }}" href="{{ url_for('reports.balance_sheet') }}">Balance Sheet</a>
-        <a class="{{ 'active' if request.endpoint == 'reports.cash_flow' else '' }}" href="{{ url_for('reports.cash_flow') }}">Cash Flow</a>
-        <a class="{{ 'active' if request.endpoint == 'reports.vat_return' else '' }}" href="{{ url_for('reports.vat_return') }}">VAT Return</a>
-        <a class="{{ 'active' if request.endpoint == 'reports.custom_report' else '' }}" href="{{ url_for('reports.custom_report') }}">Custom Report</a>
-        <a class="{{ 'active' if request.endpoint == 'budgets.budget_entry' else '' }}" href="{{ url_for('budgets.budget_entry') }}">Budget</a>
-        <a class="{{ 'active' if request.endpoint == 'budgets.budget_vs_actual' else '' }}" href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs Actual</a>
+      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('reports.') or request.endpoint.startswith('budgets.')) %}open{% endif %}>
+        <summary>{{ icon('bar-chart-3') }} <span>Reports</span></summary>
+        <a href="{{ url_for('reports.profit_loss') }}">Profit &amp; loss</a>
+        <a href="{{ url_for('reports.balance_sheet') }}">Balance sheet</a>
+        <a href="{{ url_for('reports.cash_flow') }}">Cash flow</a>
+        <a href="{{ url_for('reports.vat_return') }}">VAT return</a>
+        <a href="{{ url_for('reports.custom_report') }}">Custom report</a>
+        <a href="{{ url_for('budgets.budget_entry') }}">Budget</a>
+        <a href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs actual</a>
       </details>
 
       {% if current_user.role == 'owner' %}
-      <details class="sidebar-group" {{ 'open' if request.blueprint in ('users', 'settings', 'audit', 'backup', 'mra_sync') else '' }}>
-        <summary>⚙️ Admin</summary>
-        <a class="{{ 'active' if request.endpoint == 'users.user_list' else '' }}" href="{{ url_for('users.user_list') }}">Users</a>
-        <a class="{{ 'active' if request.endpoint == 'settings.company' else '' }}" href="{{ url_for('settings.company') }}">Settings</a>
-        <a class="{{ 'active' if request.endpoint == 'audit.audit_log' else '' }}" href="{{ url_for('audit.audit_log') }}">Audit Log</a>
-        <a class="{{ 'active' if request.endpoint == 'backup.backup_home' else '' }}" href="{{ url_for('backup.backup_home') }}">Backup</a>
-        <a class="{{ 'active' if request.endpoint == 'mra_sync.sync_status' else '' }}" href="{{ url_for('mra_sync.sync_status') }}">MRA Sync</a>
+      <div class="sidebar-section-heading">Admin</div>
+      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('users.') or request.endpoint.startswith('settings.') or request.endpoint.startswith('audit.') or request.endpoint.startswith('backup.') or request.endpoint.startswith('mra_sync.')) %}open{% endif %}>
+        <summary>{{ icon('settings') }} <span>Settings</span></summary>
+        <a href="{{ url_for('users.user_list') }}">Users</a>
+        <a href="{{ url_for('settings.company') }}">Company</a>
+        <a href="{{ url_for('imports.csv_import') }}">Import CSV</a>
+        <a href="{{ url_for('audit.audit_log') }}">Audit log</a>
+        <a href="{{ url_for('backup.backup_home') }}">Backup</a>
+        <a href="{{ url_for('mra_sync.sync_status') }}">MRA sync</a>
+        <a href="{{ url_for('features_pdf.features_pdf') }}" target="_blank">Feature summary PDF</a>
       </details>
       {% endif %}
 
       <div class="sidebar-footer">
-        <a href="{{ url_for('auth.change_password') }}">{{ current_user.name }} ({{ current_user.role }})</a>
-        <a href="{{ url_for('auth.logout') }}">Logout</a>
+        <a href="{{ url_for('auth.change_password') }}" class="user-row" style="text-decoration:none;">
+          <span class="user-avatar">{{ (current_user.name or 'U')[:1]|upper }}</span>
+          <span class="user-meta">
+            <strong>{{ current_user.name }}</strong>
+            <span>{{ current_user.role }}</span>
+          </span>
+        </a>
+        <a href="{{ url_for('auth.logout') }}">{{ icon('log-out') }} <span>Sign out</span></a>
       </div>
     </nav>
-    {% endif %}
 
-    <main class="container">
-      {% if not hide_default_flash %}
-      {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
+    <div class="main-wrap">
+      <header class="topbar">
+        <div class="topbar-search" id="global-search">
+          {{ icon('search', 'search-ico') }}
+          <input type="search" id="global-search-input"
+                 placeholder="Search customers, invoices, items…"
+                 aria-label="Search" autocomplete="off">
+          <div class="search-results" id="global-search-results" hidden></div>
+        </div>
+        <div class="topbar-actions">
+          <a href="{{ url_for('sales.invoice_new') }}" class="btn primary small">{{ icon('plus') }} <span>New invoice</span></a>
+          <span class="topbar-divider"></span>
+          <button type="button" class="topbar-icon-btn" id="theme-toggle"
+                  title="Toggle theme" aria-label="Toggle theme">
+            <svg class="theme-ico theme-ico-sun" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            <svg class="theme-ico theme-ico-moon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+          </button>
+          <a href="#" class="topbar-icon-btn" title="Help">{{ icon('help-circle') }}</a>
+          <a href="#" class="topbar-icon-btn" title="Notifications">{{ icon('bell') }}</a>
+        </div>
+      </header>
+
+      <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+{% else %}
+  {# Un-authenticated pages get a simpler shell (auth-shell handles centering).
+     Individual templates (login, register) render their own auth-card inside {% block content %}. #}
+  <div class="auth-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div style="width:100%;max-width:400px;">
           {% for category, message in messages %}
             <div class="flash flash-{{ category }}">{{ message }}</div>
           {% endfor %}
-        {% endif %}
-      {% endwith %}
+        </div>
       {% endif %}
-      {% block content %}{% endblock %}
-    </main>
+    {% endwith %}
+    {{ self.content() }}
   </div>
+{% endif %}
+
+<script>
+/* -------------------- Theme toggle (light/dark) -------------------- */
+(function() {
+  const root  = document.documentElement;
+  const saved = localStorage.getItem('lb_theme');
+  const initial = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  root.setAttribute('data-theme', initial);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      const next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('lb_theme', next);
+    });
+  }
+})();
+
+/* -------------------- Global search dropdown -------------------- */
+(function() {
+  const wrap  = document.getElementById('global-search');
+  const input = document.getElementById('global-search-input');
+  const pane  = document.getElementById('global-search-results');
+  if (!wrap || !input || !pane) return;
+
+  let controller = null;
+  let debounce   = null;
+  let activeIdx  = -1;
+  let flatItems  = [];
+
+  function close() { pane.hidden = true; activeIdx = -1; }
+  function open()  { pane.hidden = false; }
+
+  function render(data) {
+    flatItems = [];
+    if (!data.groups || !data.groups.length) {
+      pane.innerHTML = `<div class="search-empty">No matches for “${escapeHtml(data.query)}”.</div>`;
+      open();
+      return;
+    }
+    let html = '';
+    data.groups.forEach(g => {
+      html += `<div class="search-group-label">${escapeHtml(g.label)}</div>`;
+      g.items.forEach(it => {
+        const idx = flatItems.length;
+        flatItems.push(it.url);
+        html += `<a class="search-result" data-idx="${idx}" href="${it.url}">
+                   <span class="search-result-title">${escapeHtml(it.title)}</span>
+                   ${it.sub ? `<span class="search-result-sub">${escapeHtml(it.sub)}</span>` : ''}
+                 </a>`;
+      });
+    });
+    pane.innerHTML = html;
+    open();
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[m]);
+  }
+
+  async function runSearch(q) {
+    if (controller) controller.abort();
+    controller = new AbortController();
+    try {
+      const r = await fetch(`/_search?q=${encodeURIComponent(q)}`, {signal: controller.signal, credentials: 'same-origin'});
+      if (!r.ok) return;
+      render(await r.json());
+    } catch (e) { /* aborted */ }
+  }
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim();
+    clearTimeout(debounce);
+    if (q.length < 2) { close(); return; }
+    debounce = setTimeout(() => runSearch(q), 180);
+  });
+
+  input.addEventListener('keydown', (e) => {
+    const results = pane.querySelectorAll('.search-result');
+    if (e.key === 'Escape')      { close(); input.blur(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); activeIdx = Math.min(activeIdx + 1, results.length - 1); highlight(results); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); activeIdx = Math.max(activeIdx - 1, 0); highlight(results); }
+    else if (e.key === 'Enter' && activeIdx >= 0 && flatItems[activeIdx]) {
+      e.preventDefault();
+      window.location.href = flatItems[activeIdx];
+    }
+  });
+
+  function highlight(results) {
+    results.forEach((el, i) => el.classList.toggle('is-active', i === activeIdx));
+    if (results[activeIdx]) results[activeIdx].scrollIntoView({block: 'nearest'});
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!wrap.contains(e.target)) close();
+  });
+  input.addEventListener('focus', () => { if (pane.innerHTML) open(); });
+})();
+</script>
 </body>
 </html>
