@@ -120,9 +120,15 @@ def create_app():
 
     @app.errorhandler(PeriodLockedError)
     def handle_period_locked(exc):
-        from flask import flash, redirect, request, url_for
+        from flask import flash, jsonify, redirect, request, url_for
 
         db.session.rollback()
+        # The payroll bridge and MRA bridge are machine callers, not a browser with
+        # a page to flash a message onto and redirect back from — a redirect here
+        # would just hand them a 302-to-HTML they can't parse as the JSON error they
+        # were expecting. Anything under /api/ gets a real JSON error instead.
+        if request.path.startswith("/api/"):
+            return jsonify({"error": str(exc)}), 409
         flash(str(exc), "error")
         return redirect(request.referrer or url_for("dashboard.index"))
 
