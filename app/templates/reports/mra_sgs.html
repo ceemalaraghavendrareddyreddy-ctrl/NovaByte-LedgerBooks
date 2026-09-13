@@ -34,8 +34,8 @@
         <td>{{ bill.bill_date.strftime('%Y%m%d') }}</td>
         <td><a href="{{ url_for('purchases.bill_detail', bill_id=bill.id) }}">{{ bill.vendor_ref or bill.bill_no }}</a></td>
         <td>{{ bill.vendor.name if bill.vendor else '' }}</td>
-        <td>{{ bill.vendor.brn if bill.vendor else '' or '—' }}</td>
-        <td>{{ bill.vendor.mra_supplier_id if bill.vendor else '' or '—' }}</td>
+        <td>{{ (bill.vendor.brn if bill.vendor else none) or '—' }}</td>
+        <td>{{ (bill.vendor.mra_supplier_id if bill.vendor else none) or '—' }}</td>
         <td>{{ (bill.lines|map(attribute='description')|select|join('; ')) or bill.memo or '' }}</td>
         <td class="num">{{ '%.2f'|format(bill.subtotal) }}</td>
         <td class="num">{{ '%.2f'|format(bill.vat_amount) }}</td>
