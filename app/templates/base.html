@@ -75,6 +75,7 @@
       </div>
       {% endif %}
 
+      <div class="sidebar-nav">
       <div class="sidebar-section-heading">Main</div>
       <a class="sidebar-link{% if request.endpoint == 'dashboard.index' %} active{% endif %}" href="{{ url_for('dashboard.index') }}">
         {{ icon('layout-dashboard') }} <span>Dashboard</span>
@@ -173,16 +174,19 @@
         <a href="{{ url_for('features_pdf.features_pdf') }}" target="_blank">Feature summary PDF</a>
       </details>
       {% endif %}
+      </div>{# end sidebar-nav #}
 
       <div class="sidebar-footer">
-        <a href="{{ url_for('auth.change_password') }}" class="user-row" style="text-decoration:none;">
+        <a href="{{ url_for('auth.change_password') }}" class="user-row" title="Account settings">
           <span class="user-avatar">{{ (current_user.name or 'U')[:1]|upper }}</span>
           <span class="user-meta">
             <strong>{{ current_user.name }}</strong>
             <span>{{ current_user.role }}</span>
           </span>
         </a>
-        <a href="{{ url_for('auth.logout') }}">{{ icon('log-out') }} <span>Sign out</span></a>
+        <a href="{{ url_for('auth.logout') }}" class="sidebar-signout-btn" title="Sign out">
+          {{ icon('log-out', 'signout-ico') }} <span>Sign out</span>
+        </a>
       </div>
     </nav>
 
