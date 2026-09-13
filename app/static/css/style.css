@@ -468,6 +468,13 @@ tfoot th, tfoot td { background: #FAFBFC; font-weight: 600; color: var(--text); 
   box-shadow: var(--shadow-sm);
 }
 .stat .label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+}
 
 /* =========================================================================
    GLOBAL SEARCH DROPDOWN
@@ -682,13 +689,6 @@ html[data-theme="dark"] .dash-bar { background: #26344A; }
   text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-  color: var(--text-muted);
-  font-size: 0.72rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
-}
 .stat .value {
   font-size: 1.5rem;
   font-weight: 700;

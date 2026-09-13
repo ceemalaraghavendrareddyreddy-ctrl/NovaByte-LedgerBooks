@@ -117,8 +117,12 @@ def create_app():
 
     @app.context_processor
     def inject_helpers():
+        from datetime import date
+
+        from flask_login import current_user
+
         from app.auth import current_company, current_company_id
-        from app.models import Attachment
+        from app.models import Attachment, Invoice
 
         def get_attachments(entity_type, entity_id):
             return (
@@ -127,10 +131,24 @@ def create_app():
                 .all()
             )
 
+        def overdue_invoice_count():
+            # Backs the bell icon's notification badge — how many open/partial
+            # invoices are already past their due date, right now.
+            if not current_user.is_authenticated:
+                return 0
+            return (
+                Invoice.query.filter(
+                    Invoice.company_id == current_company_id(),
+                    Invoice.status.in_(("open", "partial")),
+                    Invoice.due_date < date.today(),
+                ).count()
+            )
+
         return {
             "get_attachments": get_attachments,
             "current_company": current_company,
             "current_company_id": current_company_id,
+            "overdue_invoice_count": overdue_invoice_count,
         }
 
     with app.app_context():
