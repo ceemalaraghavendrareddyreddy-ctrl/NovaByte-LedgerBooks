@@ -4,7 +4,10 @@ import secrets
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
+from datetime import datetime
+
 from app import db
+from app.audit import log_audit
 from app.auth import current_company, owner_required
 from app.models import CURRENCIES, CompanySettings
 
@@ -82,6 +85,35 @@ def company():
         flash("Company settings updated.", "success")
         return redirect(url_for("settings.company"))
     return render_template("settings/company.html", settings=settings, currencies=CURRENCIES)
+
+
+@settings_bp.route("/lock-period", methods=["POST"])
+@login_required
+@owner_required
+def lock_period():
+    """Sets or clears the date through which figures are locked — see
+    app/period_lock.py for what this actually blocks. A deliberately separate
+    route from the main company-settings save (with its own confirm dialog in
+    the template) since this one has real consequences for what can still be
+    edited, not just cosmetic settings."""
+    settings = current_company()
+    raw = request.form.get("locked_through_date", "").strip()
+    old = settings.locked_through_date
+    if not raw:
+        settings.locked_through_date = None
+        if old:
+            log_audit("update", "company_settings", settings.id, "Cleared the period lock")
+    else:
+        new_date = datetime.strptime(raw, "%Y-%m-%d").date()
+        settings.locked_through_date = new_date
+        log_audit("update", "company_settings", settings.id, f"Locked figures through {new_date.isoformat()}")
+    db.session.commit()
+    flash(
+        f"Figures are now locked through {settings.locked_through_date.strftime('%d %b %Y')}."
+        if settings.locked_through_date else "Period lock cleared — all dates are editable again.",
+        "success",
+    )
+    return redirect(url_for("settings.company"))
 
 
 @settings_bp.route("/payroll-api-key/regenerate", methods=["POST"])

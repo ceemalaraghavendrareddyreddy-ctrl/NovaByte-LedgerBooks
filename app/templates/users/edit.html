@@ -18,6 +18,24 @@
       {% endif %}
     </div>
     <div class="form-row"><label>New Password</label><input type="password" name="new_password" minlength="6" placeholder="leave blank to keep current"></div>
+
+    {% set allowed = user.allowed_modules() %}
+    <div class="form-row" style="flex-direction:column; align-items:flex-start; gap:0.4rem;">
+      <label style="font-weight:normal;">
+        <input type="checkbox" name="unrestricted" {{ 'checked' if allowed is none else '' }} style="width:auto;"
+               onchange="document.getElementById('module-grid').style.display = this.checked ? 'none' : 'grid';">
+        Full access to every module below (only matters for the Accountant role — Owner always has everything)
+      </label>
+      <div id="module-grid" style="display:{{ 'none' if allowed is none else 'grid' }}; grid-template-columns:1fr 1fr; gap:0.5rem; width:100%; margin-top:0.4rem;">
+        {% for key, name, blurb in modules %}
+        <label style="font-weight:normal; font-size:0.85rem; display:flex; align-items:flex-start; gap:0.4rem;" title="{{ blurb }}">
+          <input type="checkbox" name="module_{{ key }}" {{ 'checked' if allowed and key in allowed else '' }} style="width:auto; margin-top:0.2rem;">
+          {{ name }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
     <button class="btn" type="submit">Save Changes</button>
     <a class="btn secondary" href="{{ url_for('users.user_list') }}">Cancel</a>
   </form>

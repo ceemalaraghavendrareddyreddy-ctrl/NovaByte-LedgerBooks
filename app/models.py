@@ -38,6 +38,12 @@ class User(UserMixin, db.Model):
     username = db.Column(db.String(50), nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default="owner")  # owner / accountant
+    # Comma-separated module keys this user is allowed into (see app/permissions.py's
+    # MODULES) — e.g. "sales,inventory". NULL or empty means unrestricted (full access
+    # to every non-owner module), so every user created before this column existed
+    # keeps working exactly as before. Owners always have full access regardless of
+    # this field — it only ever narrows a non-owner's access.
+    permissions = db.Column(db.Text)
     is_active_user = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -57,6 +63,16 @@ class User(UserMixin, db.Model):
 
     def can_access_company(self, company_id):
         return UserCompany.query.filter_by(user_id=self.id, company_id=company_id).first() is not None
+
+    def allowed_modules(self):
+        """None means unrestricted; otherwise the set of module keys this user may use."""
+        if self.role == "owner" or not self.permissions:
+            return None
+        return {m.strip() for m in self.permissions.split(",") if m.strip()}
+
+    def can_use_module(self, module_key):
+        allowed = self.allowed_modules()
+        return allowed is None or module_key in allowed
 
 
 class UserCompany(db.Model):
@@ -126,6 +142,11 @@ class CompanySettings(db.Model):
     # current default), "minimal" (thin lines, grayscale header), "coral"
     # (warm coral accent to match the app UI).
     invoice_template = db.Column(db.String(20), default="classic")
+    # Period lock: no journal entry (manual or auto-posted from any document) may be
+    # created, edited, or deleted with an entry_date on or before this date — see
+    # app/period_lock.py. NULL means nothing is locked. Set once a period's figures
+    # have been filed with MRA and shouldn't move again.
+    locked_through_date = db.Column(db.Date)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -531,6 +552,12 @@ class Vendor(db.Model):
     phone = db.Column(db.String(30))
     address = db.Column(db.String(255))
     vat_number = db.Column(db.String(30))
+    # Business Registration Number and MRA-issued supplier ID — needed only for the
+    # Statement of Goods and Services (SGS) export MRA requires from larger VAT
+    # filers (app/mra_sgs.py). Optional: a vendor without these still works
+    # everywhere else, that one export just leaves the columns blank for them.
+    brn = db.Column(db.String(20))
+    mra_supplier_id = db.Column(db.String(30))
     opening_balance = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

@@ -35,6 +35,19 @@ def account_beginning_balance(account):
     return total
 
 
+@banking_bp.route("")
+@login_required
+def account_list():
+    """The one page missing from Banking until now: every active bank/cash
+    account in one place, with its current balance and a way into its
+    transaction history — everything else in this section assumes you
+    already know which account you're working with."""
+    accounts = cash_accounts()
+    rows = [{"account": a, "balance": float(a.balance())} for a in accounts]
+    total = sum((r["balance"] for r in rows), start=0.0)
+    return render_template("banking/accounts.html", rows=rows, total=total)
+
+
 @banking_bp.route("/transfer", methods=["GET", "POST"])
 @login_required
 def transfer():

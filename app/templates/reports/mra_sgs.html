@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Statement of Goods and Services (MRA)</h1>
+<p style="color:var(--text-muted);">
+  The monthly purchase listing MRA requires alongside the VAT return — matches MRA's own
+  CSV template column-for-column, so the download can be uploaded as-is.
+</p>
+
+<form method="get" class="form-row">
+  <label>From</label>
+  <input type="date" name="start" value="{{ start.isoformat() }}">
+  <label>To</label>
+  <input type="date" name="end" value="{{ end.isoformat() }}">
+  <button class="btn small" type="submit">Update</button>
+  <a class="btn primary small" href="{{ url_for('mra_sgs.export_csv', start=start.isoformat(), end=end.isoformat()) }}">Download CSV</a>
+</form>
+
+{% if missing_brn %}
+<div class="flash flash-warning" style="margin-top:1rem;">
+  {{ missing_brn|length }} bill{{ '' if missing_brn|length == 1 else 's' }} in this range
+  {{ 'has' if missing_brn|length == 1 else 'have' }} a vendor with no BRN on file — those rows
+  will export with a blank SUPPLIER BRN column. Add it on the vendor's own page before filing.
+</div>
+{% endif %}
+
+<div class="card" style="margin-top:1rem;">
+  {% if bills %}
+  <div style="overflow-x:auto;">
+  <table>
+    <thead><tr>{% for col in header %}<th>{{ col }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for bill in bills %}
+      <tr>
+        <td>{{ bill.bill_date.strftime('%Y%m%d') }}</td>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=bill.id) }}">{{ bill.vendor_ref or bill.bill_no }}</a></td>
+        <td>{{ bill.vendor.name if bill.vendor else '' }}</td>
+        <td>{{ bill.vendor.brn if bill.vendor else '' or '—' }}</td>
+        <td>{{ bill.vendor.mra_supplier_id if bill.vendor else '' or '—' }}</td>
+        <td>{{ (bill.lines|map(attribute='description')|select|join('; ')) or bill.memo or '' }}</td>
+        <td class="num">{{ '%.2f'|format(bill.subtotal) }}</td>
+        <td class="num">{{ '%.2f'|format(bill.vat_amount) }}</td>
+        <td class="num">{{ '%.2f'|format(bill.amount_paid) }}</td>
+        <td>I</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  {% else %}
+  <p style="color:var(--text-muted);">No bills in this date range.</p>
+  {% endif %}
+</div>
+{% endblock %}

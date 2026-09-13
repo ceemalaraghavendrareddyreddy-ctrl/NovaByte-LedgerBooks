@@ -68,6 +68,8 @@ def vendor_new():
             phone=request.form.get("phone", "").strip() or None,
             address=request.form.get("address", "").strip() or None,
             vat_number=request.form.get("vat_number", "").strip() or None,
+            brn=request.form.get("brn", "").strip() or None,
+            mra_supplier_id=request.form.get("mra_supplier_id", "").strip() or None,
             opening_balance=request.form.get("opening_balance") or 0,
         )
         db.session.add(vendor)
@@ -87,6 +89,8 @@ def vendor_edit(vendor_id):
         vendor.phone = request.form.get("phone", "").strip() or None
         vendor.address = request.form.get("address", "").strip() or None
         vendor.vat_number = request.form.get("vat_number", "").strip() or None
+        vendor.brn = request.form.get("brn", "").strip() or None
+        vendor.mra_supplier_id = request.form.get("mra_supplier_id", "").strip() or None
         vendor.opening_balance = request.form.get("opening_balance") or 0
         db.session.commit()
         flash(f"Vendor '{vendor.name}' updated.", "success")

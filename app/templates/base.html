@@ -82,8 +82,10 @@
 
       <div class="sidebar-section-heading">Money in &amp; out</div>
 
+      {% if current_user.can_use_module('banking') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('banking.') %}open{% endif %}>
         <summary>{{ icon('landmark') }} <span>Banking</span></summary>
+        <a href="{{ url_for('banking.account_list') }}">Accounts</a>
         <a href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
         <a href="{{ url_for('banking.reconcile_history') }}">Reconciliation history</a>
         <a href="{{ url_for('banking.transfer') }}">Transfer funds</a>
@@ -91,7 +93,9 @@
         <a href="{{ url_for('banking.deposit_list') }}">Deposits</a>
         <a href="{{ url_for('banking.import_start') }}">Import statement</a>
       </details>
+      {% endif %}
 
+      {% if current_user.can_use_module('sales') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('sales.') %}open{% endif %}>
         <summary>{{ icon('users') }} <span>Sales</span></summary>
         <a href="{{ url_for('sales.customer_list') }}">Customers</a>
@@ -103,7 +107,9 @@
         <a href="{{ url_for('sales.aging_report') }}">A/R aging</a>
         <a href="{{ url_for('reminders.digest') }}">Reminders</a>
       </details>
+      {% endif %}
 
+      {% if current_user.can_use_module('purchases') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('purchases.') %}open{% endif %}>
         <summary>{{ icon('receipt') }} <span>Expenses</span></summary>
         <a href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
@@ -113,36 +119,46 @@
         <a href="{{ url_for('purchases.payment_list') }}">Pay bills</a>
         <a href="{{ url_for('purchases.aging_report') }}">A/P aging</a>
       </details>
+      {% endif %}
 
       <div class="sidebar-section-heading">Records</div>
 
+      {% if current_user.can_use_module('inventory') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('inventory.') %}open{% endif %}>
         <summary>{{ icon('package') }} <span>Inventory</span></summary>
         <a href="{{ url_for('inventory.item_list') }}">Items</a>
       </details>
+      {% endif %}
 
+      {% if current_user.can_use_module('assets') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('assets.') %}open{% endif %}>
         <summary>{{ icon('tag') }} <span>Fixed assets</span></summary>
         <a href="{{ url_for('assets.asset_list') }}">Asset register</a>
       </details>
+      {% endif %}
 
+      {% if current_user.can_use_module('ledger') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('ledger.') %}open{% endif %}>
         <summary>{{ icon('book-open') }} <span>Accounting</span></summary>
         <a href="{{ url_for('ledger.account_list') }}">Chart of accounts</a>
         <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
         <a href="{{ url_for('ledger.trial_balance') }}">Trial balance</a>
       </details>
+      {% endif %}
 
-      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('reports.') or request.endpoint.startswith('budgets.')) %}open{% endif %}>
+      {% if current_user.can_use_module('reports') %}
+      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('reports.') or request.endpoint.startswith('budgets.') or request.endpoint.startswith('mra_sgs.')) %}open{% endif %}>
         <summary>{{ icon('bar-chart-3') }} <span>Reports</span></summary>
         <a href="{{ url_for('reports.profit_loss') }}">Profit &amp; loss</a>
         <a href="{{ url_for('reports.balance_sheet') }}">Balance sheet</a>
         <a href="{{ url_for('reports.cash_flow') }}">Cash flow</a>
         <a href="{{ url_for('reports.vat_return') }}">VAT return</a>
+        <a href="{{ url_for('mra_sgs.home') }}">Statement of Goods &amp; Services</a>
         <a href="{{ url_for('reports.custom_report') }}">Custom report</a>
         <a href="{{ url_for('budgets.budget_entry') }}">Budget</a>
         <a href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs actual</a>
       </details>
+      {% endif %}
 
       {% if current_user.role == 'owner' %}
       <div class="sidebar-section-heading">Admin</div>

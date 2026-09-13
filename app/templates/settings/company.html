@@ -118,6 +118,35 @@
   </div>
 </form>
 
+{# ── Period lock ──────────────────────────────────────────── #}
+<div class="card">
+  <h3 class="mt-0">Period lock</h3>
+  <p class="text-muted" style="font-size:0.88rem;">
+    Once figures for a period have been filed with MRA, lock them — no journal entry
+    (manual, or auto-posted from an invoice, bill, payment, transfer, or anything else)
+    dated on or before this date can be created, edited, or deleted by anyone, including you.
+  </p>
+  {% if settings.locked_through_date %}
+  <p><strong>Currently locked through {{ settings.locked_through_date.strftime('%d %b %Y') }}.</strong></p>
+  {% else %}
+  <p class="text-muted"><em>Nothing is locked — every date is currently editable.</em></p>
+  {% endif %}
+  <form method="post" action="{{ url_for('settings.lock_period') }}"
+        onsubmit="return confirm('This will block every change to entries dated on or before the date you pick — including your own. Continue?');">
+    <div class="form-row">
+      <label>Locked through</label>
+      <input type="date" name="locked_through_date" required value="{{ settings.locked_through_date.isoformat() if settings.locked_through_date else '' }}">
+    </div>
+    <button class="btn secondary" type="submit">{{ 'Update lock date' if settings.locked_through_date else 'Lock period' }}</button>
+  </form>
+  {% if settings.locked_through_date %}
+  <form method="post" action="{{ url_for('settings.lock_period') }}" style="margin-top:0.6rem;"
+        onsubmit="return confirm('Clear the period lock? Every date becomes editable again.');">
+    <button class="btn" type="submit">Clear lock</button>
+  </form>
+  {% endif %}
+</div>
+
 {# ── Payroll integration section (unchanged behaviour) ───────── #}
 <div class="card">
   <h3 class="mt-0">Payroll integration</h3>

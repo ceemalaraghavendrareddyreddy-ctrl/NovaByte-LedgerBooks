@@ -75,6 +75,21 @@ def create_app():
     from app.reminders import reminders_bp
     from app.imports import imports_bp
     from app.features_pdf import features_pdf_bp
+    from app.mra_sgs import mra_sgs_bp
+
+    from app.permissions import register_module_guards
+
+    register_module_guards(app, {
+        sales_bp: "sales",
+        purchases_bp: "purchases",
+        banking_bp: "banking",
+        inventory_bp: "inventory",
+        assets_bp: "assets",
+        budgets_bp: "budgets",
+        ledger_bp: "ledger",
+        reports_bp: "reports",
+        mra_sgs_bp: "reports",
+    })
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(ledger_bp)
@@ -98,6 +113,18 @@ def create_app():
     app.register_blueprint(reminders_bp)
     app.register_blueprint(imports_bp)
     app.register_blueprint(features_pdf_bp)
+    app.register_blueprint(mra_sgs_bp)
+
+    from app import period_lock  # noqa: F401 — registers the JournalEntry lock events on import (avoid `import app.x`, which rebinds the local `app` Flask instance to the package)
+    from app.period_lock import PeriodLockedError
+
+    @app.errorhandler(PeriodLockedError)
+    def handle_period_locked(exc):
+        from flask import flash, redirect, request, url_for
+
+        db.session.rollback()
+        flash(str(exc), "error")
+        return redirect(request.referrer or url_for("dashboard.index"))
 
     app.config["MAX_CONTENT_LENGTH"] = 20 * 1024 * 1024  # hard cap on any request body (uploads, backup restore)
 

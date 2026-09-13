@@ -7,10 +7,22 @@ from app.audit import log_audit
 from app.auth import current_company_id, owner_required
 from app.company import add_user_to_company, grant_company_access, revoke_company_access
 from app.models import User, UserCompany
+from app.permissions import MODULES, MODULE_KEYS
 
 users_bp = Blueprint("users", __name__, url_prefix="/users")
 
 ROLES = ["owner", "accountant"]
+
+
+def _permissions_from_form():
+    """None (unrestricted) if 'unrestricted' was checked or nothing was checked at
+    all — an accountant with every box left blank isn't locked out of everything,
+    they just weren't given a restriction. Only an explicit narrower selection
+    (at least one module checked, 'unrestricted' left off) actually restricts."""
+    if request.form.get("unrestricted"):
+        return None
+    checked = [key for key in MODULE_KEYS if request.form.get(f"module_{key}")]
+    return ",".join(checked) if checked else None
 
 
 def _company_users():
@@ -39,23 +51,24 @@ def user_new():
         username = request.form["username"].strip()
         if User.query.filter_by(company_id=current_company_id(), username=username).first():
             flash(f"Username '{username}' already exists.", "error")
-            return render_template("users/form.html", roles=ROLES, form=request.form)
+            return render_template("users/form.html", roles=ROLES, modules=MODULES, form=request.form)
 
         password = request.form["password"]
         if len(password) < 6:
             flash("Password must be at least 6 characters.", "error")
-            return render_template("users/form.html", roles=ROLES, form=request.form)
+            return render_template("users/form.html", roles=ROLES, modules=MODULES, form=request.form)
 
         user = add_user_to_company(
             current_company_id(), username, password, request.form["name"].strip(),
             role=request.form.get("role", "accountant"),
         )
+        user.permissions = _permissions_from_form()
         log_audit("create", "user", user.id, f"Created user '{user.name}' ({user.username}, role: {user.role})")
         db.session.commit()
         flash(f"User '{user.name}' created.", "success")
         return redirect(url_for("users.user_list"))
 
-    return render_template("users/form.html", roles=ROLES, form={})
+    return render_template("users/form.html", roles=ROLES, modules=MODULES, form={})
 
 
 @users_bp.route("/<int:user_id>/edit", methods=["GET", "POST"])
@@ -74,21 +87,22 @@ def user_edit(user_id):
             and User.query.filter_by(company_id=user.company_id, username=new_username).first()
         ):
             flash(f"Username '{new_username}' already exists.", "error")
-            return render_template("users/edit.html", user=user, roles=ROLES)
+            return render_template("users/edit.html", user=user, roles=ROLES, modules=MODULES)
 
         if user.id == current_user.id and request.form.get("role") != "owner":
             flash("You can't demote yourself — ask another owner to change your role.", "error")
-            return render_template("users/edit.html", user=user, roles=ROLES)
+            return render_template("users/edit.html", user=user, roles=ROLES, modules=MODULES)
 
         user.name = request.form["name"].strip()
         user.username = new_username
         user.role = request.form.get("role", user.role)
+        user.permissions = _permissions_from_form()
 
         new_password = request.form.get("new_password", "").strip()
         if new_password:
             if len(new_password) < 6:
                 flash("New password must be at least 6 characters.", "error")
-                return render_template("users/edit.html", user=user, roles=ROLES)
+                return render_template("users/edit.html", user=user, roles=ROLES, modules=MODULES)
             user.password_hash = generate_password_hash(new_password)
 
         log_audit("edit", "user", user.id, f"Updated user '{user.name}' ({user.username}, role: {user.role})")
@@ -96,7 +110,7 @@ def user_edit(user_id):
         flash(f"User '{user.name}' updated.", "success")
         return redirect(url_for("users.user_list"))
 
-    return render_template("users/edit.html", user=user, roles=ROLES)
+    return render_template("users/edit.html", user=user, roles=ROLES, modules=MODULES)
 
 
 @users_bp.route("/<int:user_id>/toggle", methods=["POST"])

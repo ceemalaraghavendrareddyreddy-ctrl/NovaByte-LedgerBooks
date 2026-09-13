@@ -7,6 +7,7 @@ from app import db
 from app.audit import log_audit
 from app.auth import current_company_id
 from app.models import ACCOUNT_TYPES, Account, JournalEntry, JournalLine
+from app.period_lock import assert_period_open
 from app.scoping import scoped_or_404, scoped_query
 
 ledger_bp = Blueprint("ledger", __name__, url_prefix="/ledger")
@@ -158,6 +159,7 @@ def journal_detail(entry_id):
 @login_required
 def journal_edit(entry_id):
     entry = scoped_or_404(JournalEntry, entry_id)
+    assert_period_open(entry.entry_date, entry.company_id)
     if entry.source_type not in ("manual", "transfer"):
         flash(
             f"This entry was auto-posted by a {entry.source_type} — edit or void that document instead "
@@ -219,6 +221,7 @@ def journal_edit(entry_id):
 @login_required
 def journal_delete(entry_id):
     entry = scoped_or_404(JournalEntry, entry_id)
+    assert_period_open(entry.entry_date, entry.company_id)
     if entry.source_type not in ("manual", "transfer"):
         flash(
             f"This entry was auto-posted by a {entry.source_type} — void that document instead of "
