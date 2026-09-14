@@ -143,6 +143,7 @@
         <a href="{{ url_for('ledger.account_list') }}">Chart of accounts</a>
         <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
         <a href="{{ url_for('ledger.trial_balance') }}">Trial balance</a>
+        <a href="{{ url_for('ledger.general_ledger') }}">General ledger</a>
       </details>
       {% endif %}
 
@@ -154,6 +155,10 @@
         <a href="{{ url_for('reports.cash_flow') }}">Cash flow</a>
         <a href="{{ url_for('reports.vat_return') }}">VAT return</a>
         <a href="{{ url_for('mra_sgs.home') }}">Statement of Goods &amp; Services</a>
+        <a href="{{ url_for('reports.sales_by_customer') }}">Sales by customer</a>
+        <a href="{{ url_for('reports.sales_by_item') }}">Sales by item</a>
+        <a href="{{ url_for('reports.purchases_by_vendor') }}">Purchases by vendor</a>
+        <a href="{{ url_for('reports.purchases_by_item') }}">Purchases by item</a>
         <a href="{{ url_for('reports.custom_report') }}">Custom report</a>
         <a href="{{ url_for('budgets.budget_entry') }}">Budget</a>
         <a href="{{ url_for('budgets.budget_vs_actual') }}">Budget vs actual</a>

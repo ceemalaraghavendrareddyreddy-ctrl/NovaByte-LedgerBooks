@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
@@ -48,7 +48,10 @@ def account_new():
         return redirect(url_for("ledger.account_list"))
 
     accounts = scoped_query(Account).order_by(Account.code).all()
-    return render_template("ledger/account_form.html", account_types=ACCOUNT_TYPES, accounts=accounts, form={})
+    # Lets the Banking > Accounts page's "+ Add Bank Account" link pre-fill type/subtype
+    # via query string, so someone adding a bank account doesn't need to know that's
+    # "Asset" + "Cash and Cash Equivalents" under the hood.
+    return render_template("ledger/account_form.html", account_types=ACCOUNT_TYPES, accounts=accounts, form=request.args)
 
 
 @ledger_bp.route("/accounts/<int:account_id>")
@@ -236,6 +239,47 @@ def journal_delete(entry_id):
 
 
 # ── Reports ─────────────────────────────────────────────────────────
+
+@ledger_bp.route("/general-ledger")
+@login_required
+def general_ledger():
+    """Every account's activity for a date range, in one document — Trial Balance
+    tells you the ending balances; this is the detail an auditor actually reads
+    to see how each account got there. Accounts with no activity in range are
+    skipped rather than shown empty."""
+    start_raw = request.args.get("start_date")
+    end_raw = request.args.get("end_date")
+    start_date = datetime.strptime(start_raw, "%Y-%m-%d").date() if start_raw else date.today().replace(day=1)
+    end_date = datetime.strptime(end_raw, "%Y-%m-%d").date() if end_raw else date.today()
+
+    accounts = scoped_query(Account).filter_by(is_active=True).order_by(Account.code).all()
+    sections = []
+    for account in accounts:
+        lines = (
+            JournalLine.query.filter_by(account_id=account.id)
+            .join(JournalEntry)
+            .filter(JournalEntry.entry_date >= start_date, JournalEntry.entry_date <= end_date)
+            .order_by(JournalEntry.entry_date, JournalEntry.id)
+            .all()
+        )
+        if not lines:
+            continue
+        opening = account.balance(as_of=start_date - timedelta(days=1))
+        running = opening
+        rows = []
+        for line in lines:
+            movement = line.debit - line.credit
+            if account.normal_balance == "credit":
+                movement = -movement
+            running += movement
+            rows.append({"line": line, "running_balance": running})
+        sections.append({"account": account, "opening": opening, "closing": running, "rows": rows})
+
+    return render_template(
+        "ledger/general_ledger.html", sections=sections,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
 
 @ledger_bp.route("/trial-balance")
 @login_required

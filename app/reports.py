@@ -7,7 +7,9 @@ from flask_login import current_user, login_required
 
 from app import db
 from app.auth import current_company_id
-from app.models import ACCOUNT_TYPES, Account, JournalEntry, JournalLine, SavedReport
+from app.models import (
+    ACCOUNT_TYPES, Account, Bill, BillLine, Invoice, InvoiceLine, JournalEntry, JournalLine, SavedReport,
+)
 from app.scoping import scoped_or_404, scoped_query
 
 reports_bp = Blueprint("reports", __name__, url_prefix="/reports")
@@ -259,6 +261,118 @@ def _parse_custom_report_args(args):
     end_date = date.fromisoformat(end_raw) if end_raw else date.today()
     as_of = date.fromisoformat(as_of_raw) if as_of_raw else date.today()
     return account_type, account_subtype, date_mode, start_date, end_date, as_of
+
+
+def _range_args():
+    start_raw = request.args.get("start_date")
+    end_raw = request.args.get("end_date")
+    start_date = date.fromisoformat(start_raw) if start_raw else date.today().replace(day=1)
+    end_date = date.fromisoformat(end_raw) if end_raw else date.today()
+    return start_date, end_date
+
+
+@reports_bp.route("/sales-by-customer")
+@login_required
+def sales_by_customer():
+    start_date, end_date = _range_args()
+    invoices = scoped_query(Invoice).filter(
+        Invoice.invoice_date >= start_date, Invoice.invoice_date <= end_date, Invoice.status != "void",
+    ).all()
+
+    totals = {}
+    for inv in invoices:
+        row = totals.setdefault(inv.customer_id, {"customer": inv.customer, "count": 0, "amount": 0.0})
+        row["count"] += 1
+        row["amount"] += inv.total_base
+    rows = sorted(totals.values(), key=lambda r: r["amount"], reverse=True)
+    total = sum((r["amount"] for r in rows), start=0.0)
+
+    return render_template(
+        "reports/sales_by_customer.html", rows=rows, total=total,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
+
+@reports_bp.route("/sales-by-item")
+@login_required
+def sales_by_item():
+    start_date, end_date = _range_args()
+    lines = (
+        InvoiceLine.query.join(Invoice)
+        .filter(
+            Invoice.company_id == current_company_id(), Invoice.invoice_date >= start_date,
+            Invoice.invoice_date <= end_date, Invoice.status != "void",
+        ).all()
+    )
+
+    totals = {}
+    for line in lines:
+        key = line.item_id or 0
+        row = totals.setdefault(key, {
+            "label": f"{line.item.sku} — {line.item.name}" if line.item else "No item (generic line)",
+            "qty": 0.0, "amount": 0.0,
+        })
+        row["qty"] += float(line.quantity)
+        row["amount"] += line.amount * float(line.invoice.exchange_rate)
+    rows = sorted(totals.values(), key=lambda r: r["amount"], reverse=True)
+    total = sum((r["amount"] for r in rows), start=0.0)
+
+    return render_template(
+        "reports/sales_by_item.html", rows=rows, total=total,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
+
+@reports_bp.route("/purchases-by-vendor")
+@login_required
+def purchases_by_vendor():
+    start_date, end_date = _range_args()
+    bills = scoped_query(Bill).filter(
+        Bill.bill_date >= start_date, Bill.bill_date <= end_date, Bill.status != "void",
+    ).all()
+
+    totals = {}
+    for bill in bills:
+        row = totals.setdefault(bill.vendor_id, {"vendor": bill.vendor, "count": 0, "amount": 0.0})
+        row["count"] += 1
+        row["amount"] += bill.total_base
+    rows = sorted(totals.values(), key=lambda r: r["amount"], reverse=True)
+    total = sum((r["amount"] for r in rows), start=0.0)
+
+    return render_template(
+        "reports/purchases_by_vendor.html", rows=rows, total=total,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
+
+@reports_bp.route("/purchases-by-item")
+@login_required
+def purchases_by_item():
+    start_date, end_date = _range_args()
+    lines = (
+        BillLine.query.join(Bill)
+        .filter(
+            Bill.company_id == current_company_id(), Bill.bill_date >= start_date,
+            Bill.bill_date <= end_date, Bill.status != "void",
+        ).all()
+    )
+
+    totals = {}
+    for line in lines:
+        key = line.item_id or 0
+        row = totals.setdefault(key, {
+            "label": f"{line.item.sku} — {line.item.name}" if line.item else "No item (generic line)",
+            "qty": 0.0, "amount": 0.0,
+        })
+        row["qty"] += float(line.quantity)
+        row["amount"] += line.amount * float(line.bill.exchange_rate)
+    rows = sorted(totals.values(), key=lambda r: r["amount"], reverse=True)
+    total = sum((r["amount"] for r in rows), start=0.0)
+
+    return render_template(
+        "reports/purchases_by_item.html", rows=rows, total=total,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
 
 
 @reports_bp.route("/custom")

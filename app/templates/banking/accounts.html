@@ -1,6 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Bank Accounts</h1>
+<div class="page-header">
+  <h1>Bank Accounts</h1>
+  <a class="btn primary small" href="{{ url_for('ledger.account_new', account_type='Asset', subtype='Cash and Cash Equivalents') }}">+ Add Bank Account</a>
+</div>
+<p style="color:var(--text-muted); font-size:0.85rem;">
+  Add as many as this company actually has — a current account, a savings account, a foreign-currency
+  account, petty cash — each is its own account here and reconciles separately against its own statement.
+</p>
 
 <div class="card">
   {% if rows %}
