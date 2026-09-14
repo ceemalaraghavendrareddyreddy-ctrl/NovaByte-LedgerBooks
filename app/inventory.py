@@ -66,6 +66,7 @@ def item_new():
             item_type=item_type,
             unit=request.form.get("unit", "pcs").strip() or "pcs",
             sales_price=request.form.get("sales_price") or 0,
+            default_vat_rate=request.form.get("default_vat_rate") or None,
             cost_price=opening_cost if item_type == "inventory" else 0,
             quantity_on_hand=opening_qty if item_type == "inventory" else 0,
             reorder_level=request.form.get("reorder_level") or 0,
@@ -124,6 +125,7 @@ def item_edit(item_id):
         item.name = request.form["name"].strip()
         item.unit = request.form.get("unit", item.unit).strip() or item.unit
         item.sales_price = request.form.get("sales_price") or 0
+        item.default_vat_rate = request.form.get("default_vat_rate") or None
         item.income_account_id = int(request.form["income_account_id"])
         if item.is_tracked:
             item.reorder_level = request.form.get("reorder_level") or 0

@@ -7,6 +7,8 @@
     <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ item.name }}"></div>
     <div class="form-row"><label>Unit</label><input type="text" name="unit" value="{{ item.unit }}" style="max-width:100px;"></div>
     <div class="form-row"><label>Sales Price</label><input type="number" step="0.01" name="sales_price" value="{{ item.sales_price }}"></div>
+    {% set vat_rate_current = item.default_vat_rate %}
+    {% include "inventory/_vat_rate_field.html" %}
     <div class="form-row"><label>Income Account</label>
       <select name="income_account_id" required>
         {% for a in income_accounts %}

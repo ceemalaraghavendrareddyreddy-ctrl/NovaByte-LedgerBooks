@@ -1,0 +1,41 @@
+{# Default VAT % picker — expects `vat_rate_current` in context (a number, or
+   '' / none if this item has no override yet). Submits as `default_vat_rate`,
+   same field name whichever way the value was set. #}
+<div class="form-row">
+  <label>Default VAT %</label>
+  <div style="display:flex; gap:0.5rem; align-items:center;">
+    <select id="vat-rate-select" style="max-width:170px;">
+      <option value="">Use invoice/bill rate</option>
+      {% for v in range(0, 16) %}
+      <option value="{{ v }}">{{ v }}%</option>
+      {% endfor %}
+      <option value="custom">Custom…</option>
+    </select>
+    <input type="number" step="0.01" id="vat-rate-custom" placeholder="e.g. 12.5" style="max-width:100px; display:none;">
+  </div>
+  <p style="color:var(--text-muted); font-size:0.78rem; margin:0.3rem 0 0;">
+    Applied automatically when this item is added to an invoice or bill line — still editable per line, and if the rate ever changes, update it here or on that line.
+  </p>
+  <input type="hidden" name="default_vat_rate" id="vat-rate-hidden" value="{{ vat_rate_current if vat_rate_current is not none else '' }}">
+</div>
+<script>
+(function(){
+  const select = document.getElementById('vat-rate-select');
+  const custom = document.getElementById('vat-rate-custom');
+  const hidden = document.getElementById('vat-rate-hidden');
+  function sync(){
+    if (select.value === 'custom') { custom.style.display = ''; hidden.value = custom.value; }
+    else { custom.style.display = 'none'; hidden.value = select.value; }
+  }
+  const existing = hidden.value;
+  if (existing !== '') {
+    // Compare numerically — a value read back from the database as "15.00" should
+    // still match the "15" dropdown option, not fall through to Custom.
+    const match = Array.from(select.options).find(o => o.value !== '' && o.value !== 'custom' && parseFloat(o.value) === parseFloat(existing));
+    if (match) { select.value = match.value; }
+    else { select.value = 'custom'; custom.value = existing; custom.style.display = ''; }
+  }
+  select.addEventListener('change', sync);
+  custom.addEventListener('input', sync);
+})();
+</script>

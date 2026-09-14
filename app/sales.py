@@ -336,9 +336,13 @@ def invoice_new():
         taxables = request.form.getlist("taxable")  # only present (as index string) for checked rows
         income_account_ids = request.form.getlist("income_account_id")
         item_ids = request.form.getlist("item_id")
+        # Per-line VAT % override — blank means "use this invoice's own vat_rate
+        # above", exactly like every line did before this field existed.
+        line_vat_rates = request.form.getlist("line_vat_rate")
         # zip() truncates to the shortest list — pad item_ids so a row missing that field
         # doesn't silently drop every line below it (the real form always sends it, but be defensive).
         item_ids += [""] * (len(descriptions) - len(item_ids))
+        line_vat_rates += [""] * (len(descriptions) - len(line_vat_rates))
 
         invoice = Invoice(
             company_id=current_company_id(),
@@ -352,8 +356,8 @@ def invoice_new():
             exchange_rate=exchange_rate,
         )
 
-        for i, (desc, qty, price, acc_id, item_id_raw) in enumerate(
-            zip(descriptions, quantities, unit_prices, income_account_ids, item_ids)
+        for i, (desc, qty, price, acc_id, item_id_raw, vat_rate_raw) in enumerate(
+            zip(descriptions, quantities, unit_prices, income_account_ids, item_ids, line_vat_rates)
         ):
             if not desc.strip() or not qty or not price:
                 continue
@@ -365,6 +369,7 @@ def invoice_new():
                     quantity=float(qty),
                     unit_price=float(price),
                     taxable=str(i) in taxables,
+                    vat_rate=float(vat_rate_raw) if vat_rate_raw.strip() != "" else None,
                     income_account_id=item.income_account_id if item else int(acc_id),
                 )
             )

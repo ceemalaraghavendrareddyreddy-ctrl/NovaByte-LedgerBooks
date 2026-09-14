@@ -328,8 +328,17 @@ class Invoice(db.Model):
 
     @property
     def vat_amount(self):
-        taxable = sum((float(line.amount) for line in self.lines if line.taxable), start=0.0)
-        return round(taxable * float(self.vat_rate) / 100, 2)
+        """Each line applies its own vat_rate if it has one set (e.g. a zero-rated
+        product on an otherwise-taxed line); a line with no rate of its own falls
+        back to this document's header rate — the same number every line effectively
+        used before per-line rates existed, so nothing already posted changes."""
+        total = 0.0
+        for line in self.lines:
+            if not line.taxable:
+                continue
+            rate = float(line.vat_rate) if line.vat_rate is not None else float(self.vat_rate)
+            total += round(line.amount * rate / 100, 2)
+        return round(total, 2)
 
     @property
     def total(self):
@@ -378,6 +387,11 @@ class InvoiceLine(db.Model):
     quantity = db.Column(db.Numeric(12, 3), nullable=False, default=1)
     unit_price = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     taxable = db.Column(db.Boolean, nullable=False, default=True)
+    # NULL (the default, and every line that existed before this column did) means
+    # "use this invoice's own vat_rate" — unchanged behavior. Set it to make just
+    # this line's rate different, so one invoice can mix a 0% product with a 15%
+    # one without splitting it into two invoices.
+    vat_rate = db.Column(db.Numeric(5, 2))
     income_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
 
     invoice = db.relationship("Invoice", back_populates="lines")
@@ -609,8 +623,17 @@ class Bill(db.Model):
 
     @property
     def vat_amount(self):
-        taxable = sum((float(line.amount) for line in self.lines if line.taxable), start=0.0)
-        return round(taxable * float(self.vat_rate) / 100, 2)
+        """Each line applies its own vat_rate if it has one set (e.g. a zero-rated
+        product on an otherwise-taxed line); a line with no rate of its own falls
+        back to this document's header rate — the same number every line effectively
+        used before per-line rates existed, so nothing already posted changes."""
+        total = 0.0
+        for line in self.lines:
+            if not line.taxable:
+                continue
+            rate = float(line.vat_rate) if line.vat_rate is not None else float(self.vat_rate)
+            total += round(line.amount * rate / 100, 2)
+        return round(total, 2)
 
     @property
     def total(self):
@@ -658,6 +681,8 @@ class BillLine(db.Model):
     quantity = db.Column(db.Numeric(12, 3), nullable=False, default=1)
     unit_price = db.Column(db.Numeric(14, 2), nullable=False, default=0)
     taxable = db.Column(db.Boolean, nullable=False, default=True)
+    # Same NULL-means-"use the bill's own vat_rate" convention as InvoiceLine.vat_rate.
+    vat_rate = db.Column(db.Numeric(5, 2))
     expense_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
 
     bill = db.relationship("Bill", back_populates="lines")
@@ -735,6 +760,11 @@ class Item(db.Model):
     item_type = db.Column(db.String(20), nullable=False, default="inventory")
     unit = db.Column(db.String(20), nullable=False, default="pcs")
     sales_price = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    # NULL means "use whatever rate the invoice/bill itself is set to" — the same
+    # behavior as before this column existed. Set it to give this specific product
+    # its own VAT treatment (e.g. 0% for a zero-rated item) regardless of what rate
+    # the rest of that document is at; still overridable per line either way.
+    default_vat_rate = db.Column(db.Numeric(5, 2))
     cost_price = db.Column(db.Numeric(14, 4), nullable=False, default=0)  # moving average cost
     quantity_on_hand = db.Column(db.Numeric(12, 3), nullable=False, default=0)
     reorder_level = db.Column(db.Numeric(12, 3), nullable=False, default=0)

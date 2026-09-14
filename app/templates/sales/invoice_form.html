@@ -58,7 +58,7 @@
       <div class="section-title">Line items</div>
       <table class="journal-lines-table">
         <thead>
-          <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th>Income account</th><th>Taxable</th><th></th></tr>
+          <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th>Income account</th><th>Taxable</th><th>VAT %</th><th></th></tr>
         </thead>
         <tbody id="lines-body">
           <tr>
@@ -82,6 +82,15 @@
               </select>
             </td>
             <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+            <td style="min-width:110px;">
+              <select class="line-vat-select" style="width:100%;" title="Blank = use the invoice's own VAT rate above">
+                <option value="">Inv. rate</option>
+                {% for v in range(0, 16) %}<option value="{{ v }}">{{ v }}%</option>{% endfor %}
+                <option value="custom">Custom</option>
+              </select>
+              <input type="number" step="0.01" class="line-vat-custom" style="width:100%; display:none; margin-top:2px;" placeholder="%">
+              <input type="hidden" name="line_vat_rate" class="line-vat-hidden" value="">
+            </td>
             <td><button type="button" class="btn small secondary remove-line" aria-label="Remove line">×</button></td>
           </tr>
         </tbody>
@@ -157,10 +166,31 @@ const ITEMS = {
   {% for it in items %}
   "{{ it.id }}": {
     name: {{ it.name|tojson }}, price: {{ it.sales_price }}, incomeAccountId: "{{ it.income_account_id }}",
-    tracked: {{ 'true' if it.is_tracked else 'false' }}, qty: {{ it.quantity_on_hand }}, unit: {{ it.unit|tojson }}
+    tracked: {{ 'true' if it.is_tracked else 'false' }}, qty: {{ it.quantity_on_hand }}, unit: {{ it.unit|tojson }},
+    vatRate: {{ 'null' if it.default_vat_rate is none else it.default_vat_rate }}
   },
   {% endfor %}
 };
+
+// Keeps a line's VAT select / custom box / hidden submitted value in sync —
+// same three-way pattern as the item form's default-VAT picker.
+function syncLineVat(row) {
+  const select = row.querySelector('.line-vat-select');
+  const custom = row.querySelector('.line-vat-custom');
+  const hidden = row.querySelector('.line-vat-hidden');
+  if (select.value === 'custom') { custom.style.display = ''; hidden.value = custom.value; }
+  else { custom.style.display = 'none'; hidden.value = select.value; }
+  recalcTotals();
+}
+function setLineVat(row, rate) {
+  const select = row.querySelector('.line-vat-select');
+  const custom = row.querySelector('.line-vat-custom');
+  const hidden = row.querySelector('.line-vat-hidden');
+  if (rate === null || rate === undefined) { select.value = ''; custom.style.display = 'none'; hidden.value = ''; return; }
+  const match = Array.from(select.options).find(o => o.value !== '' && o.value !== 'custom' && parseFloat(o.value) === parseFloat(rate));
+  if (match) { select.value = match.value; custom.style.display = 'none'; hidden.value = match.value; }
+  else { select.value = 'custom'; custom.value = rate; custom.style.display = ''; hidden.value = rate; }
+}
 
 const linesBody   = document.getElementById('lines-body');
 const rowTemplate = linesBody.querySelector('tr').cloneNode(true);
@@ -177,6 +207,7 @@ function clearRowInputs(row) {
   row.querySelector('input[type=checkbox]').checked = true;
   row.querySelector('.item-select').selectedIndex = 0;
   row.querySelector('.item-id-input').value = '';
+  setLineVat(row, null);
 }
 
 function onItemSelect(row) {
@@ -190,6 +221,7 @@ function onItemSelect(row) {
     if (incomeSelect.querySelector(`option[value="${item.incomeAccountId}"]`)) {
       incomeSelect.value = item.incomeAccountId;
     }
+    setLineVat(row, item.vatRate);
   }
   recalcTotals();
 }
@@ -226,7 +258,11 @@ function recalcTotals() {
     const taxable = row.querySelector('input[type=checkbox]').checked;
     const amount = qty * price;
     subtotal += amount;
-    if (taxable) vat += amount * vatRate / 100;
+    if (taxable) {
+      const lineVatRaw = row.querySelector('.line-vat-hidden').value;
+      const lineRate = lineVatRaw !== '' ? parseFloat(lineVatRaw) : vatRate;
+      vat += amount * (lineRate || 0) / 100;
+    }
     if (qty > 0 || price > 0 || desc) previewRows.push({desc, qty, price, amount});
   });
 
@@ -293,8 +329,12 @@ linesBody.addEventListener('click', (e) => {
 });
 linesBody.addEventListener('change', (e) => {
   if (e.target.classList.contains('item-select')) onItemSelect(e.target.closest('tr'));
+  else if (e.target.classList.contains('line-vat-select')) syncLineVat(e.target.closest('tr'));
 });
-linesBody.addEventListener('input', recalcTotals);
+linesBody.addEventListener('input', (e) => {
+  if (e.target.classList.contains('line-vat-custom')) syncLineVat(e.target.closest('tr'));
+  else recalcTotals();
+});
 
 ['input[name=vat_rate]', '#customer-select', '#invoice-date', '#due-date', '#memo-input']
   .forEach(sel => {
