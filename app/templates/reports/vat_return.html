@@ -9,6 +9,7 @@
   <input type="date" name="end_date" value="{{ end_date }}">
   <button class="btn small" type="submit">Update</button>
 </form>
+{% include "reports/_date_presets.html" %}
 
 <div class="stat-row">
   <div class="stat"><div class="label">Output VAT (on sales)</div><div class="value">{{ '%.2f'|format(output_total) }}</div></div>

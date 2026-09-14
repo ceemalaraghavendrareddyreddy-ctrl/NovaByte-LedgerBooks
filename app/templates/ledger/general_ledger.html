@@ -10,6 +10,7 @@
   <input type="date" name="end_date" value="{{ end_date }}">
   <button class="btn small" type="submit">Update</button>
 </form>
+{% include "reports/_date_presets.html" %}
 
 {% if sections %}
   {% for s in sections %}

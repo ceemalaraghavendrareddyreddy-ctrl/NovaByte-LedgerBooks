@@ -1,0 +1,30 @@
+{# Reusable quick-range buttons for any report whose filter form has start_date/
+   end_date date inputs — click one to set both fields and submit immediately.
+   Covers the "pick any range, a day to five years" ask without making anyone
+   hand-type dates for the common cases. #}
+<div class="btn-group" style="margin:0.4rem 0 1rem; flex-wrap:wrap;">
+  <button type="button" class="btn small secondary" onclick="lbSetDateRange(this,'today')">Today</button>
+  <button type="button" class="btn small secondary" onclick="lbSetDateRange(this,'last15')">Last 15 days</button>
+  <button type="button" class="btn small secondary" onclick="lbSetDateRange(this,'month')">This month</button>
+  <button type="button" class="btn small secondary" onclick="lbSetDateRange(this,'quarter')">This quarter</button>
+  <button type="button" class="btn small secondary" onclick="lbSetDateRange(this,'year')">This year</button>
+  <button type="button" class="btn small secondary" onclick="lbSetDateRange(this,'last5years')">Last 5 years</button>
+</div>
+<script>
+function lbSetDateRange(btn, preset) {
+  const form = btn.closest('form');
+  const startInput = form.querySelector('[name="start_date"]');
+  const endInput = form.querySelector('[name="end_date"]');
+  const today = new Date();
+  const iso = d => d.toISOString().slice(0, 10);
+  let start = today;
+  if (preset === 'last15') { start = new Date(today); start.setDate(start.getDate() - 14); }
+  else if (preset === 'month') { start = new Date(today.getFullYear(), today.getMonth(), 1); }
+  else if (preset === 'quarter') { const q = Math.floor(today.getMonth() / 3); start = new Date(today.getFullYear(), q * 3, 1); }
+  else if (preset === 'year') { start = new Date(today.getFullYear(), 0, 1); }
+  else if (preset === 'last5years') { start = new Date(today.getFullYear() - 5, today.getMonth(), today.getDate()); }
+  startInput.value = iso(start);
+  endInput.value = iso(today);
+  form.submit();
+}
+</script>

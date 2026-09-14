@@ -44,7 +44,11 @@
       </div>
       <div class="form-row" id="exchange-rate-row" style="display:none;">
         <label>Exchange rate <span class="text-muted" style="font-weight:normal;">(1 unit = ? {{ base_currency }})</span></label>
-        <input type="number" step="0.000001" name="exchange_rate" id="exchange-rate-input" value="{{ form.exchange_rate or 1.0 }}" style="max-width:140px;">
+        <div style="display:flex; align-items:center; gap:0.5rem;">
+          <input type="number" step="0.000001" name="exchange_rate" id="exchange-rate-input" value="{{ form.exchange_rate or 1.0 }}" style="max-width:140px;">
+          <button type="button" class="btn small secondary" id="fetch-rate-btn">Get today's rate</button>
+          <span class="text-muted" id="fetch-rate-status" style="font-size:0.78rem;"></span>
+        </div>
       </div>
       <div class="form-row">
         <label>Memo</label>
@@ -300,6 +304,25 @@ linesBody.addEventListener('input', recalcTotals);
   });
 document.getElementById('currency-select').addEventListener('change', updateCurrencyUI);
 document.getElementById('exchange-rate-input').addEventListener('input', recalcTotals);
+
+// "Get today's rate" — fetches a suggested rate from a live source and fills the
+// field; never overwrites without this being clicked, and stays a plain editable
+// number afterward, exactly like typing it in by hand.
+document.getElementById('fetch-rate-btn').addEventListener('click', async () => {
+  const statusEl = document.getElementById('fetch-rate-status');
+  const from = document.getElementById('currency-select').value;
+  statusEl.textContent = 'Fetching…';
+  try {
+    const r = await fetch(`/api/fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(BASE_CURRENCY)}`);
+    const data = await r.json();
+    if (!r.ok) { statusEl.textContent = data.error || 'Could not fetch a rate.'; return; }
+    document.getElementById('exchange-rate-input').value = data.rate;
+    statusEl.textContent = `${data.rate} as of ${data.as_of || 'today'} — check and adjust if needed.`;
+    recalcTotals();
+  } catch (e) {
+    statusEl.textContent = 'Could not reach the rate source — enter it manually.';
+  }
+});
 
 reindexCheckboxes();
 updateCurrencyUI();
