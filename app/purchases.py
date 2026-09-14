@@ -7,9 +7,9 @@ from app import db
 from app.audit import log_audit
 from app.auth import current_company, current_company_id
 from app.models import (
-    Account, Bill, BillLine, CURRENCIES, Item, JournalEntry, JournalLine, PurchaseOrder, PurchaseOrderLine,
-    StockMovement, Vendor, VendorCredit, VendorCreditApplication, VendorCreditLine, VendorPayment,
-    VendorPaymentApplication,
+    Account, Bill, BillLine, CURRENCIES, Item, JournalEntry, JournalLine, Project, PurchaseOrder,
+    PurchaseOrderLine, StockMovement, Vendor, VendorCredit, VendorCreditApplication, VendorCreditLine,
+    VendorPayment, VendorPaymentApplication,
 )
 from app.pdf import generate_bill_pdf
 from app.scoping import scoped_get, scoped_or_404, scoped_query
@@ -312,13 +312,14 @@ def bill_new():
     ).order_by(Account.code).all()
     default_expense = scoped_query(Account).filter_by(code=DEFAULT_EXPENSE_CODE).first()
     items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
+    projects = scoped_query(Project).filter_by(is_active=True).order_by(Project.name).all()
     preselected_vendor_id = request.args.get("vendor_id", type=int)
     base_currency = current_company().base_currency
 
     def render_form(form):
         return render_template(
             "purchases/bill_form.html", vendors=vendors, expense_accounts=expense_accounts,
-            default_expense=default_expense, items=items, form=form, today=date.today().isoformat(),
+            default_expense=default_expense, items=items, projects=projects, form=form, today=date.today().isoformat(),
             currencies=CURRENCIES, base_currency=base_currency,
         )
 
@@ -359,6 +360,7 @@ def bill_new():
             bill_date=bill_date,
             due_date=due_date,
             memo=request.form.get("memo", "").strip() or None,
+            project_id=int(request.form["project_id"]) if request.form.get("project_id") else None,
             vat_rate=float(request.form.get("vat_rate") or 15.00),
             currency=currency,
             exchange_rate=exchange_rate,
@@ -417,6 +419,7 @@ def post_bill(bill):
         memo=f"Bill {bill.bill_no} - {bill.memo or ''}".strip(" -")
              + (f" ({bill.currency} {bill.total:.2f} @ {rate})" if bill.is_foreign else ""),
         source_type="bill",
+        project_id=bill.project_id,
         created_by=current_user.id,
     )
 

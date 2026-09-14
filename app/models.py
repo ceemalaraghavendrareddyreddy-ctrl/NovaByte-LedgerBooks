@@ -161,6 +161,29 @@ class CompanySettings(db.Model):
         return CompanySettings.query.filter_by(payroll_api_key=key).first()
 
 
+class Project(db.Model):
+    """A tag for tracking one job/branch/cost center within a single company's
+    books — one flat list, one tag per invoice or bill (not per line). The name
+    is entirely up to the company: "Branch A"/"Branch B" for a multi-branch
+    business, "Website Redesign"/"Office Fit-out" for a firm running projects,
+    or a mix of both in one list. Leaving a document untagged just means it
+    only shows up in the consolidated (all-projects) report, never a hard
+    requirement.
+    """
+
+    __tablename__ = "projects"
+    __table_args__ = (db.UniqueConstraint("company_id", "name", name="uq_project_company_name"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company_settings.id"), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<Project {self.name}>"
+
+
 class Account(db.Model):
     """One row in the Chart of Accounts."""
 
@@ -215,6 +238,11 @@ class JournalEntry(db.Model):
     memo = db.Column(db.String(255))
     source_type = db.Column(db.String(30), nullable=False, default="manual")  # manual/invoice/bill/...
     source_id = db.Column(db.Integer)  # id of the source record once other modules exist
+    # Copied from the source Invoice/Bill's own project_id when this entry is posted
+    # (see sales.post_invoice / purchases.post_bill), or set directly on a manual
+    # entry — lets Reports > Profit & Loss filter to one project. NULL means
+    # unassigned; it still counts in the consolidated (no filter) P&L.
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"))
     created_by = db.Column(db.Integer, db.ForeignKey("users.id"))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -295,6 +323,9 @@ class Invoice(db.Model):
     invoice_date = db.Column(db.Date, nullable=False, default=date.today)
     due_date = db.Column(db.Date, nullable=False)
     memo = db.Column(db.String(255))
+    # Optional branch/job/cost-center tag — see Project. Copied onto the journal
+    # entry this invoice posts, so Reports > Profit & Loss can filter by it.
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"))
     vat_rate = db.Column(db.Numeric(5, 2), nullable=False, default=15.00)  # Mauritius standard VAT
     currency = db.Column(db.String(3), nullable=False, default="MUR")
     exchange_rate = db.Column(db.Numeric(12, 6), nullable=False, default=1.000000)  # 1 unit of currency, in base currency
@@ -315,6 +346,7 @@ class Invoice(db.Model):
 
     customer = db.relationship("Customer", back_populates="invoices")
     journal_entry = db.relationship("JournalEntry")
+    project = db.relationship("Project")
     lines = db.relationship("InvoiceLine", back_populates="invoice", cascade="all, delete-orphan")
     payment_applications = db.relationship("PaymentApplication", back_populates="invoice")
     credit_applications = db.relationship("CreditMemoApplication", back_populates="invoice")
@@ -602,6 +634,9 @@ class Bill(db.Model):
     bill_date = db.Column(db.Date, nullable=False, default=date.today)
     due_date = db.Column(db.Date, nullable=False)
     memo = db.Column(db.String(255))
+    # Optional branch/job/cost-center tag — see Project. Copied onto the journal
+    # entry this bill posts, so Reports > Profit & Loss can filter by it.
+    project_id = db.Column(db.Integer, db.ForeignKey("projects.id"))
     vat_rate = db.Column(db.Numeric(5, 2), nullable=False, default=15.00)  # Mauritius standard VAT
     currency = db.Column(db.String(3), nullable=False, default="MUR")
     exchange_rate = db.Column(db.Numeric(12, 6), nullable=False, default=1.000000)  # 1 unit of currency, in base currency
@@ -612,6 +647,7 @@ class Bill(db.Model):
     vendor = db.relationship("Vendor", back_populates="bills")
     purchase_order = db.relationship("PurchaseOrder", back_populates="bills")
     journal_entry = db.relationship("JournalEntry")
+    project = db.relationship("Project")
     lines = db.relationship("BillLine", back_populates="bill", cascade="all, delete-orphan")
     payment_applications = db.relationship("VendorPaymentApplication", back_populates="bill")
     credit_applications = db.relationship("VendorCreditApplication", back_populates="bill")

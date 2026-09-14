@@ -9,6 +9,7 @@
   {% if bill.is_foreign %}&middot; <span class="badge">{{ bill.currency }} @ {{ bill.exchange_rate }}</span>{% endif %}
 </p>
 {% if bill.memo %}<p>{{ bill.memo }}</p>{% endif %}
+{% if bill.project %}<p style="color:var(--text-muted, var(--muted));">Project: <strong>{{ bill.project.name }}</strong></p>{% endif %}
 
 <div class="card">
   <table>

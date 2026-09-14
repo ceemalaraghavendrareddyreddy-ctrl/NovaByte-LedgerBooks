@@ -9,7 +9,7 @@ from app.auth import current_company, current_company_id
 from app.models import (
     Account, CURRENCIES, CreditMemo, CreditMemoApplication, CreditMemoLine, Customer, Estimate,
     EstimateLine, Invoice, InvoiceLine, Item, JournalEntry, JournalLine, Payment, PaymentApplication,
-    RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, StockMovement,
+    Project, RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, StockMovement,
 )
 from app.pdf import generate_credit_memo_pdf, generate_invoice_pdf
 from app.scoping import scoped_get, scoped_or_404, scoped_query
@@ -305,13 +305,14 @@ def invoice_new():
     income_accounts = scoped_query(Account).filter_by(account_type="Income", is_active=True).order_by(Account.code).all()
     default_income = scoped_query(Account).filter_by(code=DEFAULT_INCOME_CODE).first()
     items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
+    projects = scoped_query(Project).filter_by(is_active=True).order_by(Project.name).all()
     preselected_customer_id = request.args.get("customer_id", type=int)
     base_currency = current_company().base_currency
 
     def render_form(form):
         return render_template(
             "sales/invoice_form.html", customers=customers, income_accounts=income_accounts,
-            default_income=default_income, items=items, form=form, today=date.today().isoformat(),
+            default_income=default_income, items=items, projects=projects, form=form, today=date.today().isoformat(),
             currencies=CURRENCIES, base_currency=base_currency,
         )
 
@@ -351,6 +352,7 @@ def invoice_new():
             invoice_date=invoice_date,
             due_date=due_date,
             memo=request.form.get("memo", "").strip() or None,
+            project_id=int(request.form["project_id"]) if request.form.get("project_id") else None,
             vat_rate=float(request.form.get("vat_rate") or 15.00),
             currency=currency,
             exchange_rate=exchange_rate,
@@ -434,6 +436,7 @@ def post_invoice(invoice):
         memo=f"Invoice {invoice.invoice_no} - {invoice.memo or ''}".strip(" -")
              + (f" ({invoice.currency} {invoice.total:.2f} @ {rate})" if invoice.is_foreign else ""),
         source_type="invoice",
+        project_id=invoice.project_id,
         created_by=current_user.id,
     )
     entry.lines.append(JournalLine(account=ar_account, debit=invoice.total_base, credit=0, memo=invoice.invoice_no))

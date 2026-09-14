@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Projects</h1>
+<p style="color:var(--text-muted); font-size:0.85rem; max-width:60ch;">
+  Tag invoices and bills with a project, branch, or cost center — whatever fits how this
+  company works. Untagged documents still show up in the consolidated Profit &amp; Loss;
+  a tagged one also shows up filtered to just that project.
+</p>
+<a class="btn" href="{{ url_for('projects.project_new') }}">+ New Project</a>
+
+<div class="card">
+  {% if projects %}
+  <table>
+    <thead><tr><th>Name</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for p in projects %}
+      <tr>
+        <td>{{ p.name }}</td>
+        <td>{% if p.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td>
+          <a class="btn small secondary" href="{{ url_for('projects.project_edit', project_id=p.id) }}">Edit</a>
+          <a class="btn small secondary" href="{{ url_for('reports.profit_loss', project_id=p.id) }}">P&amp;L</a>
+          <form class="inline" method="post" action="{{ url_for('projects.project_toggle', project_id=p.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if p.is_active else 'Activate' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No projects yet — every invoice and bill posts to the consolidated books until you add one.</p>
+  {% endif %}
+</div>
+{% endblock %}

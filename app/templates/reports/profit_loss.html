@@ -1,12 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Profit &amp; Loss</h1>
+<h1>Profit &amp; Loss{% if selected_project %} — {{ selected_project.name }}{% endif %}</h1>
 
 <form method="get" class="form-row">
   <label>From</label>
   <input type="date" name="start_date" value="{{ start_date }}">
   <label>To</label>
   <input type="date" name="end_date" value="{{ end_date }}">
+  {% if projects %}
+  <label>Project</label>
+  <select name="project_id" style="max-width:200px;">
+    <option value="">All (Consolidated)</option>
+    {% for p in projects %}
+    <option value="{{ p.id }}" {% if selected_project and selected_project.id == p.id %}selected{% endif %}>{{ p.name }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
   <button class="btn small" type="submit">Update</button>
 </form>
 {% include "reports/_date_presets.html" %}

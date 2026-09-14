@@ -54,6 +54,17 @@
         <label>Memo</label>
         <input type="text" name="memo" id="memo-input" value="{{ form.memo or '' }}">
       </div>
+      {% if projects %}
+      <div class="form-row">
+        <label>Project</label>
+        <select name="project_id" style="max-width:200px;">
+          <option value="">— none —</option>
+          {% for p in projects %}
+          <option value="{{ p.id }}" {% if form.project_id|string == p.id|string %}selected{% endif %}>{{ p.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
 
       <div class="section-title">Line items</div>
       <table class="journal-lines-table">

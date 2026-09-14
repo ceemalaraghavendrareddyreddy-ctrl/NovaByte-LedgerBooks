@@ -77,6 +77,7 @@ def create_app():
     from app.features_pdf import features_pdf_bp
     from app.mra_sgs import mra_sgs_bp
     from app.fx_rates import fx_rates_bp
+    from app.projects import projects_bp
 
     from app.permissions import register_module_guards
 
@@ -90,6 +91,7 @@ def create_app():
         ledger_bp: "ledger",
         reports_bp: "reports",
         mra_sgs_bp: "reports",
+        projects_bp: "reports",
     })
 
     app.register_blueprint(auth_bp)
@@ -116,6 +118,7 @@ def create_app():
     app.register_blueprint(features_pdf_bp)
     app.register_blueprint(mra_sgs_bp)
     app.register_blueprint(fx_rates_bp)
+    app.register_blueprint(projects_bp)
 
     from app import period_lock  # noqa: F401 — registers the JournalEntry lock events on import (avoid `import app.x`, which rebinds the local `app` Flask instance to the package)
     from app.period_lock import PeriodLockedError

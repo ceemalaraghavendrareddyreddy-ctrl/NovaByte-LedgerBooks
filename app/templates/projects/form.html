@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Project</h1>
+<div class="card" style="max-width:500px;">
+  <form method="post">
+    <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ form.name or '' }}" placeholder="e.g. Port Louis Branch, or Website Redesign"></div>
+    <button class="btn" type="submit">Save Project</button>
+    <a class="btn secondary" href="{{ url_for('projects.project_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

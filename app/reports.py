@@ -8,7 +8,7 @@ from flask_login import current_user, login_required
 from app import db
 from app.auth import current_company_id
 from app.models import (
-    ACCOUNT_TYPES, Account, Bill, BillLine, Invoice, InvoiceLine, JournalEntry, JournalLine, SavedReport,
+    ACCOUNT_TYPES, Account, Bill, BillLine, Invoice, InvoiceLine, JournalEntry, JournalLine, Project, SavedReport,
 )
 from app.scoping import scoped_or_404, scoped_query
 
@@ -19,18 +19,24 @@ VAT_RECEIVABLE_CODE = "2110"  # input VAT — paid on purchases
 CASH_SUBTYPE = "Cash and Cash Equivalents"
 
 
-def period_movement(account, start_date, end_date):
+def period_movement(account, start_date, end_date, project_id=None):
     """Net movement for one account between two dates (inclusive), signed in its normal-balance direction.
 
     Unlike Account.balance() (which is cumulative since inception), this is what
     Profit & Loss needs: income/expense activity for just this period.
+
+    project_id, when given, filters to journal entries tagged with that project
+    (see Project) — the per-project P&L. Left as None (the default, and every
+    existing caller) it's the whole company's consolidated movement, unchanged.
     """
-    lines = (
+    query = (
         JournalLine.query.filter_by(account_id=account.id)
         .join(JournalEntry)
         .filter(JournalEntry.entry_date >= start_date, JournalEntry.entry_date <= end_date)
-        .all()
     )
+    if project_id is not None:
+        query = query.filter(JournalEntry.project_id == project_id)
+    lines = query.all()
     total_debit = sum((float(line.debit) for line in lines), start=0.0)
     total_credit = sum((float(line.credit) for line in lines), start=0.0)
     movement = total_debit - total_credit
@@ -46,16 +52,19 @@ def profit_loss():
     end_raw = request.args.get("end_date")
     start_date = date.fromisoformat(start_raw) if start_raw else date.today().replace(day=1)
     end_date = date.fromisoformat(end_raw) if end_raw else date.today()
+    project_id = request.args.get("project_id", type=int)
 
     income_accounts = scoped_query(Account).filter_by(account_type="Income", is_active=True).order_by(Account.code).all()
     expense_accounts = scoped_query(Account).filter_by(account_type="Expense", is_active=True).order_by(Account.code).all()
+    projects = scoped_query(Project).order_by(Project.name).all()
+    selected_project = next((p for p in projects if p.id == project_id), None) if project_id else None
 
     income_rows = [
-        {"account": a, "amount": period_movement(a, start_date, end_date)} for a in income_accounts
+        {"account": a, "amount": period_movement(a, start_date, end_date, project_id)} for a in income_accounts
     ]
     income_rows = [r for r in income_rows if r["amount"] != 0]
     expense_rows = [
-        {"account": a, "amount": period_movement(a, start_date, end_date)} for a in expense_accounts
+        {"account": a, "amount": period_movement(a, start_date, end_date, project_id)} for a in expense_accounts
     ]
     expense_rows = [r for r in expense_rows if r["amount"] != 0]
 
@@ -67,6 +76,7 @@ def profit_loss():
         "reports/profit_loss.html",
         income_rows=income_rows, expense_rows=expense_rows,
         total_income=total_income, total_expense=total_expense, net_income=net_income,
+        projects=projects, selected_project=selected_project,
         start_date=start_date.isoformat(), end_date=end_date.isoformat(),
     )
 

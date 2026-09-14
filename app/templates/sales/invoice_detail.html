@@ -8,6 +8,7 @@
   {% if invoice.is_foreign %}&middot; <span class="badge">{{ invoice.currency }} @ {{ invoice.exchange_rate }}</span>{% endif %}
 </p>
 {% if invoice.memo %}<p>{{ invoice.memo }}</p>{% endif %}
+{% if invoice.project %}<p style="color:var(--text-muted, var(--muted));">Project: <strong>{{ invoice.project.name }}</strong></p>{% endif %}
 
 {% if invoice.mra_status %}
 <p style="color:var(--muted); font-size:.9em;">
