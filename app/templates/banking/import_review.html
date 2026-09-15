@@ -29,12 +29,18 @@
                 Confirm match: {{ line.matched_journal_line.entry.entry_date }} — {{ line.matched_journal_line.memo or line.matched_journal_line.entry.memo or '(no memo)' }}
               </label>
             {% elif line.status == 'unmatched' %}
+              {% set suggestion = suggestions.get(line.id) %}
               <select name="category_{{ line.id }}">
-                <option value="">-- choose category account --</option>
+                <option value="" {% if not suggestion %}selected{% endif %}>-- choose category account --</option>
                 {% for a in accounts %}
-                <option value="{{ a.id }}">{{ a.code }} - {{ a.name }}</option>
+                <option value="{{ a.id }}" {% if suggestion and suggestion.account.id == a.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
                 {% endfor %}
               </select>
+              {% if suggestion %}
+              <div style="font-size:0.75rem; color:var(--brass-deep, var(--accent, #a97a2b)); margin-top:0.25rem;">
+                ✨ Suggested{% if suggestion.reason == 'history' %} — you categorized a similar transaction this way before{% else %} — based on the description{% endif %}. Change it if it's wrong.
+              </div>
+              {% endif %}
             {% else %}
               {% if line.matched_journal_line %}Cleared existing transaction{% elif line.created_journal_entry_id %}
               <a href="{{ url_for('ledger.journal_detail', entry_id=line.created_journal_entry_id) }}">View entry</a>
