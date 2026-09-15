@@ -149,8 +149,10 @@
       {% endif %}
 
       {% if current_user.can_use_module('reports') %}
-      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('reports.') or request.endpoint.startswith('budgets.') or request.endpoint.startswith('mra_sgs.') or request.endpoint.startswith('projects.')) %}open{% endif %}>
+      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('reports.') or request.endpoint.startswith('budgets.') or request.endpoint.startswith('mra_sgs.') or request.endpoint.startswith('projects.') or request.endpoint.startswith('ai_qa.') or request.endpoint.startswith('ai_anomalies.')) %}open{% endif %}>
         <summary>{{ icon('bar-chart-3') }} <span>Reports</span></summary>
+        <a href="{{ url_for('ai_qa.ask') }}">Ask your books ✨</a>
+        <a href="{{ url_for('ai_anomalies.anomalies') }}">Anomaly check ✨</a>
         <a href="{{ url_for('projects.project_list') }}">Projects</a>
         <a href="{{ url_for('reports.profit_loss') }}">Profit &amp; loss</a>
         <a href="{{ url_for('reports.balance_sheet') }}">Balance sheet</a>

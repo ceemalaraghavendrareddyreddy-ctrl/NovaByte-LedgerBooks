@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Ask Your Books</h1>
+<p style="color:var(--text-muted); font-size:0.85rem; max-width:65ch;">
+  Type a question in plain English. This is an early, mocked version — it recognizes a fixed
+  set of question types by keyword rather than understanding free-form language, but every
+  number it gives back is computed live from your actual ledger, never invented.
+</p>
+
+<div class="card" style="max-width:700px;">
+  <form method="get">
+    <div class="form-row">
+      <input type="text" name="q" value="{{ question or '' }}" placeholder="e.g. What's our net profit this month?" style="flex:1;" autofocus>
+      <button class="btn" type="submit">Ask</button>
+    </div>
+  </form>
+
+  {% if answer %}
+  <div style="margin-top:1rem; padding:1rem; background:var(--bg, var(--paper)); border-left:3px solid var(--primary, var(--brass)); border-radius:6px;">
+    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.4rem;">Answer</div>
+    <div>{{ answer }}</div>
+  </div>
+  {% elif no_match %}
+  <div style="margin-top:1rem; padding:1rem; background:var(--bg, var(--paper)); border-left:3px solid var(--error, #DC2626); border-radius:6px;">
+    I don't recognize that question yet — try one of the examples below, or rephrase it closer to one of those shapes.
+  </div>
+  {% endif %}
+
+  <div style="margin-top:1.25rem;">
+    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.5rem;">Try asking</div>
+    <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+      {% for ex in examples %}
+      <a class="btn small secondary" href="{{ url_for('ai_qa.ask', q=ex) }}">{{ ex }}</a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

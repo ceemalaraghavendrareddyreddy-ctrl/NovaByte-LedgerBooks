@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Anomaly Check</h1>
+<p style="color:var(--text-muted); font-size:0.85rem; max-width:65ch;">
+  Rule-based checks for now (an early, mocked version of the "AI model" request) — each flag
+  below is a real statistical comparison against this company's own transaction history, not
+  a guess. Nothing here blocks anything; it's just worth a second look.
+</p>
+
+<div class="card">
+  <h3 style="margin-top:0;">Unusually large invoices</h3>
+  {% if invoice_flags %}
+  <table>
+    <thead><tr><th>Invoice</th><th class="num">Amount</th><th class="num">This customer's usual</th><th></th></tr></thead>
+    <tbody>
+      {% for f in invoice_flags %}
+      <tr>
+        <td>{{ f.no }}</td>
+        <td class="num">{{ '%.2f'|format(f.amount) }}</td>
+        <td class="num">{{ '%.2f'|format(f.average) }}</td>
+        <td><a href="{{ url_for('sales.invoice_detail', invoice_id=f.doc.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--text-muted);">Nothing flagged — no invoice is more than {{ '%g'|format(3.0) }}x a customer's usual size.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Unusually large bills</h3>
+  {% if bill_flags %}
+  <table>
+    <thead><tr><th>Bill</th><th class="num">Amount</th><th class="num">This vendor's usual</th><th></th></tr></thead>
+    <tbody>
+      {% for f in bill_flags %}
+      <tr>
+        <td>{{ f.no }}</td>
+        <td class="num">{{ '%.2f'|format(f.amount) }}</td>
+        <td class="num">{{ '%.2f'|format(f.average) }}</td>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=f.doc.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--text-muted);">Nothing flagged — no bill is more than 3x a vendor's usual size.</p>
+  {% endif %}
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Possible duplicate bills</h3>
+  {% if duplicate_flags %}
+  <table>
+    <thead><tr><th>Bill</th><th class="num">Amount</th><th>Looks like a duplicate of</th><th></th></tr></thead>
+    <tbody>
+      {% for f in duplicate_flags %}
+      <tr>
+        <td>{{ f.no }}</td>
+        <td class="num">{{ '%.2f'|format(f.amount) }}</td>
+        <td>{{ f.duplicate_of }}</td>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=f.doc.id) }}">View</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--text-muted);">No same-vendor, same-amount bills within 7 days of each other.</p>
+  {% endif %}
+</div>
+{% endblock %}
