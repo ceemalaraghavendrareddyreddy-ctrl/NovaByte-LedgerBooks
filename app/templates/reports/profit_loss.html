@@ -21,6 +21,11 @@
 {% include "reports/_date_presets.html" %}
 
 <div class="card">
+  <h3 style="margin-top:0;">Income vs. Expenses</h3>
+  <div style="height:280px;"><canvas id="pl-chart"></canvas></div>
+</div>
+
+<div class="card">
   <h2 class="section-title" style="margin-top:0;">Income</h2>
   {% if income_rows %}
   <table>
@@ -63,4 +68,50 @@
     </div>
   </div>
 </div>
+
+<script>
+(function() {
+  const style = getComputedStyle(document.documentElement);
+  const primary = style.getPropertyValue('--primary').trim() || '#0F766E';
+  const accent = style.getPropertyValue('--accent').trim() || '#F97354';
+  const gridColor = style.getPropertyValue('--border').trim() || '#E5E9F0';
+  const textColor = style.getPropertyValue('--text-muted').trim() || '#6B7280';
+
+  const incomeLabels = [{% for r in income_rows %}{{ (r.account.code ~ ' ' ~ r.account.name)|tojson }},{% endfor %}];
+  const incomeData = [{% for r in income_rows %}{{ r.amount }},{% endfor %}];
+  const expenseLabels = [{% for r in expense_rows %}{{ (r.account.code ~ ' ' ~ r.account.name)|tojson }},{% endfor %}];
+  const expenseData = [{% for r in expense_rows %}{{ r.amount }},{% endfor %}];
+
+  new Chart(document.getElementById('pl-chart'), {
+    type: 'bar',
+    data: {
+      labels: [...incomeLabels, ...expenseLabels],
+      datasets: [{
+        label: 'Amount (MUR)',
+        data: [...incomeData, ...expenseData.map(v => -v)],
+        backgroundColor: [
+          ...incomeLabels.map(() => primary),
+          ...expenseLabels.map(() => accent),
+        ],
+        borderRadius: 4,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `MUR ${Math.abs(ctx.parsed.x).toLocaleString(undefined, {minimumFractionDigits:2})}` } },
+      },
+      scales: {
+        x: {
+          ticks: { color: textColor, callback: (v) => Math.abs(v).toLocaleString() },
+          grid: { color: gridColor },
+        },
+        y: { ticks: { color: textColor }, grid: { display: false } },
+      },
+    },
+  });
+})();
+</script>
 {% endblock %}

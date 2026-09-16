@@ -1,0 +1,33 @@
+{# Reusable horizontal bar chart. Expects, set by the including page:
+     chart_labels  — list of strings
+     chart_data    — list of numbers
+     chart_color   — a CSS custom-property name, e.g. "primary" or "accent"
+     chart_fallback — hex fallback if that variable isn't set (theme not loaded yet) #}
+<script>
+(function() {
+  const style = getComputedStyle(document.documentElement);
+  const color = style.getPropertyValue('--{{ chart_color }}').trim() || '{{ chart_fallback }}';
+  const gridColor = style.getPropertyValue('--border').trim() || '#E5E9F0';
+  const textColor = style.getPropertyValue('--text-muted').trim() || '#6B7280';
+
+  new Chart(document.getElementById('chart'), {
+    type: 'bar',
+    data: {
+      labels: {{ chart_labels | tojson }},
+      datasets: [{ label: 'Amount (MUR)', data: {{ chart_data | tojson }}, backgroundColor: color, borderRadius: 4 }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `MUR ${ctx.parsed.x.toLocaleString(undefined, {minimumFractionDigits:2})}` } },
+      },
+      scales: {
+        x: { ticks: { color: textColor, callback: (v) => v.toLocaleString() }, grid: { color: gridColor } },
+        y: { ticks: { color: textColor }, grid: { display: false } },
+      },
+    },
+  });
+})();
+</script>

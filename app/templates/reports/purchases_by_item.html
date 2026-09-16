@@ -11,6 +11,13 @@
 </form>
 {% include "reports/_date_presets.html" %}
 
+{% if rows %}
+<div class="card">
+  <h3 style="margin-top:0;">Top Items by Cost</h3>
+  <div style="height:{{ [rows|length * 36 + 40, 400] | min }}px;"><canvas id="chart"></canvas></div>
+</div>
+{% endif %}
+
 <div class="card">
   {% if rows %}
   <table>
@@ -30,4 +37,12 @@
   <p style="color:var(--text-muted);">No bill lines in this date range.</p>
   {% endif %}
 </div>
+
+{% if rows %}
+{% set chart_labels = rows | map(attribute='label') | list %}
+{% set chart_data = rows | map(attribute='amount') | list %}
+{% set chart_color = 'accent' %}
+{% set chart_fallback = '#F97354' %}
+{% include "reports/_bar_chart.html" %}
+{% endif %}
 {% endblock %}
