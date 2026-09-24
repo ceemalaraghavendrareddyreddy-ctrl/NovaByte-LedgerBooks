@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Invoice Approvals</h1>
+<p style="color:var(--muted);">Invoices submitted while approval is required, awaiting an owner's decision. None of these have posted to the ledger yet.</p>
+
+<div class="card">
+  {% if invoices %}
+  <table>
+    <thead><tr><th>Invoice #</th><th>Customer</th><th>Date</th><th>Submitted By</th><th class="num">Total</th><th></th></tr></thead>
+    <tbody>
+      {% for invoice in invoices %}
+      <tr>
+        <td><a href="{{ url_for('sales.invoice_detail', invoice_id=invoice.id) }}">{{ invoice.invoice_no }}</a></td>
+        <td>{{ invoice.customer.name }}</td>
+        <td>{{ invoice.invoice_date }}</td>
+        <td>{{ invoice.submitter.name if invoice.submitter else '-' }}</td>
+        <td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.total) }}</td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('sales.invoice_approve', invoice_id=invoice.id) }}">
+            <button class="btn small" type="submit">Approve</button>
+          </form>
+          <a class="btn small secondary" href="{{ url_for('sales.invoice_detail', invoice_id=invoice.id) }}">Review</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Nothing waiting on approval.</p>
+  {% endif %}
+</div>
+{% endblock %}

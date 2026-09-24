@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Set up Two-Factor Authentication</h1>
+<div class="card" style="max-width:480px;">
+  <p>1. Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password, etc.):</p>
+  <img src="{{ qr_data_uri }}" alt="2FA QR code" style="display:block;margin:1rem auto;width:200px;height:200px;">
+  <p style="color:var(--muted);font-size:0.9rem;">Can't scan? Enter this key manually: <code>{{ secret }}</code></p>
+  <form method="post" style="margin-top:1.5rem;">
+    <div class="form-row">
+      <label>2. Enter the 6-digit code shown in the app</label>
+      <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus required>
+    </div>
+    <button class="btn" type="submit">Verify &amp; Enable</button>
+    <a class="btn secondary" href="{{ url_for('auth.security') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

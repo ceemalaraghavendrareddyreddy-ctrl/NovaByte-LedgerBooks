@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Bank Rules</h1>
+  <a class="btn primary small" href="{{ url_for('bank_rules.rule_new') }}">+ New Rule</a>
+</div>
+<p style="color:var(--muted);">When a bank statement line's description contains a rule's keyword, Import Review suggests that rule's account automatically — same as the built-in suggestions, but exactly what you told it to do.</p>
+
+<div class="card">
+  {% if rules %}
+  <table>
+    <thead><tr><th>Keyword</th><th>Account</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for rule in rules %}
+      <tr>
+        <td><a href="{{ url_for('bank_rules.rule_edit', rule_id=rule.id) }}">{{ rule.keyword }}</a></td>
+        <td>{{ rule.account.code }} - {{ rule.account.name }}</td>
+        <td>{% if rule.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td>
+          <a class="btn small secondary" href="{{ url_for('bank_rules.rule_edit', rule_id=rule.id) }}">Edit</a>
+          <form class="inline" method="post" action="{{ url_for('bank_rules.rule_toggle', rule_id=rule.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if rule.is_active else 'Activate' }}</button>
+          </form>
+          <form class="inline" method="post" action="{{ url_for('bank_rules.rule_delete', rule_id=rule.id) }}" onsubmit="return confirm('Delete this rule?');">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No bank rules yet. Create one, or use "Save as rule" from Import Review the next time you categorize a transaction.</p>
+  {% endif %}
+</div>
+{% endblock %}

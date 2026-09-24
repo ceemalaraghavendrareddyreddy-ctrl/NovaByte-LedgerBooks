@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Transaction</h1>
+<p style="color:var(--muted);">What are you recording?</p>
+
+<div class="flex" style="gap:1rem; flex-wrap:wrap;">
+  <div class="card" style="flex:1; min-width:260px;">
+    <h3 style="margin-top:0;">Customer Receipt</h3>
+    <p style="color:var(--muted); font-size:0.88rem;">Money received from a customer — applies to their open invoices, or leave it unapplied.</p>
+    <a class="btn" href="{{ url_for('sales.payment_new') }}">Record Customer Receipt</a>
+  </div>
+
+  <div class="card" style="flex:1; min-width:260px;">
+    <h3 style="margin-top:0;">Vendor Payment</h3>
+    <p style="color:var(--muted); font-size:0.88rem;">Money paid to a vendor — applies to their open bills, or leave it unapplied.</p>
+    <a class="btn" href="{{ url_for('purchases.payment_new') }}">Record Vendor Payment</a>
+  </div>
+
+  <div class="card" style="flex:1; min-width:260px;">
+    <h3 style="margin-top:0;">Advance Payment</h3>
+    <p style="color:var(--muted); font-size:0.88rem;">Money received or paid before there's an invoice or bill to apply it to — a deposit or prepayment on account.</p>
+    <a class="btn" href="{{ url_for('sales.payment_new', advance=1) }}">From a Customer</a>
+    <a class="btn secondary" href="{{ url_for('purchases.payment_new', advance=1) }}">To a Vendor</a>
+  </div>
+</div>
+{% endblock %}

@@ -19,7 +19,7 @@
     </div>
 
     <table>
-      <thead><tr><th>Description</th><th class="num">Remaining</th><th class="num">Unit Price</th><th class="num">Qty to Bill</th></tr></thead>
+      <thead><tr><th>Description</th><th class="num">Remaining</th><th class="num">PO Unit Price</th><th class="num">Actual Unit Price</th><th class="num">Qty to Bill</th></tr></thead>
       <tbody>
         {% for line in po.lines %}
         {% if line.quantity_remaining > 0 %}
@@ -27,12 +27,17 @@
           <td>{{ line.description }}</td>
           <td class="num">{{ line.quantity_remaining }}</td>
           <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
-          <td><input type="number" step="0.001" name="qty_{{ line.id }}" value="{{ line.quantity_remaining }}" max="{{ line.quantity_remaining }}"></td>
+          <td class="num"><input type="number" step="0.01" name="price_{{ line.id }}" value="{{ '%.2f'|format(line.unit_price) }}" style="max-width:110px;"></td>
+          <td><input type="number" step="0.001" name="qty_{{ line.id }}" value="{{ line.quantity_remaining }}"></td>
         </tr>
         {% endif %}
         {% endfor %}
       </tbody>
     </table>
+    <p style="color:var(--muted);font-size:0.85rem;margin-top:0.5rem;">
+      Billing a different price or quantity than the PO is allowed — it'll be flagged as a variance
+      on the resulting bill rather than blocked, since vendors sometimes ship/bill differently than ordered.
+    </p>
 
     <div style="margin-top:1rem;">
       <button class="btn" type="submit">Create Bill</button>

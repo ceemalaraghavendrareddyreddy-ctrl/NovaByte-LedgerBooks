@@ -1,0 +1,11 @@
+{
+  "appId": "com.ledgerbooks.app",
+  "appName": "LedgerBooks",
+  "webDir": "www",
+  "server": {
+    "//": "This is the ONE line you must edit before building. Point it at your real deployed LedgerBooks URL (e.g. https://ledgerbooks.onrender.com) once it's live — the app is just a native shell around that live site, not a bundled copy, so login sessions, updates, everything works exactly like the website. Until then, this placeholder will just show an error.",
+    "url": "https://your-ledgerbooks-domain.example",
+    "cleartext": false,
+    "androidScheme": "https"
+  }
+}

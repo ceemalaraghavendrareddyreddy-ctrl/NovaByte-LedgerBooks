@@ -1,7 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ item.sku }} - {{ item.name }}</h1>
-<p style="color:var(--muted);">{{ item.item_type.replace('_',' ')|title }} &middot; Unit: {{ item.unit }}</p>
+<p style="color:var(--muted);">
+  {{ item.item_type.replace('_',' ')|title }} &middot; Unit: {{ item.unit }}
+  {% if item.is_tracked and item.tracking_type != 'none' %}&middot; Tracking: {{ item.tracking_type|capitalize }} numbers{% endif %}
+  {% if item.is_tracked %}&middot; Costing: {{ 'Weighted Average' if item.costing_method == 'weighted_average' else item.costing_method|upper }}{% endif %}
+</p>
 
 <div class="stat-row">
   {% if item.is_tracked %}
@@ -16,16 +20,63 @@
   <a class="btn secondary" href="{{ url_for('inventory.item_edit', item_id=item.id) }}">Edit</a>
   {% if item.is_tracked %}
   <a class="btn secondary" href="{{ url_for('inventory.item_adjust', item_id=item.id) }}">Adjust Stock</a>
+  <a class="btn secondary" href="{{ url_for('inventory.item_transfer', item_id=item.id) }}">Transfer Stock</a>
   {% endif %}
 </div>
 
 {% if item.is_tracked %}
 
+{% if remaining_layers %}
+<div class="card">
+  <h3 style="margin-top:0;">Remaining Purchase Lots ({{ item.costing_method|upper }} — {{ 'oldest' if item.costing_method == 'fifo' else 'newest' }} consumed first)</h3>
+  <table>
+    <thead><tr><th>Received</th><th class="num">Qty Received</th><th class="num">Qty Remaining</th><th class="num">Unit Cost</th></tr></thead>
+    <tbody>
+      {% for layer in remaining_layers %}
+      <tr>
+        <td>{{ layer.received_date }}</td>
+        <td class="num">{{ layer.quantity_received }}</td>
+        <td class="num">{{ layer.quantity_remaining }}</td>
+        <td class="num">{{ '%.4f'|format(layer.unit_cost) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+{% if quantity_by_warehouse or quantity_by_lot %}
+<div class="card">
+  {% if quantity_by_warehouse %}
+  <h3 style="margin-top:0;">Quantity by Warehouse</h3>
+  <table>
+    <thead><tr><th>Warehouse</th><th class="num">Quantity</th></tr></thead>
+    <tbody>
+      {% for code, qty in quantity_by_warehouse.items() %}
+      <tr><td>{{ code }}</td><td class="num">{{ qty }} {{ item.unit }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  {% if quantity_by_lot %}
+  <h3 {% if quantity_by_warehouse %}style="margin-top:1.25rem;"{% else %}style="margin-top:0;"{% endif %}>Quantity by {{ 'Serial' if item.tracking_type == 'serial' else 'Batch/Lot' }} #</h3>
+  <table>
+    <thead><tr><th>{{ 'Serial' if item.tracking_type == 'serial' else 'Batch/Lot' }} #</th><th class="num">Quantity</th></tr></thead>
+    <tbody>
+      {% for lot, qty in quantity_by_lot.items() %}
+      <tr><td>{{ lot }}</td><td class="num">{{ qty }} {{ item.unit }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</div>
+{% endif %}
+
 <div class="card">
   <h3>Stock Movements</h3>
   {% if item.stock_movements %}
   <table>
-    <thead><tr><th>Date</th><th>Type</th><th>Memo</th><th class="num">Qty Change</th><th class="num">Unit Cost</th><th class="num">Running Qty</th><th class="num">Running Avg Cost</th></tr></thead>
+    <thead><tr><th>Date</th><th>Type</th><th>Memo</th><th>Warehouse</th><th>Lot/Serial #</th><th class="num">Qty Change</th><th class="num">Unit Cost</th><th class="num">Running Qty</th><th class="num">Running Avg Cost</th></tr></thead>
     <tbody>
       {% for m in item.stock_movements %}
       <tr>
@@ -39,6 +90,8 @@
             (<a href="{{ url_for('purchases.bill_detail', bill_id=m.reference_id) }}">bill</a>)
           {% endif %}
         </td>
+        <td>{{ m.warehouse.code if m.warehouse else '-' }}</td>
+        <td>{{ m.lot_number or '-' }}</td>
         <td class="num">{{ m.quantity }}</td>
         <td class="num">{{ '%.4f'|format(m.unit_cost) }}</td>
         <td class="num">{{ m.running_quantity }}</td>

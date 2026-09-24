@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Edit Bank Rule' if rule else 'New Bank Rule' }}</h1>
+<div class="card" style="max-width:600px;">
+  <form method="post">
+    <div class="form-row">
+      <label>Keyword</label>
+      <input type="text" name="keyword" required value="{{ form.keyword or '' }}" placeholder="e.g. MTPA, Vodafone, Electricity">
+      <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem;">Matched case-insensitively as a substring of the statement description.</p>
+    </div>
+    <div class="form-row">
+      <label>Account</label>
+      <select name="account_id" required>
+        <option value="">-- choose account --</option>
+        {% for a in accounts %}
+        <option value="{{ a.id }}" {% if form.account_id and form.account_id|int == a.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button class="btn" type="submit">{{ 'Save Changes' if rule else 'Save Rule' }}</button>
+    <a class="btn secondary" href="{{ url_for('bank_rules.rule_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

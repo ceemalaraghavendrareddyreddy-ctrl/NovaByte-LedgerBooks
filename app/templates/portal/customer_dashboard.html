@@ -1,0 +1,60 @@
+{% extends "portal/_layout.html" %}
+{% block title %}Your Invoices{% endblock %}
+{% block content %}
+<h1>Hi {{ customer.name }}</h1>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Balance Due</div><div class="value">{{ '%.2f'|format(customer.balance_due) }}</div></div>
+</div>
+
+<div class="card">
+  <a class="btn secondary" href="{{ url_for('portal.customer_statement') }}">View Statement</a>
+</div>
+
+{% if estimates %}
+<div class="card">
+  <h3 style="margin-top:0;">Estimates</h3>
+  <table>
+    <thead><tr><th>Estimate #</th><th>Date</th><th>Status</th><th class="num">Total</th><th></th></tr></thead>
+    <tbody>
+      {% for est in estimates %}
+      <tr>
+        <td><a href="{{ url_for('portal.customer_estimate', estimate_id=est.id) }}">{{ est.estimate_no }}</a></td>
+        <td>{{ est.estimate_date }}</td>
+        <td><span class="badge {{ 'debit' if est.status in ('accepted', 'converted') else '' }}">{{ est.status }}</span></td>
+        <td class="num">{{ '%.2f'|format(est.total) }}</td>
+        <td>
+          {% if est.status in ('draft', 'sent') %}
+          <a class="btn small" href="{{ url_for('portal.customer_estimate', estimate_id=est.id) }}">Review &amp; Sign</a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3 style="margin-top:0;">Invoices</h3>
+  {% if invoices %}
+  <table>
+    <thead><tr><th>Invoice #</th><th>Date</th><th>Due</th><th>Status</th><th class="num">Total</th><th class="num">Balance Due</th></tr></thead>
+    <tbody>
+      {% for inv in invoices %}
+      <tr>
+        <td><a href="{{ url_for('portal.customer_invoice', invoice_id=inv.id) }}">{{ inv.invoice_no }}</a></td>
+        <td>{{ inv.invoice_date }}</td>
+        <td>{{ inv.due_date }}</td>
+        <td><span class="badge {{ 'debit' if inv.status == 'paid' else '' }}">{{ inv.status }}</span></td>
+        <td class="num">{{ inv.currency }} {{ '%.2f'|format(inv.total) }}</td>
+        <td class="num">{{ inv.currency }} {{ '%.2f'|format(inv.balance_due) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No invoices yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

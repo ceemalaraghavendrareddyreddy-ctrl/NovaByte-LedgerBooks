@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Webhooks</h1>
+  <a class="btn primary small" href="{{ url_for('webhooks.webhook_new') }}">+ New Webhook</a>
+</div>
+<p style="color:var(--muted);">Each delivery is a POST of <code>{"event": "...", "data": {...}}</code>, signed with the webhook's own secret in the <code>X-LedgerBooks-Signature</code> header (HMAC-SHA256, hex-encoded).</p>
+
+<div class="card">
+  {% if hooks %}
+  <table>
+    <thead><tr><th>URL</th><th>Events</th><th>Status</th><th>Last Delivery</th><th></th></tr></thead>
+    <tbody>
+      {% for hook in hooks %}
+      <tr>
+        <td style="max-width:280px; overflow-wrap:anywhere;">{{ hook.url }}</td>
+        <td>{{ hook.event_types.replace(',', ', ') }}</td>
+        <td>{% if hook.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td style="font-size:0.85rem; color:var(--muted);">
+          {% if hook.last_triggered_at %}{{ hook.last_triggered_at.strftime('%d %b %Y %H:%M') }} — {{ hook.last_status or '-' }}{% else %}never{% endif %}
+        </td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('webhooks.webhook_toggle', webhook_id=hook.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if hook.is_active else 'Activate' }}</button>
+          </form>
+          <form class="inline" method="post" action="{{ url_for('webhooks.webhook_delete', webhook_id=hook.id) }}" onsubmit="return confirm('Delete this webhook?');">
+            <button class="btn small danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No webhooks configured yet.</p>
+  {% endif %}
+</div>
+<a class="btn secondary" href="{{ url_for('settings.company') }}">Back to Settings</a>
+{% endblock %}

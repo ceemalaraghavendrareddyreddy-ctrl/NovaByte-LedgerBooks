@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ expense.description }}</h1>
+<p style="color:var(--muted);">
+  {{ expense.expense_date }}
+  {% if expense.vendor %} &middot; <a href="{{ url_for('purchases.vendor_detail', vendor_id=expense.vendor.id) }}">{{ expense.vendor.name }}</a>
+  {% elif expense.vendor_name_raw %} &middot; {{ expense.vendor_name_raw }}{% endif %}
+</p>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Amount (incl. VAT)</div><div class="value">{{ '%.2f'|format(expense.amount) }}</div></div>
+  <div class="stat"><div class="label">VAT</div><div class="value">{{ '%.2f'|format(expense.vat_amount) }}</div></div>
+</div>
+
+<div class="card">
+  <p>Category: <strong>{{ expense.category_account.code }} - {{ expense.category_account.name }}</strong></p>
+  <p>Paid from: <strong>{{ expense.payment_account.code }} - {{ expense.payment_account.name }}</strong></p>
+  {% if expense.journal_entry_id %}
+  <p><a href="{{ url_for('ledger.journal_detail', entry_id=expense.journal_entry_id) }}">View journal entry →</a></p>
+  {% endif %}
+</div>
+
+{% if expense.ocr_raw_text %}
+<div class="card">
+  <h3 style="margin-top:0;">Raw receipt text (OCR)</h3>
+  <pre style="white-space:pre-wrap; font-size:0.82rem; color:var(--muted); margin:0;">{{ expense.ocr_raw_text }}</pre>
+</div>
+{% endif %}
+
+<form class="inline" method="post" action="{{ url_for('expenses.expense_delete', expense_id=expense.id) }}" onsubmit="return confirm('Delete this expense? This reverses its ledger entry.');">
+  <button class="btn danger" type="submit">Delete Expense</button>
+</form>
+<a class="btn secondary" href="{{ url_for('expenses.expense_list') }}">Back to Expenses</a>
+
+{% with entity_type='expense', entity_id=expense.id %}{% include "attachments/_widget.html" %}{% endwith %}
+{% endblock %}

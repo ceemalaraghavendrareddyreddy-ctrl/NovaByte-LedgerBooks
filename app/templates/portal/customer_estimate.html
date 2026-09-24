@@ -1,0 +1,129 @@
+{% extends "portal/_layout.html" %}
+{% block title %}Estimate {{ estimate.estimate_no }}{% endblock %}
+{% block content %}
+<h1>Estimate {{ estimate.estimate_no }}</h1>
+<p style="color:var(--muted);">
+  Date: {{ estimate.estimate_date }}
+  {% if estimate.expiry_date %} &middot; Expires: {{ estimate.expiry_date }}{% endif %}
+  &middot; <span class="badge {{ 'debit' if estimate.status in ('accepted', 'converted') else '' }}">{{ estimate.status }}</span>
+</p>
+{% if estimate.memo %}<p>{{ estimate.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in estimate.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="3" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(estimate.subtotal) }}</td></tr>
+      <tr><td colspan="3" style="text-align:right;">VAT ({{ estimate.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(estimate.vat_amount) }}</td></tr>
+      <tr><th colspan="3" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(estimate.total) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if estimate.status == 'converted' %}
+<div class="card">
+  <p style="margin:0;">
+    <strong>Signed and accepted</strong>{% if estimate.signed_by_name %} by {{ estimate.signed_by_name }}{% endif %}
+    {% if estimate.signed_at %} on {{ estimate.signed_at.strftime('%d %b %Y %H:%M') }}{% endif %}.
+    {% if estimate.converted_invoice_id %}This estimate has been converted to an invoice.{% endif %}
+  </p>
+  {% if estimate.signature_data %}
+  <img src="{{ estimate.signature_data }}" alt="Signature" style="max-width:300px; border:1px solid var(--border,#ddd); border-radius:6px; margin-top:0.75rem; background:#fff;">
+  {% endif %}
+</div>
+{% elif estimate.status == 'declined' %}
+<div class="card"><p style="margin:0;">This estimate was declined.</p></div>
+{% else %}
+<div class="card">
+  <h3 style="margin-top:0;">Sign to Accept</h3>
+  <p style="color:var(--muted); font-size:0.9rem;">Draw your signature below and type your name to accept this estimate — it will be converted to an invoice immediately.</p>
+
+  <form method="post" action="{{ url_for('portal.customer_estimate_sign', estimate_id=estimate.id) }}" id="sign-form">
+    <canvas id="signature-pad" width="500" height="160" style="border:1px solid var(--border,#ccc); border-radius:6px; touch-action:none; max-width:100%; background:#fff;"></canvas>
+    <div style="margin-top:0.5rem;">
+      <button type="button" class="btn small secondary" id="clear-signature">Clear</button>
+    </div>
+    <div class="form-row" style="margin-top:0.75rem;">
+      <label>Your full name</label>
+      <input type="text" name="signed_by_name" required placeholder="Type your name to confirm">
+    </div>
+    <input type="hidden" name="signature_data" id="signature_data">
+    <button class="btn" type="submit" id="sign-submit" disabled>Sign &amp; Accept</button>
+  </form>
+</div>
+{% endif %}
+
+<a class="btn secondary" href="{{ url_for('portal.customer_dashboard') }}">Back to Dashboard</a>
+
+<script>
+(function() {
+  const canvas = document.getElementById('signature-pad');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#1a1a1a';
+  let drawing = false;
+  let hasDrawn = false;
+
+  function pos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const point = e.touches ? e.touches[0] : e;
+    return { x: (point.clientX - rect.left) * scaleX, y: (point.clientY - rect.top) * scaleY };
+  }
+
+  function start(e) {
+    drawing = true;
+    hasDrawn = true;
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    e.preventDefault();
+  }
+  function move(e) {
+    if (!drawing) return;
+    const p = pos(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    document.getElementById('sign-submit').disabled = false;
+    e.preventDefault();
+  }
+  function end() { drawing = false; }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start);
+  canvas.addEventListener('touchmove', move);
+  canvas.addEventListener('touchend', end);
+
+  document.getElementById('clear-signature').addEventListener('click', () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    hasDrawn = false;
+    document.getElementById('sign-submit').disabled = true;
+  });
+
+  document.getElementById('sign-form').addEventListener('submit', (e) => {
+    if (!hasDrawn) {
+      e.preventDefault();
+      alert('Please draw your signature first.');
+      return;
+    }
+    document.getElementById('signature_data').value = canvas.toDataURL('image/png');
+  });
+})();
+</script>
+{% endblock %}

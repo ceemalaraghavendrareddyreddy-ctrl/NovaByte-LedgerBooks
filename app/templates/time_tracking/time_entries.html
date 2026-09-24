@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Time Tracking</h1>
+  <a class="btn primary small" href="{{ url_for('time_tracking.time_entry_new') }}">+ Log Time</a>
+</div>
+
+<form method="get" class="form-row">
+  <label>Customer</label>
+  <select name="customer_id" onchange="this.form.submit()">
+    <option value="">-- all customers --</option>
+    {% for c in customers %}
+    <option value="{{ c.id }}" {% if selected_customer_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+    {% endfor %}
+  </select>
+  <label>Status</label>
+  <select name="status" onchange="this.form.submit()">
+    <option value="all" {% if status == 'all' %}selected{% endif %}>All</option>
+    <option value="unbilled" {% if status == 'unbilled' %}selected{% endif %}>Unbilled (billable, not yet invoiced)</option>
+    <option value="billed" {% if status == 'billed' %}selected{% endif %}>Billed</option>
+  </select>
+</form>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Total Hours</div><div class="value">{{ '%.2f'|format(total_hours) }}</div></div>
+  <div class="stat"><div class="label">Unbilled Amount</div><div class="value">{{ '%.2f'|format(total_unbilled_amount) }}</div></div>
+</div>
+
+<div class="card">
+  {% if entries %}
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th>Customer</th><th>Project</th><th class="num">Hours</th><th class="num">Rate</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for e in entries %}
+      <tr>
+        <td>{{ e.entry_date }}</td>
+        <td>{{ e.description }}</td>
+        <td>{{ e.customer.name if e.customer else '-' }}</td>
+        <td>{{ e.project.name if e.project else '-' }}</td>
+        <td class="num">{{ e.hours }}</td>
+        <td class="num">{{ '%.2f'|format(e.hourly_rate) }}</td>
+        <td class="num">{{ '%.2f'|format(e.amount) }}</td>
+        <td>
+          {% if not e.is_billable %}<span class="badge">non-billable</span>
+          {% elif e.is_invoiced %}<span class="badge debit">invoiced</span>
+          {% else %}<span class="badge" style="background:#fbe6e4;color:var(--error);">unbilled</span>{% endif %}
+        </td>
+        <td>
+          {% if not e.is_invoiced %}
+          <a class="btn small secondary" href="{{ url_for('time_tracking.time_entry_edit', entry_id=e.id) }}">Edit</a>
+          <form class="inline" method="post" action="{{ url_for('time_tracking.time_entry_delete', entry_id=e.id) }}" onsubmit="return confirm('Delete this time entry?');">
+            <button class="btn small secondary" type="submit">Delete</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No time entries yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

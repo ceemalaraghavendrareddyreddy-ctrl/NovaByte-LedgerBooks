@@ -7,7 +7,9 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.audit import log_audit
-from app.models import Attachment, Bill, CreditMemo, Invoice, JournalEntry, PurchaseOrder, VendorCredit
+from app.models import (
+    Attachment, Bill, CreditMemo, Customer, Expense, Invoice, JournalEntry, PurchaseOrder, Vendor, VendorCredit,
+)
 from app.scoping import scoped_get
 
 attachments_bp = Blueprint("attachments", __name__, url_prefix="/attachments")
@@ -20,6 +22,9 @@ ENTITY_REDIRECTS = {
     "vendor_credit": ("Vendor Credit", "purchases.vendor_credit_detail", "vendor_credit_id"),
     "purchase_order": ("Purchase Order", "purchases.po_detail", "po_id"),
     "journal_entry": ("Journal Entry", "ledger.journal_detail", "entry_id"),
+    "customer": ("Customer", "sales.customer_detail", "customer_id"),
+    "vendor": ("Vendor", "purchases.vendor_detail", "vendor_id"),
+    "expense": ("Expense", "expenses.expense_detail", "expense_id"),
 }
 
 # entity_type -> model, so upload/download/delete can confirm the parent document actually
@@ -28,6 +33,7 @@ ENTITY_REDIRECTS = {
 ENTITY_MODELS = {
     "invoice": Invoice, "bill": Bill, "credit_memo": CreditMemo,
     "vendor_credit": VendorCredit, "purchase_order": PurchaseOrder, "journal_entry": JournalEntry,
+    "customer": Customer, "vendor": Vendor, "expense": Expense,
 }
 
 

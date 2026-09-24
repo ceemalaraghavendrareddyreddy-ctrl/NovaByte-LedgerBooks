@@ -2,13 +2,15 @@ import csv
 import io
 from datetime import date, datetime, timedelta
 
-from flask import Blueprint, abort, flash, redirect, render_template, request, url_for
+from flask import Blueprint, abort, flash, jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
 from app.ai_suggest import suggest_category_account
 from app.audit import log_audit
-from app.auth import current_company_id
+from app.auth import current_company, current_company_id
+from app.bank_feeds import PROVIDERS, is_configured, sync_account
+from app.plaid_client import PlaidError, create_link_token, exchange_public_token, get_accounts
 from app.models import (
     Account, BankImportLine, BankReconciliation, BankStatementImport, Deposit, DepositLine, JournalEntry,
     JournalLine, Payment,
@@ -34,6 +36,100 @@ def account_beginning_balance(account):
             movement = -movement
         total += movement
     return total
+
+
+@banking_bp.route("/new-transaction")
+@login_required
+def new_transaction():
+    """A single 'what am I recording?' entry point into the three ways money actually
+    moves in or out day-to-day. Each choice routes straight into the existing form that
+    already does the real posting (sales.payment_new / purchases.payment_new) — this page
+    doesn't duplicate that logic, it just picks the right door. Advance Payment is the
+    same form as a normal receipt/payment, just entered with nothing applied to an
+    invoice/bill yet (both forms already support that; see their own "Unapplied" total)."""
+    return render_template("banking/new_transaction.html")
+
+
+@banking_bp.route("/bank-feeds")
+@login_required
+def bank_feeds():
+    company = current_company()
+    accounts = cash_accounts()
+    return render_template(
+        "banking/bank_feeds.html", accounts=accounts, company=company,
+        is_configured=is_configured(company),
+    )
+
+
+@banking_bp.route("/bank-feeds/<int:account_id>/link", methods=["POST"])
+@login_required
+def bank_feeds_link(account_id):
+    account = scoped_or_404(Account, account_id)
+    account.bank_feed_external_account_id = request.form.get("external_account_id", "").strip() or None
+    db.session.commit()
+    flash(f"Updated bank-feed link for {account.name}.", "success")
+    return redirect(url_for("banking.bank_feeds"))
+
+
+@banking_bp.route("/bank-feeds/<int:account_id>/sync", methods=["POST"])
+@login_required
+def bank_feeds_sync(account_id):
+    account = scoped_or_404(Account, account_id)
+    result = sync_account(account, current_company())
+    flash(result["message"], "success" if result["status"] == "ok" else "warning")
+    if result["status"] == "ok" and result.get("import_id"):
+        return redirect(url_for("banking.import_review", import_id=result["import_id"]))
+    return redirect(url_for("banking.bank_feeds"))
+
+
+@banking_bp.route("/bank-feeds/plaid/link-token", methods=["POST"])
+@login_required
+def bank_feeds_plaid_link_token():
+    """AJAX endpoint the Plaid Link widget calls before it opens — see
+    banking/bank_feeds.html's script. Never exposes the company's client_id/secret
+    to the browser; only the short-lived link_token Plaid Link actually needs."""
+    company = current_company()
+    if not company or not company.bank_feed_client_id or not company.bank_feed_api_key:
+        return jsonify({"error": "Add a Plaid Client ID and Secret in Settings → Company first."}), 400
+    try:
+        link_token = create_link_token(company, current_user.id)
+    except PlaidError as exc:
+        return jsonify({"error": str(exc)}), 502
+    return jsonify({"link_token": link_token})
+
+
+@banking_bp.route("/bank-feeds/<int:account_id>/plaid/exchange", methods=["POST"])
+@login_required
+def bank_feeds_plaid_exchange(account_id):
+    """Called once Plaid Link succeeds in the browser (public_token in hand). Exchanges
+    it for a permanent access_token, then auto-links this local account to the Item's
+    first depository account — to link a different one instead, use the manual
+    'External Account ID' field this page already has for exactly that override."""
+    account = scoped_or_404(Account, account_id)
+    company = current_company()
+    public_token = request.form.get("public_token", "")
+    if not public_token:
+        flash("Plaid Link didn't return a token — try connecting again.", "error")
+        return redirect(url_for("banking.bank_feeds"))
+
+    try:
+        access_token, _item_id = exchange_public_token(company, public_token)
+        plaid_accounts = get_accounts(company, access_token)
+    except PlaidError as exc:
+        flash(f"Plaid connection failed: {exc}", "error")
+        return redirect(url_for("banking.bank_feeds"))
+
+    if not plaid_accounts:
+        flash("Plaid returned no accounts for that connection.", "error")
+        return redirect(url_for("banking.bank_feeds"))
+
+    chosen = next((a for a in plaid_accounts if a.get("type") == "depository"), plaid_accounts[0])
+    account.bank_feed_access_token = access_token
+    account.bank_feed_external_account_id = chosen["account_id"]
+    account.bank_feed_sync_cursor = None
+    db.session.commit()
+    flash(f"Linked {account.name} to Plaid ({chosen.get('name', 'account')} ...{chosen.get('mask', '')}).", "success")
+    return redirect(url_for("banking.bank_feeds"))
 
 
 @banking_bp.route("")

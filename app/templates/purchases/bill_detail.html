@@ -10,6 +10,46 @@
 </p>
 {% if bill.memo %}<p>{{ bill.memo }}</p>{% endif %}
 {% if bill.project %}<p style="color:var(--text-muted, var(--muted));">Project: <strong>{{ bill.project.name }}</strong></p>{% endif %}
+{% if bill.purchase_order %}
+<p style="color:var(--muted);">
+  Against PO: <a href="{{ url_for('purchases.po_detail', po_id=bill.purchase_order.id) }}">{{ bill.purchase_order.po_no }}</a>
+</p>
+{% set variance_lines = bill.lines | selectattr('purchase_order_line_id') | selectattr('po_price_variance') | list %}
+{% if variance_lines %}
+<div class="card" style="border-left:4px solid var(--danger, #c0392b);">
+  <p style="margin:0 0 0.5rem 0;"><strong>PO price variance</strong> — this bill doesn't fully match {{ bill.purchase_order.po_no }}:</p>
+  <ul style="margin:0;">
+    {% for line in variance_lines %}
+    <li>{{ line.description }}: billed at {{ '%.2f'|format(line.unit_price) }}, PO quoted {{ '%.2f'|format(line.purchase_order_line.unit_price) }} ({{ '+' if line.po_price_variance > 0 else '' }}{{ '%.2f'|format(line.po_price_variance) }}/unit)</li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endif %}
+
+{% if bill.status == 'pending_approval' %}
+<div class="card" style="border-left:4px solid var(--accent, #a97a2b);">
+  <p style="margin:0;">
+    <strong>Awaiting approval</strong> — submitted by {{ bill.submitter.name if bill.submitter else 'unknown' }}.
+    This bill has not been posted to the ledger and won't affect any balances until it's approved.
+  </p>
+  {% if current_user.role == 'owner' %}
+  <div style="margin-top:0.75rem;">
+    <form class="inline" method="post" action="{{ url_for('purchases.bill_approve', bill_id=bill.id) }}">
+      <button class="btn" type="submit">Approve &amp; Post</button>
+    </form>
+    <form class="inline" method="post" action="{{ url_for('purchases.bill_reject', bill_id=bill.id) }}" onsubmit="return confirm('Reject this bill?');">
+      <button class="btn danger" type="submit">Reject</button>
+    </form>
+  </div>
+  {% endif %}
+</div>
+{% elif bill.approved_by %}
+<p style="color:var(--muted); font-size:0.9rem;">
+  {{ 'Rejected' if bill.status == 'void' and bill.approval_note else 'Approved' }} by {{ bill.approver.name if bill.approver else 'unknown' }} on {{ bill.approved_at.strftime('%d %b %Y') if bill.approved_at else '' }}
+  {% if bill.approval_note %} — {{ bill.approval_note }}{% endif %}
+</p>
+{% endif %}
 
 <div class="card">
   <table>
@@ -48,7 +88,7 @@
 {% endif %}
 <a class="btn" href="{{ url_for('purchases.bill_pdf', bill_id=bill.id) }}" target="_blank">📄 View / Print PDF</a>
 <a class="btn" style="background:#25D366;" href="{{ whatsapp_href }}" target="_blank" rel="noopener">Share via WhatsApp</a>
-{% if bill.status != 'void' and bill.amount_paid == 0 %}
+{% if bill.status not in ('void', 'pending_approval') and bill.amount_paid == 0 %}
 <form class="inline" method="post" action="{{ url_for('purchases.bill_void', bill_id=bill.id) }}" onsubmit="return confirm('Void this bill? This reverses its ledger entry.');">
   <button class="btn danger" type="submit">Void Bill</button>
 </form>

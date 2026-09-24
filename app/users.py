@@ -18,11 +18,21 @@ def _permissions_from_form():
     """None (unrestricted) if 'unrestricted' was checked or nothing was checked at
     all — an accountant with every box left blank isn't locked out of everything,
     they just weren't given a restriction. Only an explicit narrower selection
-    (at least one module checked, 'unrestricted' left off) actually restricts."""
+    (at least one module checked, 'unrestricted' left off) actually restricts.
+
+    Each checked module is saved as "sales" (full access) or "sales:view" (read-only —
+    the module_view_{key} checkbox), matching the encoding User.module_permissions() parses."""
     if request.form.get("unrestricted"):
         return None
-    checked = [key for key in MODULE_KEYS if request.form.get(f"module_{key}")]
-    return ",".join(checked) if checked else None
+    tokens = []
+    for key in MODULE_KEYS:
+        if not request.form.get(f"module_{key}"):
+            continue
+        if request.form.get(f"module_view_{key}"):
+            tokens.append(f"{key}:view")
+        else:
+            tokens.append(key)
+    return ",".join(tokens) if tokens else None
 
 
 def _company_users():

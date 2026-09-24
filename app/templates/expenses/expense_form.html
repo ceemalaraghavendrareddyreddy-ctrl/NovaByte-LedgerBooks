@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Expense</h1>
+
+<div class="card" style="max-width:640px;">
+  <div class="form-row">
+    <label>Upload Receipt</label>
+    <input type="file" id="receipt-input" name="receipt" form="expense-form" accept="image/*,.pdf">
+  </div>
+  <p id="ocr-status" style="color:var(--muted); font-size:0.85rem; margin:-0.4rem 0 0.8rem;">
+    Optional — upload a photo of the receipt and the date/amount/vendor below will be guessed automatically
+    (best-effort OCR; always double-check before saving).
+  </p>
+
+  <form method="post" id="expense-form" enctype="multipart/form-data">
+    <div class="form-row"><label>Date</label><input type="date" name="expense_date" id="expense-date" required value="{{ form.expense_date or today }}"></div>
+    <div class="form-row"><label>Description</label><input type="text" name="description" id="expense-description" required value="{{ form.description or '' }}" placeholder="e.g. Fuel, client lunch, office supplies"></div>
+    <div class="form-row"><label>Vendor (optional)</label>
+      <select name="vendor_id">
+        <option value="">-- none / not in system --</option>
+        {% for v in vendors %}
+        <option value="{{ v.id }}" {% if form.vendor_id|string == v.id|string %}selected{% endif %}>{{ v.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row"><label>Vendor Name (from receipt)</label><input type="text" name="vendor_name_raw" id="expense-vendor-raw" value="{{ form.vendor_name_raw or '' }}" placeholder="kept even if no matching vendor above"></div>
+    <div class="form-row"><label>Amount (incl. VAT)</label><input type="number" step="0.01" name="amount" id="expense-amount" required value="{{ form.amount or '' }}"></div>
+    <div class="form-row"><label>VAT Rate %</label><input type="number" step="0.01" name="vat_rate" value="{{ form.vat_rate or 15.00 }}" style="max-width:100px;"></div>
+    <div class="form-row"><label>Category</label>
+      <select name="category_account_id" required>
+        <option value="">-- select account --</option>
+        {% for a in category_accounts %}
+        <option value="{{ a.id }}" {% if form.category_account_id|string == a.id|string %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row"><label>Paid From</label>
+      <select name="payment_account_id" required>
+        <option value="">-- select account --</option>
+        {% for a in payment_accounts %}
+        <option value="{{ a.id }}" {% if form.payment_account_id|string == a.id|string %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <input type="hidden" name="ocr_raw_text" id="ocr-raw-text" value="{{ form.ocr_raw_text or '' }}">
+
+    <button class="btn" type="submit">Save Expense</button>
+    <a class="btn secondary" href="{{ url_for('expenses.expense_list') }}">Cancel</a>
+  </form>
+</div>
+
+<script>
+document.getElementById('receipt-input').addEventListener('change', async function () {
+  const file = this.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('ocr-status');
+  statusEl.textContent = 'Reading receipt…';
+
+  const formData = new FormData();
+  formData.append('receipt', file);
+  try {
+    const r = await fetch('{{ url_for("expenses.ocr_extract") }}', { method: 'POST', body: formData });
+    const data = await r.json();
+    if (!r.ok) {
+      statusEl.textContent = data.error || 'Could not read this receipt — fill in the fields manually.';
+      return;
+    }
+    if (data.date) document.getElementById('expense-date').value = data.date;
+    if (data.amount) document.getElementById('expense-amount').value = data.amount;
+    if (data.vendor_name) {
+      document.getElementById('expense-vendor-raw').value = data.vendor_name;
+      if (!document.getElementById('expense-description').value) {
+        document.getElementById('expense-description').value = data.vendor_name;
+      }
+    }
+    if (data.raw_text) document.getElementById('ocr-raw-text').value = data.raw_text;
+    statusEl.textContent = 'Guessed from the receipt — check the fields below before saving.';
+  } catch (e) {
+    statusEl.textContent = 'Could not reach the OCR service — fill in the fields manually.';
+  }
+});
+</script>
+{% endblock %}

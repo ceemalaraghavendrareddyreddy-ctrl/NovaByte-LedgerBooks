@@ -112,6 +112,128 @@
     <div class="form-row"><label>API key</label><input type="text" name="mra_api_key" value="{{ settings.mra_api_key or '' }}"></div>
   </div>
 
+  {# ── Receipt OCR (see app/ocr.py) ──────────────────────────── #}
+  <div class="card">
+    <h3 class="mt-0">Receipt OCR</h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      Used by <a href="{{ url_for('expenses.expense_new') }}">Expenses → New Expense</a>'s "Upload Receipt" to guess the
+      date/amount/vendor. Works out of the box with OCR.space's shared public demo key, but that's rate-limited —
+      get a free private key at <a href="https://ocr.space/ocrapi/freekey" target="_blank" rel="noopener">ocr.space/ocrapi/freekey</a> (no card needed) for real daily use.
+    </p>
+    <div class="form-row">
+      <label>OCR.space API key</label>
+      <input type="password" name="ocr_api_key" value="" autocomplete="new-password"
+             placeholder="{{ '••••••••••  (leave blank to keep)' if settings.ocr_api_key else 'Leave blank to use the shared demo key' }}">
+    </div>
+  </div>
+
+  {# ── Bank feeds — Plaid is real (Sandbox), Salt Edge/TrueLayer are scaffolding ── #}
+  <div class="card" id="bank-feeds">
+    <h3 class="mt-0">Bank Feeds <span class="badge">Beta</span></h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      For pulling bank transactions automatically instead of importing a CSV — see
+      <a href="{{ url_for('banking.bank_feeds') }}">Banking → Bank Feeds</a> for account linking.
+      <strong>Plaid</strong> is genuinely wired up against their free Sandbox (no company/KYC needed —
+      <a href="https://dashboard.plaid.com/signup" target="_blank" rel="noopener">dashboard.plaid.com/signup</a>,
+      then Team Settings → Keys for your Client ID and Sandbox secret). Salt Edge and TrueLayer are still
+      scaffolding — nobody's confirmed either covers a Mauritius bank yet.
+    </p>
+    <div class="form-row">
+      <label>Provider</label>
+      <select name="bank_feed_provider">
+        <option value="">-- none configured --</option>
+        {% for p in bank_feed_providers %}
+        <option value="{{ p }}" {% if settings.bank_feed_provider == p %}selected{% endif %}>{{ p }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Client ID</label>
+      <input type="text" name="bank_feed_client_id" value="{{ settings.bank_feed_client_id or '' }}" autocomplete="off" placeholder="Plaid only">
+    </div>
+    <div class="form-row">
+      <label>API key / Secret</label>
+      <input type="password" name="bank_feed_api_key" value="" autocomplete="new-password"
+             placeholder="{{ '••••••••••  (leave blank to keep)' if settings.bank_feed_api_key else 'Enter API key / secret' }}">
+    </div>
+  </div>
+
+  {# ── Automation (opt-in — nothing here sends anything until switched on) ── #}
+  <div class="card" id="automation">
+    <h3 class="mt-0">Automation</h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      Both of these need SMTP configured above. Off by default — nothing gets sent automatically until you turn it on.
+    </p>
+    <div class="form-row">
+      <label>Auto-reminders</label>
+      <label style="flex:1; min-width:auto; font-weight:normal;">
+        <input type="checkbox" name="auto_reminders_enabled" {{ 'checked' if settings.auto_reminders_enabled else '' }}>
+        Automatically email overdue-invoice reminders (once per invoice, at most every 7 days)
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Scheduled report</label>
+      <label style="flex:1; min-width:auto; font-weight:normal;">
+        <input type="checkbox" name="scheduled_report_enabled" {{ 'checked' if settings.scheduled_report_enabled else '' }}>
+        Email a digest (net income, cash position, AR/AP, low stock, budget overruns)
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Frequency</label>
+      <select name="scheduled_report_frequency" style="max-width:160px;">
+        {% for f in ['daily', 'weekly', 'monthly'] %}
+        <option value="{{ f }}" {% if (settings.scheduled_report_frequency or 'weekly') == f %}selected{% endif %}>{{ f|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Recipient</label>
+      <input type="email" name="scheduled_report_recipient" value="{{ settings.scheduled_report_recipient or '' }}" placeholder="{{ settings.smtp_from or 'defaults to the SMTP from-address' }}">
+    </div>
+  </div>
+
+  {# ── Bill approval workflow ───────────────────────────────── #}
+  <div class="card" id="approvals">
+    <h3 class="mt-0">Bill Approvals</h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      Only worth turning on once more than one person enters bills. When enabled, a new bill
+      at or above the threshold is held for an owner to approve before it posts to the ledger —
+      see <a href="{{ url_for('purchases.approval_list') }}">Purchases → Bill approvals</a>.
+    </p>
+    <div class="form-row">
+      <label>Require approval</label>
+      <label style="flex:1; min-width:auto; font-weight:normal;">
+        <input type="checkbox" name="bill_approval_enabled" {{ 'checked' if settings.bill_approval_enabled else '' }}>
+        New bills must be approved by an owner before posting
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Threshold</label>
+      <input type="number" step="0.01" name="bill_approval_threshold" value="{{ settings.bill_approval_threshold if settings.bill_approval_threshold is not none else '' }}" placeholder="Leave blank to require approval on every bill">
+    </div>
+  </div>
+
+  {# ── Invoice approval workflow ────────────────────────────── #}
+  <div class="card" id="invoice-approvals">
+    <h3 class="mt-0">Invoice Approvals</h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      Mirrors Bill Approvals above, for outgoing invoices. When enabled, a new invoice
+      at or above the threshold is held for an owner to approve before it posts to the
+      ledger — see <a href="{{ url_for('sales.invoice_approval_list') }}">Sales → Invoice approvals</a>.
+    </p>
+    <div class="form-row">
+      <label>Require approval</label>
+      <label style="flex:1; min-width:auto; font-weight:normal;">
+        <input type="checkbox" name="invoice_approval_enabled" {{ 'checked' if settings.invoice_approval_enabled else '' }}>
+        New invoices must be approved by an owner before posting
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Threshold</label>
+      <input type="number" step="0.01" name="invoice_approval_threshold" value="{{ settings.invoice_approval_threshold if settings.invoice_approval_threshold is not none else '' }}" placeholder="Leave blank to require approval on every invoice">
+    </div>
+  </div>
+
   <div class="btn-group" style="margin-bottom:1.5rem;">
     <button class="btn primary" type="submit">Save settings</button>
     <a class="btn secondary" href="{{ url_for('dashboard.index') }}">Cancel</a>
@@ -165,6 +287,28 @@
   <form method="post" action="{{ url_for('settings.regenerate_payroll_api_key') }}" onsubmit="return confirm('Regenerate the payroll API key? The old key stops working immediately — update it on the payroll system side too.');">
     <button class="btn secondary" type="submit">{{ 'Regenerate' if settings.payroll_api_key else 'Generate' }} API key</button>
   </form>
+</div>
+
+{# ── Public read API + outgoing webhooks (see app/api_v1.py, app/webhooks.py) ── #}
+<div class="card">
+  <h3 class="mt-0">API &amp; Webhooks</h3>
+  <p class="text-muted" style="font-size:0.88rem;">
+    A read-only API for pulling customers, vendors, items, invoices and bills out of LedgerBooks
+    (<code>X-Api-Key</code> header), plus outgoing webhooks that notify a URL of your choosing when
+    an invoice or bill is created, or a payment is received.
+  </p>
+  {% if settings.api_key %}
+  <div class="form-row">
+    <label>Current API key</label>
+    <input type="text" readonly value="{{ settings.api_key }}" style="font-family:monospace;" onclick="this.select();">
+  </div>
+  {% else %}
+  <p class="text-muted"><em>No key generated yet — GET /api/v1/* requests will be rejected until one exists.</em></p>
+  {% endif %}
+  <form method="post" action="{{ url_for('settings.regenerate_api_key') }}" onsubmit="return confirm('Regenerate the API key? The old key stops working immediately.');">
+    <button class="btn secondary" type="submit">{{ 'Regenerate' if settings.api_key else 'Generate' }} API key</button>
+  </form>
+  <a class="btn secondary" style="margin-top:0.5rem;" href="{{ url_for('webhooks.webhook_list') }}">Manage Webhooks</a>
 </div>
 
 <style>

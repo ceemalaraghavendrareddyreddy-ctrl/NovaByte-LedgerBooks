@@ -28,10 +28,16 @@
       </label>
       <div id="module-grid" style="display:{{ 'none' if allowed is none else 'grid' }}; grid-template-columns:1fr 1fr; gap:0.5rem; width:100%; margin-top:0.4rem;">
         {% for key, name, blurb in modules %}
-        <label style="font-weight:normal; font-size:0.85rem; display:flex; align-items:flex-start; gap:0.4rem;" title="{{ blurb }}">
-          <input type="checkbox" name="module_{{ key }}" {{ 'checked' if allowed and key in allowed else '' }} style="width:auto; margin-top:0.2rem;">
-          {{ name }}
-        </label>
+        <div>
+          <label style="font-weight:normal; font-size:0.85rem; display:flex; align-items:flex-start; gap:0.4rem;" title="{{ blurb }}">
+            <input type="checkbox" name="module_{{ key }}" {{ 'checked' if allowed and key in allowed else '' }} style="width:auto; margin-top:0.2rem;">
+            {{ name }}
+          </label>
+          <label style="font-weight:normal; font-size:0.78rem; color:var(--muted); display:flex; align-items:center; gap:0.35rem; margin-left:1.4rem;">
+            <input type="checkbox" name="module_view_{{ key }}" {{ 'checked' if user.module_view_only(key) else '' }} style="width:auto;">
+            View only (no create/edit/delete)
+          </label>
+        </div>
         {% endfor %}
       </div>
     </div>

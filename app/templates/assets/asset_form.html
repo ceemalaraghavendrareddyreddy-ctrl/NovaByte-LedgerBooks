@@ -1,12 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>New Fixed Asset</h1>
+<h1>{{ 'Edit ' + asset.name if editing else 'New Fixed Asset' }}</h1>
 
+{% if not editing %}
 <div class="callout" style="background:var(--accent-soft,#eef4f1); border-left:3px solid var(--accent,#2f6b4f); padding:.75rem 1rem; border-radius:0 6px 6px 0; margin-bottom:1rem; font-size:.9rem;">
   This only sets up depreciation tracking. If you haven't already recorded the purchase itself
   (via a Bill or a manual Journal Entry coded to the asset account below), do that separately —
   registering an asset here does not post an acquisition entry, so it never double-counts the cost.
 </div>
+{% else %}
+<div class="callout" style="background:var(--accent-soft,#eef4f1); border-left:3px solid var(--accent,#2f6b4f); padding:.75rem 1rem; border-radius:0 6px 6px 0; margin-bottom:1rem; font-size:.9rem;">
+  Changes here apply going forward only — periods already posted (accumulated depreciation,
+  periods depreciated, past journal entries) are never rewritten.
+</div>
+{% endif %}
 
 <div class="card">
   <form method="post">
@@ -19,7 +26,7 @@
       <input type="text" name="description" value="{{ form.description or '' }}">
     </div>
     <div class="form-row">
-      <label>Asset Account</label>
+      <label>Category / Asset Account</label>
       <select name="asset_account_id" required>
         <option value="">-- select account --</option>
         {% for a in asset_accounts %}
@@ -44,10 +51,79 @@
       <input type="number" name="useful_life_months" required value="{{ form.useful_life_months or 36 }}">
     </div>
 
+    <div class="section-title">Depreciation schedule</div>
+    <div class="form-row">
+      <label>Method</label>
+      {% set method_labels = {'straight_line': 'Straight Line', 'reducing_balance': 'Reducing Balance (custom %)', 'declining_150': '150% Declining Balance', 'declining_200': '200% Declining Balance'} %}
+      <select name="depreciation_method" id="method-select">
+        {% for m in methods %}
+        <option value="{{ m }}" {% if (form.depreciation_method or 'straight_line') == m %}selected{% endif %}>{{ method_labels[m] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row" id="rate-row" style="display:none;">
+      <label>Depreciation Rate % <span class="text-muted" style="font-weight:normal;">(annual, applied to net book value)</span></label>
+      <input type="number" step="0.001" min="0" max="100" name="depreciation_rate" value="{{ form.depreciation_rate or '' }}" style="max-width:140px;">
+    </div>
+    <p class="text-muted" id="declining-note" style="display:none; font-size:0.82rem; margin-top:-0.6rem;">
+      Rate is derived automatically from useful life (150%/200% of the straight-line rate) and applied to net
+      book value each period — switches over to straight-line for the remaining periods once that would
+      depreciate faster, so the asset still fully depreciates by the end of its useful life.
+    </p>
+    <div class="form-row">
+      <label>Frequency</label>
+      <select name="depreciation_frequency">
+        {% for f in frequencies %}
+        <option value="{{ f }}" {% if (form.depreciation_frequency or 'monthly') == f %}selected{% endif %}>{{ f|capitalize }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Depreciation Start Date</label>
+      <input type="date" name="depreciation_start_date" value="{{ form.depreciation_start_date or '' }}" placeholder="defaults to the period after purchase">
+    </div>
+    <div class="form-row">
+      <label>Depreciation End Date <span class="text-muted" style="font-weight:normal;">(optional)</span></label>
+      <input type="date" name="depreciation_end_date" value="{{ form.depreciation_end_date or '' }}">
+    </div>
+
+    <div class="section-title">Posting accounts</div>
+    <div class="form-row">
+      <label>Depreciation Expense Account</label>
+      <select name="depreciation_expense_account_id">
+        <option value="">-- default (6400 Depreciation Expense) --</option>
+        {% for a in expense_accounts %}
+        <option value="{{ a.id }}" {% if form.depreciation_expense_account_id|string == a.id|string %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Accumulated Depreciation Account</label>
+      <select name="accumulated_depreciation_account_id">
+        <option value="">-- default (1590 Accumulated Depreciation) --</option>
+        {% for a in accum_accounts %}
+        <option value="{{ a.id }}" {% if form.accumulated_depreciation_account_id|string == a.id|string %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <p style="color:var(--text-muted); font-size:0.8rem; margin-top:-0.6rem;">
+      Leave both on default unless this asset's category needs its own accounts (e.g. separate
+      Depreciation Expense / Accumulated Depreciation accounts per category — Vehicles, IT
+      Equipment, Buildings...). Add those accounts under Chart of Accounts first if they don't exist yet.
+    </p>
+
     <div style="margin-top:1rem;">
-      <button class="btn" type="submit">Save Asset</button>
-      <a class="btn secondary" href="{{ url_for('assets.asset_list') }}">Cancel</a>
+      <button class="btn" type="submit">{{ 'Save Changes' if editing else 'Save Asset' }}</button>
+      <a class="btn secondary" href="{{ url_for('assets.asset_detail', asset_id=asset.id) if editing else url_for('assets.asset_list') }}">Cancel</a>
     </div>
   </form>
 </div>
+
+<script>
+document.getElementById('method-select').addEventListener('change', function () {
+  document.getElementById('rate-row').style.display = this.value === 'reducing_balance' ? '' : 'none';
+  document.getElementById('declining-note').style.display = (this.value === 'declining_150' || this.value === 'declining_200') ? '' : 'none';
+});
+document.getElementById('method-select').dispatchEvent(new Event('change'));
+</script>
 {% endblock %}

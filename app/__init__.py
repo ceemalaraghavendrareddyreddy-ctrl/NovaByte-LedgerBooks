@@ -80,6 +80,14 @@ def create_app():
     from app.projects import projects_bp
     from app.ai_qa import ai_qa_bp
     from app.ai_anomalies import ai_anomalies_bp
+    from app.portal import portal_bp
+    from app.expenses import expenses_bp
+    from app.time_tracking import time_tracking_bp
+    from app.fx_revaluation import revaluation_bp
+    from app.bank_rules import bank_rules_bp
+    from app.api_v1 import api_v1_bp
+    from app.webhooks import webhooks_bp
+    from app.consolidation import consolidation_bp
 
     from app.permissions import register_module_guards
 
@@ -94,8 +102,12 @@ def create_app():
         reports_bp: "reports",
         mra_sgs_bp: "reports",
         projects_bp: "reports",
+        expenses_bp: "purchases",
+        time_tracking_bp: "sales",
         ai_qa_bp: "reports",
         ai_anomalies_bp: "reports",
+        revaluation_bp: "ledger",
+        bank_rules_bp: "banking",
     })
 
     app.register_blueprint(auth_bp)
@@ -125,6 +137,14 @@ def create_app():
     app.register_blueprint(projects_bp)
     app.register_blueprint(ai_qa_bp)
     app.register_blueprint(ai_anomalies_bp)
+    app.register_blueprint(portal_bp)
+    app.register_blueprint(expenses_bp)
+    app.register_blueprint(time_tracking_bp)
+    app.register_blueprint(revaluation_bp)
+    app.register_blueprint(bank_rules_bp)
+    app.register_blueprint(api_v1_bp)
+    app.register_blueprint(webhooks_bp)
+    app.register_blueprint(consolidation_bp)
 
     from app import period_lock  # noqa: F401 — registers the JournalEntry lock events on import (avoid `import app.x`, which rebinds the local `app` Flask instance to the package)
     from app.period_lock import PeriodLockedError
@@ -166,7 +186,7 @@ def create_app():
         from flask_login import current_user
 
         from app.auth import current_company, current_company_id
-        from app.models import Attachment, Invoice
+        from app.models import Attachment, Invoice, Item
 
         def get_attachments(entity_type, entity_id):
             return (
@@ -188,11 +208,20 @@ def create_app():
                 ).count()
             )
 
+        def low_stock_count():
+            # Backs the bell icon's low-stock badge — Item.is_low_stock already does
+            # the tracked/quantity-vs-reorder-level check, this just counts matches.
+            if not current_user.is_authenticated:
+                return 0
+            items = Item.query.filter_by(company_id=current_company_id(), is_active=True).all()
+            return sum(1 for i in items if i.is_low_stock)
+
         return {
             "get_attachments": get_attachments,
             "current_company": current_company,
             "current_company_id": current_company_id,
             "overdue_invoice_count": overdue_invoice_count,
+            "low_stock_count": low_stock_count,
         }
 
     with app.app_context():

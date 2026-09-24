@@ -1,7 +1,13 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ customer.name }} {% if not customer.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
-<p style="color:var(--muted);">{{ customer.email or '' }} {{ customer.phone or '' }}</p>
+<h1>{{ customer.name }} <span class="badge">{{ 'Individual' if customer.customer_type == 'individual' else 'Company' }}</span> {% if not customer.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
+<p style="color:var(--muted);">
+  {{ customer.email or '' }}
+  {{ customer.phone or '' }}{% if customer.phone2 %} / {{ customer.phone2 }}{% endif %}
+  {% if customer.customer_type != 'individual' and customer.vat_number %} · VAT {{ customer.vat_number }}{% endif %}
+  {% if customer.customer_type != 'individual' and customer.brn %} · BRN {{ customer.brn }}{% endif %}
+  · Billed in {{ customer.billing_currency }}
+</p>
 
 <div class="stat-row">
   <div class="stat"><div class="label">Balance Due</div><div class="value">{{ '%.2f'|format(customer.balance_due) }}</div></div>
@@ -11,6 +17,7 @@
   <a class="btn" href="{{ url_for('sales.invoice_new', customer_id=customer.id) }}">+ New Invoice</a>
   <a class="btn secondary" href="{{ url_for('sales.payment_new', customer_id=customer.id) }}">+ Record Payment</a>
   <a class="btn secondary" href="{{ url_for('sales.customer_edit', customer_id=customer.id) }}">Edit</a>
+  <a class="btn secondary" href="{{ url_for('sales.customer_statement', customer_id=customer.id) }}">View Statement</a>
   <form class="inline" method="post" action="{{ url_for('sales.customer_toggle', customer_id=customer.id) }}">
     <button class="btn small secondary" type="submit">{{ 'Deactivate' if customer.is_active else 'Activate' }}</button>
   </form>
@@ -59,5 +66,31 @@
   <p>No payments yet.</p>
   {% endif %}
 </div>
+{% with entity_type='customer', entity_id=customer.id %}{% include "attachments/_widget.html" %}{% endwith %}
+
+<div class="card">
+  <h3 style="margin-top:0;">Portal Access</h3>
+  <p style="color:var(--muted); font-size:0.88rem;">
+    Lets {{ customer.name }} sign in at <a href="{{ url_for('portal.customer_login') }}" target="_blank">{{ url_for('portal.customer_login', _external=True) }}</a>
+    to view their own invoices and balance — read-only, no access to anything else in LedgerBooks.
+    {% if not customer.email %}Requires an email address on file first.{% endif %}
+  </p>
+  <form method="post" action="{{ url_for('sales.customer_portal_access', customer_id=customer.id) }}">
+    <div class="form-row">
+      <label>Enabled</label>
+      <label style="flex:1; min-width:auto; font-weight:normal;">
+        <input type="checkbox" name="portal_enabled" {{ 'checked' if customer.portal_enabled else '' }} {{ 'disabled' if not customer.email else '' }}>
+        Allow portal sign-in
+      </label>
+    </div>
+    <div class="form-row">
+      <label>Set Password</label>
+      <input type="password" name="portal_password" autocomplete="new-password"
+             placeholder="{{ 'Leave blank to keep current password' if customer.portal_password_hash else 'Set a password to enable sign-in' }}">
+    </div>
+    <button class="btn small secondary" type="submit">Save Portal Access</button>
+  </form>
+</div>
+
 <a class="btn secondary" href="{{ url_for('sales.customer_list') }}">Back to Customers</a>
 {% endblock %}

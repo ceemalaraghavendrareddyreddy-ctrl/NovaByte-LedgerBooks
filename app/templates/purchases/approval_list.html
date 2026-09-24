@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Bill Approvals</h1>
+<p style="color:var(--muted);">Bills submitted while approval is required, awaiting an owner's decision. None of these have posted to the ledger yet.</p>
+
+<div class="card">
+  {% if bills %}
+  <table>
+    <thead><tr><th>Bill #</th><th>Vendor</th><th>Date</th><th>Submitted By</th><th class="num">Total</th><th></th></tr></thead>
+    <tbody>
+      {% for bill in bills %}
+      <tr>
+        <td><a href="{{ url_for('purchases.bill_detail', bill_id=bill.id) }}">{{ bill.bill_no }}</a></td>
+        <td>{{ bill.vendor.name }}</td>
+        <td>{{ bill.bill_date }}</td>
+        <td>{{ bill.submitter.name if bill.submitter else '-' }}</td>
+        <td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.total) }}</td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('purchases.bill_approve', bill_id=bill.id) }}">
+            <button class="btn small" type="submit">Approve</button>
+          </form>
+          <a class="btn small secondary" href="{{ url_for('purchases.bill_detail', bill_id=bill.id) }}">Review</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>Nothing waiting on approval.</p>
+  {% endif %}
+</div>
+{% endblock %}

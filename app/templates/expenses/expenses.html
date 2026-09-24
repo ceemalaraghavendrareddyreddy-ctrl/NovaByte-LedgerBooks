@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Expenses</h1>
+  <a class="btn primary small" href="{{ url_for('expenses.expense_new') }}">+ New Expense</a>
+</div>
+
+<div class="card">
+  {% if expenses %}
+  <table>
+    <thead><tr><th>Date</th><th>Description</th><th>Vendor</th><th>Category</th><th>Paid From</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for e in expenses %}
+      <tr>
+        <td><a href="{{ url_for('expenses.expense_detail', expense_id=e.id) }}">{{ e.expense_date }}</a></td>
+        <td>{{ e.description }}</td>
+        <td>{{ e.vendor.name if e.vendor else (e.vendor_name_raw or '-') }}</td>
+        <td>{{ e.category_account.code }} - {{ e.category_account.name }}</td>
+        <td>{{ e.payment_account.code }} - {{ e.payment_account.name }}</td>
+        <td class="num">{{ '%.2f'|format(e.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No expenses recorded yet — use + New Expense for an already-paid spend backed by a receipt (fuel, meals, supplies).</p>
+  {% endif %}
+</div>
+{% endblock %}

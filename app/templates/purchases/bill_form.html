@@ -62,7 +62,7 @@
 
     <table class="journal-lines-table">
       <thead>
-        <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Expense/Asset Account</th><th>Taxable</th><th>VAT %</th><th></th></tr>
+        <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Expense/Asset Account</th><th>Taxable</th><th>VAT %</th><th>Warehouse / Lot #</th><th></th></tr>
       </thead>
       <tbody id="lines-body">
         <tr>
@@ -96,6 +96,17 @@
             </select>
             <input type="number" step="0.01" class="line-vat-custom" style="width:100%; display:none; margin-top:2px;" placeholder="%">
             <input type="hidden" name="line_vat_rate" class="line-vat-hidden" value="">
+          </td>
+          <td style="min-width:130px;">
+            {% if warehouses %}
+            <select name="line_warehouse_id" style="width:100%;">
+              <option value="">— warehouse —</option>
+              {% for w in warehouses %}
+              <option value="{{ w.id }}">{{ w.code }}</option>
+              {% endfor %}
+            </select>
+            {% endif %}
+            <input type="text" name="line_lot_number" placeholder="Lot/Serial #" style="width:100%; margin-top:2px;">
           </td>
           <td><button type="button" class="btn small secondary remove-line">✕</button></td>
         </tr>
@@ -164,6 +175,8 @@ function clearRowInputs(row) {
   row.querySelector('input[type=checkbox]').checked = true;
   row.querySelector('.item-select').selectedIndex = 0;
   row.querySelector('.item-id-input').value = '';
+  const warehouseSelect = row.querySelector('select[name=line_warehouse_id]');
+  if (warehouseSelect) warehouseSelect.selectedIndex = 0;
   setLineVat(row, null);
 }
 

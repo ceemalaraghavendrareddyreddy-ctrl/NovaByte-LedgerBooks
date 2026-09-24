@@ -40,30 +40,32 @@
         <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Income Account</th><th>Taxable</th><th>Return to Stock</th><th></th></tr>
       </thead>
       <tbody id="lines-body">
+        {% for line in (form.lines or [{}]) %}
         <tr>
           <td>
             <select class="item-select">
               <option value="">-- manual line --</option>
               {% for it in items %}
-              <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}</option>
+              <option value="{{ it.id }}" {% if line.item_id and it.id == line.item_id %}selected{% endif %}>{{ it.sku }} - {{ it.name }}</option>
               {% endfor %}
             </select>
-            <input type="hidden" name="item_id" class="item-id-input" value="">
+            <input type="hidden" name="item_id" class="item-id-input" value="{{ line.item_id or '' }}">
           </td>
-          <td><input type="text" name="description"></td>
-          <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
-          <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
+          <td><input type="text" name="description" value="{{ line.description or '' }}"></td>
+          <td><input type="number" step="0.01" name="quantity" class="qty-input" value="{{ line.quantity or 1 }}"></td>
+          <td><input type="number" step="0.01" name="unit_price" class="price-input" value="{{ line.unit_price if line.unit_price is not none else '' }}"></td>
           <td>
             <select name="income_account_id">
               {% for a in income_accounts %}
-              <option value="{{ a.id }}" {% if default_income and a.id == default_income.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+              <option value="{{ a.id }}" {% if (line.income_account_id and a.id == line.income_account_id) or (not line.income_account_id and default_income and a.id == default_income.id) %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
               {% endfor %}
             </select>
           </td>
-          <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+          <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" {% if line.taxable is not defined or line.taxable %}checked{% endif %}></td>
           <td style="text-align:center;"><input type="checkbox" name="return_to_stock" value="0" checked class="return-checkbox"></td>
           <td><button type="button" class="btn small secondary remove-line">✕</button></td>
         </tr>
+        {% endfor %}
       </tbody>
     </table>
     <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
@@ -84,10 +86,11 @@
 
 <script>
 const invoicesByCustomer = {{ invoices_by_customer | tojson }};
+const initialRelatedInvoiceId = {{ (form.related_invoice_id or '')|tojson }};
 const customerSelect = document.getElementById('customer-select');
 const relatedInvoiceSelect = document.getElementById('related-invoice-select');
 
-function refreshRelatedInvoices() {
+function refreshRelatedInvoices(preselectId) {
   const custId = customerSelect.value;
   const invoices = (invoicesByCustomer[custId] || []).filter(inv => inv.mra_invoice_number);
   relatedInvoiceSelect.innerHTML = '<option value="">-- none / not tied to one sale --</option>' +
@@ -95,9 +98,12 @@ function refreshRelatedInvoices() {
   if (invoices.length === 0 && custId) {
     relatedInvoiceSelect.innerHTML += '<option value="" disabled>(no MRA-fiscalised invoice for this customer yet)</option>';
   }
+  if (preselectId && relatedInvoiceSelect.querySelector(`option[value="${preselectId}"]`)) {
+    relatedInvoiceSelect.value = String(preselectId);
+  }
 }
-customerSelect.addEventListener('change', refreshRelatedInvoices);
-refreshRelatedInvoices();
+customerSelect.addEventListener('change', () => refreshRelatedInvoices());
+refreshRelatedInvoices(initialRelatedInvoiceId);
 
 const linesBody = document.getElementById('lines-body');
 const rowTemplate = linesBody.querySelector('tr').cloneNode(true);

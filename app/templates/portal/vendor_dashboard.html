@@ -1,0 +1,36 @@
+{% extends "portal/_layout.html" %}
+{% block title %}Your Bills{% endblock %}
+{% block content %}
+<h1>Hi {{ vendor.name }}</h1>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Balance Owed</div><div class="value">{{ '%.2f'|format(vendor.balance_due) }}</div></div>
+</div>
+
+<div class="card">
+  <a class="btn secondary" href="{{ url_for('portal.vendor_statement') }}">View Statement</a>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Bills</h3>
+  {% if bills %}
+  <table>
+    <thead><tr><th>Bill #</th><th>Date</th><th>Due</th><th>Status</th><th class="num">Total</th><th class="num">Balance Due</th></tr></thead>
+    <tbody>
+      {% for b in bills %}
+      <tr>
+        <td><a href="{{ url_for('portal.vendor_bill', bill_id=b.id) }}">{{ b.bill_no }}</a></td>
+        <td>{{ b.bill_date }}</td>
+        <td>{{ b.due_date }}</td>
+        <td><span class="badge {{ 'debit' if b.status == 'paid' else '' }}">{{ b.status }}</span></td>
+        <td class="num">{{ b.currency }} {{ '%.2f'|format(b.total) }}</td>
+        <td class="num">{{ b.currency }} {{ '%.2f'|format(b.balance_due) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No bills yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

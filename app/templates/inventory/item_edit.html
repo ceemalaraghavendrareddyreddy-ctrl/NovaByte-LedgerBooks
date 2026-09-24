@@ -18,6 +18,30 @@
     </div>
     {% if item.is_tracked %}
     <div class="form-row"><label>Reorder Level</label><input type="number" step="0.001" name="reorder_level" value="{{ item.reorder_level }}"></div>
+    <div class="form-row"><label>Tracking</label>
+      <select name="tracking_type">
+        {% for t in tracking_types %}
+        <option value="{{ t }}" {% if item.tracking_type == t %}selected{% endif %}>{{ 'No serial/batch tracking' if t == 'none' else t|capitalize + ' numbers' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row"><label>Costing Method</label>
+      <select name="costing_method">
+        {% for m in costing_methods %}
+        <option value="{{ m }}" {% if item.costing_method == m %}selected{% endif %}>{{ 'Weighted Average' if m == 'weighted_average' else m|upper }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% if item.costing_method in ('fifo', 'lifo') %}
+    <p style="color:var(--muted);font-size:0.85rem;">
+      Costed from specific purchase lots — see <a href="{{ url_for('inventory.item_detail', item_id=item.id) }}">Item detail</a> for remaining layers.
+      Switching to Weighted Average keeps the current average cost going forward.
+    </p>
+    {% else %}
+    <p style="color:var(--muted);font-size:0.85rem;">
+      Switching to FIFO/LIFO opens one starting layer at the current average cost for whatever's on hand right now.
+    </p>
+    {% endif %}
     <p style="color:var(--muted);font-size:0.9rem;">
       Type, Inventory Account, COGS Account, and current stock/cost aren't editable here — they're tied to
       ledger postings already made. Use <a href="{{ url_for('inventory.item_adjust', item_id=item.id) }}">Adjust Stock</a>

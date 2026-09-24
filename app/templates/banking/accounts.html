@@ -2,7 +2,10 @@
 {% block content %}
 <div class="page-header">
   <h1>Bank Accounts</h1>
-  <a class="btn primary small" href="{{ url_for('ledger.account_new', account_type='Asset', subtype='Cash and Cash Equivalents') }}">+ Add Bank Account</a>
+  <div class="btn-group">
+    <a class="btn primary small" href="{{ url_for('banking.new_transaction') }}">+ New Transaction</a>
+    <a class="btn small secondary" href="{{ url_for('ledger.account_new', account_type='Asset', subtype='Cash and Cash Equivalents') }}">+ Add Bank Account</a>
+  </div>
 </div>
 <p style="color:var(--text-muted); font-size:0.85rem;">
   Add as many as this company actually has — a current account, a savings account, a foreign-currency
@@ -12,17 +15,20 @@
 <div class="card">
   {% if rows %}
   <table>
-    <thead><tr><th>Account</th><th class="num">Balance</th><th></th></tr></thead>
+    <thead><tr><th>Account</th><th>Bank</th><th>Account #</th><th>Currency</th><th class="num">Balance</th><th></th></tr></thead>
     <tbody>
       {% for r in rows %}
       <tr>
         <td>{{ r.account.code }} — {{ r.account.name }}</td>
+        <td>{{ r.account.bank_name or '-' }}</td>
+        <td>{{ r.account.account_number or '-' }}</td>
+        <td>{{ r.account.currency }}</td>
         <td class="num">{{ '%.2f'|format(r.balance) }}</td>
         <td><a href="{{ url_for('ledger.account_detail', account_id=r.account.id) }}">View activity</a></td>
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot><tr><th>Total</th><th class="num">{{ '%.2f'|format(total) }}</th><th></th></tr></tfoot>
+    <tfoot><tr><th colspan="4">Total</th><th class="num">{{ '%.2f'|format(total) }}</th><th></th></tr></tfoot>
   </table>
   {% else %}
   <p style="color:var(--text-muted);">

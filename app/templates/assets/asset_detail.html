@@ -21,13 +21,30 @@
 </div>
 
 <div class="card">
+  {% set method_labels = {'straight_line': 'Straight Line', 'reducing_balance': 'Reducing Balance', 'declining_150': '150% Declining Balance', 'declining_200': '200% Declining Balance'} %}
   <p>
-    Useful life: {{ asset.useful_life_months }} months &middot;
+    Method: <strong>{{ method_labels.get(asset.depreciation_method, 'Straight Line') }}</strong>
+    {% if asset.depreciation_method == 'reducing_balance' %}({{ asset.depreciation_rate }}% p.a.){% endif %}
+    &middot; Frequency: <strong>{{ 'Yearly' if asset.depreciation_frequency == 'yearly' else 'Monthly' }}</strong>
+    &middot; Useful life: {{ asset.useful_life_months }} months
+  </p>
+  <p>
+    {% if asset.depreciation_start_date %}Start: {{ asset.depreciation_start_date }} &middot;{% endif %}
+    {% if asset.depreciation_end_date %}End: {{ asset.depreciation_end_date }} &middot;{% endif %}
     Periods depreciated: {{ asset.periods_depreciated }} &middot;
     {% if asset.status == 'active' %}Next run: {{ asset.next_depreciation_date }}
     {% elif asset.status == 'fully_depreciated' %}Fully depreciated — nothing left to post.
     {% endif %}
   </p>
+  <p style="color:var(--muted); font-size:0.88rem;">
+    Posts to
+    <strong>{{ asset.depreciation_expense_account.code ~ ' - ' ~ asset.depreciation_expense_account.name if asset.depreciation_expense_account else '6400 - Depreciation Expense (default)' }}</strong>
+    /
+    <strong>{{ asset.accumulated_depreciation_account.code ~ ' - ' ~ asset.accumulated_depreciation_account.name if asset.accumulated_depreciation_account else '1590 - Accumulated Depreciation (default)' }}</strong>
+  </p>
+  {% if asset.status != 'disposed' %}
+  <a class="btn secondary" href="{{ url_for('assets.asset_edit', asset_id=asset.id) }}">Edit Asset</a>
+  {% endif %}
   {% if asset.status == 'active' %}
   <a class="btn secondary" href="{{ url_for('assets.asset_dispose', asset_id=asset.id) }}">Dispose of Asset</a>
   {% endif %}

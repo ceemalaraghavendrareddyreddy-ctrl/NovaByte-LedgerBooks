@@ -44,6 +44,32 @@
       <div class="form-row"><label>Opening Quantity</label><input type="number" step="0.001" name="opening_quantity" value="{{ form.opening_quantity or 0 }}"></div>
       <div class="form-row"><label>Opening Cost/Unit</label><input type="number" step="0.0001" name="opening_cost" value="{{ form.opening_cost or 0 }}"></div>
       <div class="form-row"><label>Reorder Level</label><input type="number" step="0.001" name="reorder_level" value="{{ form.reorder_level or 0 }}"></div>
+      <div class="form-row"><label>Tracking</label>
+        <select name="tracking_type">
+          {% for t in tracking_types %}
+          <option value="{{ t }}" {% if (form.tracking_type or 'none') == t %}selected{% endif %}>{{ 'No serial/batch tracking' if t == 'none' else t|capitalize + ' numbers' }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-row"><label>Costing Method</label>
+        <select name="costing_method">
+          {% for m in costing_methods %}
+          <option value="{{ m }}" {% if (form.costing_method or 'weighted_average') == m %}selected{% endif %}>{{ 'Weighted Average' if m == 'weighted_average' else m|upper }}</option>
+          {% endfor %}
+        </select>
+        <p style="color:var(--muted);font-size:0.85rem;margin-top:0.25rem;">FIFO/LIFO cost each sale from specific purchase lots instead of one blended average.</p>
+      </div>
+      {% if warehouses %}
+      <div class="form-row"><label>Opening Warehouse</label>
+        <select name="opening_warehouse_id">
+          <option value="">-- unspecified --</option>
+          {% for w in warehouses %}
+          <option value="{{ w.id }}">{{ w.code }} - {{ w.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+      <div class="form-row"><label>Opening Lot/Serial #</label><input type="text" name="opening_lot_number" value="{{ form.opening_lot_number or '' }}" placeholder="optional"></div>
     </div>
 
     <button class="btn" type="submit">Save Item</button>

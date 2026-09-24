@@ -1,0 +1,37 @@
+{% extends "portal/_layout.html" %}
+{% block title %}Invoice {{ invoice.invoice_no }}{% endblock %}
+{% block content %}
+<h1>Invoice {{ invoice.invoice_no }}</h1>
+<p style="color:var(--muted);">
+  Date: {{ invoice.invoice_date }} &middot; Due: {{ invoice.due_date }}
+  &middot; <span class="badge {{ 'debit' if invoice.status == 'paid' else '' }}">{{ invoice.status }}</span>
+  {% if invoice.customer_po_number %}&middot; PO # {{ invoice.customer_po_number }}{% endif %}
+</p>
+{% if invoice.memo %}<p>{{ invoice.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in invoice.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="3" style="text-align:right;">Subtotal</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.subtotal) }}</td></tr>
+      <tr><td colspan="3" style="text-align:right;">VAT ({{ invoice.vat_rate }}%)</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.vat_amount) }}</td></tr>
+      <tr><th colspan="3" style="text-align:right;">Total</th><th class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.total) }}</th></tr>
+      <tr><td colspan="3" style="text-align:right;">Paid</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.amount_paid) }}</td></tr>
+      <tr><th colspan="3" style="text-align:right;">Balance Due</th><th class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.balance_due) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+<a class="btn" href="{{ pdf_url }}" target="_blank">📄 View / Download PDF</a>
+<a class="btn secondary" href="{{ url_for('portal.customer_dashboard') }}">Back to Invoices</a>
+{% endblock %}

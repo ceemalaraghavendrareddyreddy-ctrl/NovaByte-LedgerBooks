@@ -1,0 +1,36 @@
+{% extends "portal/_layout.html" %}
+{% block title %}Bill {{ bill.bill_no }}{% endblock %}
+{% block content %}
+<h1>Bill {{ bill.bill_no }}</h1>
+<p style="color:var(--muted);">
+  Date: {{ bill.bill_date }} &middot; Due: {{ bill.due_date }}
+  &middot; <span class="badge {{ 'debit' if bill.status == 'paid' else '' }}">{{ bill.status }}</span>
+</p>
+{% if bill.memo %}<p>{{ bill.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in bill.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="3" style="text-align:right;">Subtotal</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.subtotal) }}</td></tr>
+      <tr><td colspan="3" style="text-align:right;">VAT ({{ bill.vat_rate }}%)</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.vat_amount) }}</td></tr>
+      <tr><th colspan="3" style="text-align:right;">Total</th><th class="num">{{ bill.currency }} {{ '%.2f'|format(bill.total) }}</th></tr>
+      <tr><td colspan="3" style="text-align:right;">Paid</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.amount_paid) }}</td></tr>
+      <tr><th colspan="3" style="text-align:right;">Balance Due</th><th class="num">{{ bill.currency }} {{ '%.2f'|format(bill.balance_due) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+<a class="btn" href="{{ pdf_url }}" target="_blank">📄 View / Download PDF</a>
+<a class="btn secondary" href="{{ url_for('portal.vendor_dashboard') }}">Back to Bills</a>
+{% endblock %}

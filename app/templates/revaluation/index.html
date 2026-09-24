@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Foreign Currency Revaluation</h1>
+<p style="color:var(--muted);">Restate open foreign-currency receivables and payables to a period-end rate. Leave a row blank to skip it — nothing is posted for a currency you don't enter a rate for.</p>
+
+<form method="post">
+  <div class="form-row" style="max-width:220px;">
+    <label>Revaluation Date</label>
+    <input type="date" name="revaluation_date" value="{{ today }}">
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Accounts Receivable</h3>
+    {% if ar_groups %}
+    <table>
+      <thead><tr><th>Currency</th><th class="num">Open Balance</th><th class="num">Current Carrying Rate</th><th class="num">New Rate</th><th></th></tr></thead>
+      <tbody>
+        {% for currency, g in ar_groups.items() %}
+        <tr>
+          <td>{{ currency }}</td>
+          <td class="num">{{ '%.2f'|format(g.balance) }}</td>
+          <td class="num">{{ '%.6f'|format(g.carrying_value / g.balance) if g.balance else '-' }}</td>
+          <td class="num"><input type="number" step="0.000001" name="ar_rate_{{ currency }}" id="ar_rate_{{ currency }}" style="max-width:140px;"></td>
+          <td><button type="button" class="btn small secondary fetch-rate-btn" data-from="{{ currency }}" data-target="ar_rate_{{ currency }}">Get today's rate</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No open foreign-currency invoices.</p>
+    {% endif %}
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Accounts Payable</h3>
+    {% if ap_groups %}
+    <table>
+      <thead><tr><th>Currency</th><th class="num">Open Balance</th><th class="num">Current Carrying Rate</th><th class="num">New Rate</th><th></th></tr></thead>
+      <tbody>
+        {% for currency, g in ap_groups.items() %}
+        <tr>
+          <td>{{ currency }}</td>
+          <td class="num">{{ '%.2f'|format(g.balance) }}</td>
+          <td class="num">{{ '%.6f'|format(g.carrying_value / g.balance) if g.balance else '-' }}</td>
+          <td class="num"><input type="number" step="0.000001" name="ap_rate_{{ currency }}" id="ap_rate_{{ currency }}" style="max-width:140px;"></td>
+          <td><button type="button" class="btn small secondary fetch-rate-btn" data-from="{{ currency }}" data-target="ap_rate_{{ currency }}">Get today's rate</button></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No open foreign-currency bills.</p>
+    {% endif %}
+  </div>
+
+  {% if ar_groups or ap_groups %}
+  <button class="btn" type="submit">Post Revaluation</button>
+  {% endif %}
+</form>
+
+<script>
+const BASE_CURRENCY = {{ base_currency|tojson }};
+document.querySelectorAll('.fetch-rate-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const from = btn.dataset.from;
+    const input = document.getElementById(btn.dataset.target);
+    btn.textContent = 'Fetching…';
+    try {
+      const r = await fetch(`/api/fx-rate?from=${encodeURIComponent(from)}&to=${encodeURIComponent(BASE_CURRENCY)}`);
+      const data = await r.json();
+      if (!r.ok) { btn.textContent = 'Failed'; return; }
+      input.value = data.rate;
+      btn.textContent = "Get today's rate";
+    } catch (e) {
+      btn.textContent = 'Failed';
+    }
+  });
+});
+</script>
+{% endblock %}

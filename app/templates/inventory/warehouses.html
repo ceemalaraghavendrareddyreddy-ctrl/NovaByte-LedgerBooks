@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-header">
+  <h1>Warehouses</h1>
+  <a class="btn primary small" href="{{ url_for('inventory.warehouse_new') }}">+ New Warehouse</a>
+</div>
+
+<div class="card">
+  {% if warehouses %}
+  <table>
+    <thead><tr><th>Code</th><th>Name</th><th>Address</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for w in warehouses %}
+      <tr>
+        <td>{{ w.code }}</td>
+        <td><a href="{{ url_for('inventory.warehouse_edit', warehouse_id=w.id) }}">{{ w.name }}</a></td>
+        <td>{{ w.address or '-' }}</td>
+        <td>{% if w.is_active %}<span class="badge debit">Active</span>{% else %}<span class="badge">Inactive</span>{% endif %}</td>
+        <td>
+          <a class="btn small secondary" href="{{ url_for('inventory.warehouse_edit', warehouse_id=w.id) }}">Edit</a>
+          <form class="inline" method="post" action="{{ url_for('inventory.warehouse_toggle', warehouse_id=w.id) }}">
+            <button class="btn small secondary" type="submit">{{ 'Deactivate' if w.is_active else 'Activate' }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No warehouses yet — add one if you stock inventory in more than one location.</p>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New Webhook</h1>
+<div class="card" style="max-width:600px;">
+  <form method="post">
+    <div class="form-row">
+      <label>URL</label>
+      <input type="url" name="url" required value="{{ form.url or '' }}" placeholder="https://example.com/webhooks/ledgerbooks">
+    </div>
+    <div class="form-row">
+      <label>Events</label>
+      <div>
+        {% for event in event_types %}
+        <label style="display:block; font-weight:normal; margin-bottom:0.35rem;">
+          <input type="checkbox" name="event_types" value="{{ event }}">
+          {{ event }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+    <button class="btn" type="submit">Save Webhook</button>
+    <a class="btn secondary" href="{{ url_for('webhooks.webhook_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

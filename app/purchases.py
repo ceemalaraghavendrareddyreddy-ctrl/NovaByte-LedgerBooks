@@ -2,16 +2,19 @@ from datetime import date, datetime
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from werkzeug.security import generate_password_hash
 
 from app import db
 from app.audit import log_audit
-from app.auth import current_company, current_company_id
+from app.auth import current_company, current_company_id, owner_required
 from app.models import (
     Account, Bill, BillLine, CURRENCIES, Item, JournalEntry, JournalLine, Project, PurchaseOrder,
-    PurchaseOrderLine, StockMovement, Vendor, VendorCredit, VendorCreditApplication, VendorCreditLine,
-    VendorPayment, VendorPaymentApplication,
+    PurchaseOrderLine, RECURRING_FREQUENCIES, RecurringBill, RecurringBillLine, StockMovement, Vendor,
+    VendorCredit, VendorCreditApplication, VendorCreditLine, VendorPayment, VendorPaymentApplication, Warehouse,
 )
+from app.webhooks import fire_webhook
 from app.pdf import generate_bill_pdf
+from app.report_export import rows_to_pdf, rows_to_xlsx
 from app.scoping import scoped_get, scoped_or_404, scoped_query
 from app.share_links import share_url, whatsapp_link
 
@@ -61,22 +64,28 @@ def vendor_list():
 @login_required
 def vendor_new():
     if request.method == "POST":
+        vendor_type = request.form.get("vendor_type") if request.form.get("vendor_type") in ("individual", "company") else "company"
         vendor = Vendor(
             company_id=current_company_id(),
             name=request.form["name"].strip(),
+            vendor_type=vendor_type,
             email=request.form.get("email", "").strip() or None,
             phone=request.form.get("phone", "").strip() or None,
+            phone2=request.form.get("phone2", "").strip() or None,
             address=request.form.get("address", "").strip() or None,
-            vat_number=request.form.get("vat_number", "").strip() or None,
-            brn=request.form.get("brn", "").strip() or None,
+            vat_number=request.form.get("vat_number", "").strip() or None if vendor_type == "company" else None,
+            brn=request.form.get("brn", "").strip() or None if vendor_type == "company" else None,
             mra_supplier_id=request.form.get("mra_supplier_id", "").strip() or None,
+            billing_currency=request.form.get("billing_currency") or "MUR",
             opening_balance=request.form.get("opening_balance") or 0,
         )
         db.session.add(vendor)
         db.session.commit()
         flash(f"Vendor '{vendor.name}' created.", "success")
-        return redirect(url_for("purchases.vendor_list"))
-    return render_template("purchases/vendor_form.html", form={}, action_url=url_for("purchases.vendor_new"))
+        return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
+    return render_template(
+        "purchases/vendor_form.html", form={}, action_url=url_for("purchases.vendor_new"), currencies=CURRENCIES,
+    )
 
 
 @purchases_bp.route("/vendors/<int:vendor_id>/edit", methods=["GET", "POST"])
@@ -84,20 +93,24 @@ def vendor_new():
 def vendor_edit(vendor_id):
     vendor = scoped_or_404(Vendor, vendor_id)
     if request.method == "POST":
+        vendor_type = request.form.get("vendor_type") if request.form.get("vendor_type") in ("individual", "company") else "company"
         vendor.name = request.form["name"].strip()
+        vendor.vendor_type = vendor_type
         vendor.email = request.form.get("email", "").strip() or None
         vendor.phone = request.form.get("phone", "").strip() or None
+        vendor.phone2 = request.form.get("phone2", "").strip() or None
         vendor.address = request.form.get("address", "").strip() or None
-        vendor.vat_number = request.form.get("vat_number", "").strip() or None
-        vendor.brn = request.form.get("brn", "").strip() or None
+        vendor.vat_number = request.form.get("vat_number", "").strip() or None if vendor_type == "company" else None
+        vendor.brn = request.form.get("brn", "").strip() or None if vendor_type == "company" else None
         vendor.mra_supplier_id = request.form.get("mra_supplier_id", "").strip() or None
+        vendor.billing_currency = request.form.get("billing_currency") or "MUR"
         vendor.opening_balance = request.form.get("opening_balance") or 0
         db.session.commit()
         flash(f"Vendor '{vendor.name}' updated.", "success")
         return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
     return render_template(
         "purchases/vendor_form.html", form=vendor, action_url=url_for("purchases.vendor_edit", vendor_id=vendor.id),
-        editing=True,
+        editing=True, currencies=CURRENCIES,
     )
 
 
@@ -111,6 +124,32 @@ def vendor_toggle(vendor_id):
     return redirect(url_for("purchases.vendor_list"))
 
 
+@purchases_bp.route("/vendors/<int:vendor_id>/portal-access", methods=["POST"])
+@login_required
+def vendor_portal_access(vendor_id):
+    vendor = scoped_or_404(Vendor, vendor_id)
+    portal_enabled = request.form.get("portal_enabled") == "on"
+    if portal_enabled and not vendor.email:
+        flash("Add an email address for this vendor before enabling portal access.", "error")
+        return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
+
+    new_password = request.form.get("portal_password", "")
+    if new_password.strip():
+        if len(new_password) < 6:
+            flash("Portal password must be at least 6 characters.", "error")
+            return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
+        vendor.portal_password_hash = generate_password_hash(new_password)
+    elif portal_enabled and not vendor.portal_password_hash:
+        flash("Set a password before enabling portal access.", "error")
+        return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
+
+    vendor.portal_enabled = portal_enabled
+    db.session.commit()
+    log_audit("edit", "vendor", vendor.id, f"{'Enabled' if portal_enabled else 'Disabled'} portal access for {vendor.name}")
+    flash(f"Portal access {'enabled' if portal_enabled else 'updated'} for {vendor.name}.", "success")
+    return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
+
+
 @purchases_bp.route("/vendors/<int:vendor_id>")
 @login_required
 def vendor_detail(vendor_id):
@@ -118,6 +157,97 @@ def vendor_detail(vendor_id):
     bills = sorted([b for b in vendor.bills if b.status != "void"], key=lambda b: b.bill_date, reverse=True)
     payments = sorted(vendor.payments, key=lambda p: p.payment_date, reverse=True)
     return render_template("purchases/vendor_detail.html", vendor=vendor, bills=bills, payments=payments)
+
+
+def _vendor_statement_data(vendor, start_date, end_date):
+    """AP mirror of sales._customer_statement_data — see that docstring for the
+    windowing logic (opening/closing balances computed correctly even when the
+    window doesn't start at the vendor's very first transaction)."""
+    transactions = []
+    for bill in vendor.bills:
+        if bill.status == "void":
+            continue
+        transactions.append({
+            "date": bill.bill_date, "type": "Bill", "doc_no": bill.bill_no, "id": bill.id,
+            "debit": float(bill.total), "credit": 0.0,
+            "url": url_for("purchases.bill_detail", bill_id=bill.id),
+        })
+    for p in vendor.payments:
+        transactions.append({
+            "date": p.payment_date, "type": "Payment", "doc_no": p.reference_no or f"Payment #{p.id}", "id": p.id,
+            "debit": 0.0, "credit": float(p.amount),
+            "url": url_for("purchases.payment_detail", payment_id=p.id),
+        })
+    for vc in scoped_query(VendorCredit).filter_by(vendor_id=vendor.id).all():
+        if vc.status == "void":
+            continue
+        transactions.append({
+            "date": vc.credit_date, "type": "Vendor Credit", "doc_no": vc.credit_no, "id": vc.id,
+            "debit": 0.0, "credit": float(vc.total),
+            "url": url_for("purchases.vendor_credit_detail", vendor_credit_id=vc.id),
+        })
+    transactions.sort(key=lambda t: (t["date"], t["type"]))
+
+    running = float(vendor.opening_balance)
+    opening_balance = running
+    opening_captured = False
+    rows = []
+    for t in transactions:
+        if t["date"] > end_date:
+            break
+        if not opening_captured and t["date"] >= start_date:
+            opening_balance = running
+            opening_captured = True
+        running += t["debit"] - t["credit"]
+        if t["date"] >= start_date:
+            rows.append({**t, "balance": running})
+    if not opening_captured:
+        opening_balance = running
+    return opening_balance, rows, running
+
+
+@purchases_bp.route("/vendors/<int:vendor_id>/statement")
+@login_required
+def vendor_statement(vendor_id):
+    vendor = scoped_or_404(Vendor, vendor_id)
+    start_raw = request.args.get("start_date")
+    end_raw = request.args.get("end_date")
+    start_date = datetime.strptime(start_raw, "%Y-%m-%d").date() if start_raw else date(date.today().year, 1, 1)
+    end_date = datetime.strptime(end_raw, "%Y-%m-%d").date() if end_raw else date.today()
+
+    opening_balance, rows, closing_balance = _vendor_statement_data(vendor, start_date, end_date)
+    return render_template(
+        "purchases/vendor_statement.html", vendor=vendor, rows=rows,
+        opening_balance=opening_balance, closing_balance=closing_balance,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
+
+@purchases_bp.route("/vendors/<int:vendor_id>/statement.pdf")
+@login_required
+def vendor_statement_pdf(vendor_id):
+    vendor = scoped_or_404(Vendor, vendor_id)
+    start_raw = request.args.get("start_date")
+    end_raw = request.args.get("end_date")
+    start_date = datetime.strptime(start_raw, "%Y-%m-%d").date() if start_raw else date(date.today().year, 1, 1)
+    end_date = datetime.strptime(end_raw, "%Y-%m-%d").date() if end_raw else date.today()
+
+    opening_balance, rows, closing_balance = _vendor_statement_data(vendor, start_date, end_date)
+    table_rows = [(start_date.isoformat(), "Opening Balance", "-", "", "", f"{opening_balance:,.2f}")]
+    table_rows += [
+        (r["date"].isoformat(), r["type"], r["doc_no"], f"{r['debit']:,.2f}" if r["debit"] else "",
+         f"{r['credit']:,.2f}" if r["credit"] else "", f"{r['balance']:,.2f}")
+        for r in rows
+    ]
+    buffer = rows_to_pdf(
+        f"Statement — {vendor.name}", f"{start_date.isoformat()} to {end_date.isoformat()}",
+        ["Date", "Type", "Document #", "Debit", "Credit", "Balance"], table_rows,
+        company=current_company(), numeric_cols={3, 4, 5},
+    )
+    return send_file(
+        buffer, as_attachment=True, download_name=f"Statement-{vendor.name}-{end_date.isoformat()}.pdf",
+        mimetype="application/pdf",
+    )
 
 
 # ── Purchase Orders ───────────────────────────────────────────────────
@@ -257,22 +387,29 @@ def po_receive(po_id):
         )
 
         any_billed = False
+        variances = []
         for line in po.lines:
             qty_raw = request.form.get(f"qty_{line.id}", "0")
             qty = float(qty_raw or 0)
             if qty <= 0:
                 continue
+            price_raw = request.form.get(f"price_{line.id}", "").strip()
+            unit_price = float(price_raw) if price_raw else float(line.unit_price)
+
+            # Over-billing beyond what's left on the PO is flagged, not blocked — a
+            # vendor sometimes ships/bills more than ordered, and 3-way matching's job
+            # is to surface that for review, not make it impossible to record at all.
             if qty > float(line.quantity_remaining) + 0.0001:
-                flash(
-                    f"Can't bill {qty} of '{line.description}' — only {line.quantity_remaining} remaining "
-                    f"on this PO.", "error",
-                )
-                return redirect(url_for("purchases.po_receive", po_id=po.id))
+                variances.append(f"'{line.description}': billed {qty}, only {line.quantity_remaining} was remaining on the PO")
+            if round(unit_price, 2) != round(float(line.unit_price), 2):
+                variances.append(f"'{line.description}': billed at {unit_price:.2f}, PO quoted {float(line.unit_price):.2f}")
+
             any_billed = True
             bill.lines.append(
                 BillLine(
                     item_id=line.item_id, description=line.description, quantity=qty,
-                    unit_price=line.unit_price, taxable=line.taxable, expense_account_id=line.expense_account_id,
+                    unit_price=unit_price, taxable=line.taxable, expense_account_id=line.expense_account_id,
+                    purchase_order_line_id=line.id,
                 )
             )
             line.quantity_billed = float(line.quantity_billed) + qty
@@ -287,7 +424,13 @@ def po_receive(po_id):
         po.status = "closed" if po.is_fully_billed else "partial"
         log_audit("create", "bill", bill.id, f"Created bill {bill.bill_no} from {po.po_no}", bill.bill_no)
         db.session.commit()
-        flash(f"Bill {bill.bill_no} created from {po.po_no}.", "success")
+        if variances:
+            flash(
+                f"Bill {bill.bill_no} created from {po.po_no}, but doesn't fully match it: " + "; ".join(variances),
+                "warning",
+            )
+        else:
+            flash(f"Bill {bill.bill_no} created from {po.po_no} — matches the PO exactly.", "success")
         return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
 
     return render_template("purchases/po_receive.html", po=po, today=date.today().isoformat())
@@ -313,13 +456,15 @@ def bill_new():
     default_expense = scoped_query(Account).filter_by(code=DEFAULT_EXPENSE_CODE).first()
     items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
     projects = scoped_query(Project).filter_by(is_active=True).order_by(Project.name).all()
+    warehouses = scoped_query(Warehouse).filter_by(is_active=True).order_by(Warehouse.code).all()
     preselected_vendor_id = request.args.get("vendor_id", type=int)
     base_currency = current_company().base_currency
 
     def render_form(form):
         return render_template(
             "purchases/bill_form.html", vendors=vendors, expense_accounts=expense_accounts,
-            default_expense=default_expense, items=items, projects=projects, form=form, today=date.today().isoformat(),
+            default_expense=default_expense, items=items, projects=projects, warehouses=warehouses,
+            form=form, today=date.today().isoformat(),
             currencies=CURRENCIES, base_currency=base_currency,
         )
 
@@ -347,10 +492,14 @@ def bill_new():
         # Per-line VAT % override — blank means "use this bill's own vat_rate above",
         # exactly like every line did before this field existed.
         line_vat_rates = request.form.getlist("line_vat_rate")
+        line_warehouse_ids = request.form.getlist("line_warehouse_id")
+        line_lot_numbers = request.form.getlist("line_lot_number")
         # zip() truncates to the shortest list — pad item_ids so a row missing that field
         # doesn't silently drop every line below it (the real form always sends it, but be defensive).
         item_ids += [""] * (len(descriptions) - len(item_ids))
         line_vat_rates += [""] * (len(descriptions) - len(line_vat_rates))
+        line_warehouse_ids += [""] * (len(descriptions) - len(line_warehouse_ids))
+        line_lot_numbers += [""] * (len(descriptions) - len(line_lot_numbers))
 
         bill = Bill(
             company_id=current_company_id(),
@@ -366,8 +515,8 @@ def bill_new():
             exchange_rate=exchange_rate,
         )
 
-        for i, (desc, qty, price, acc_id, item_id_raw, vat_rate_raw) in enumerate(
-            zip(descriptions, quantities, unit_prices, expense_account_ids, item_ids, line_vat_rates)
+        for i, (desc, qty, price, acc_id, item_id_raw, vat_rate_raw, warehouse_id_raw, lot_number_raw) in enumerate(
+            zip(descriptions, quantities, unit_prices, expense_account_ids, item_ids, line_vat_rates, line_warehouse_ids, line_lot_numbers)
         ):
             if not desc.strip() or not qty or not price:
                 continue
@@ -382,6 +531,8 @@ def bill_new():
                     taxable=str(i) in taxables,
                     vat_rate=float(vat_rate_raw) if vat_rate_raw.strip() != "" else None,
                     expense_account_id=tracked_item.inventory_account_id if tracked_item else int(acc_id),
+                    warehouse_id=int(warehouse_id_raw) if warehouse_id_raw else None,
+                    lot_number=lot_number_raw.strip() or None,
                 )
             )
 
@@ -391,9 +542,25 @@ def bill_new():
 
         db.session.add(bill)
         db.session.flush()  # assign bill.id before post_bill needs it for StockMovement.reference_id
+
+        settings = current_company()
+        threshold = float(settings.bill_approval_threshold) if settings.bill_approval_threshold is not None else 0.0
+        needs_approval = settings.bill_approval_enabled and bill.total_base >= threshold
+        if needs_approval:
+            bill.status = "pending_approval"
+            bill.submitted_by = current_user.id
+            log_audit("submit", "bill", bill.id, f"Submitted bill {bill.bill_no} for approval (total {bill.total:.2f})", bill.bill_no)
+            db.session.commit()
+            flash(f"Bill {bill.bill_no} submitted for approval — it won't post to the ledger until an owner approves it.", "success")
+            return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
+
         post_bill(bill)
         log_audit("create", "bill", bill.id, f"Created bill {bill.bill_no} (total {bill.total:.2f})", bill.bill_no)
         db.session.commit()
+        fire_webhook(current_company_id(), "bill.created", {
+            "id": bill.id, "bill_no": bill.bill_no, "vendor": bill.vendor.name,
+            "total": bill.total, "currency": bill.currency, "due_date": bill.due_date.isoformat(),
+        })
         flash(f"Bill {bill.bill_no} created and posted to the ledger.", "success")
         return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
 
@@ -457,11 +624,67 @@ def post_bill(bill):
             reference_type="bill", reference_id=bill.id,
             running_quantity=item.quantity_on_hand, running_avg_cost=item.cost_price,
             memo=f"Purchased via {bill.bill_no}",
+            warehouse_id=line.warehouse_id, lot_number=line.lot_number,
         ))
 
     db.session.add(entry)
     db.session.flush()
     bill.journal_entry_id = entry.id
+
+
+@purchases_bp.route("/approvals")
+@login_required
+@owner_required
+def approval_list():
+    pending = (
+        scoped_query(Bill).filter_by(status="pending_approval")
+        .order_by(Bill.bill_date.desc()).all()
+    )
+    return render_template("purchases/approval_list.html", bills=pending)
+
+
+@purchases_bp.route("/bills/<int:bill_id>/approve", methods=["POST"])
+@login_required
+@owner_required
+def bill_approve(bill_id):
+    bill = scoped_or_404(Bill, bill_id)
+    if bill.status != "pending_approval":
+        flash("This bill isn't awaiting approval.", "error")
+        return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
+
+    post_bill(bill)
+    bill.status = "open"
+    bill.approved_by = current_user.id
+    bill.approved_at = datetime.utcnow()
+    log_audit("approve", "bill", bill.id, f"Approved and posted bill {bill.bill_no} (total {bill.total:.2f})", bill.bill_no)
+    db.session.commit()
+    fire_webhook(current_company_id(), "bill.created", {
+        "id": bill.id, "bill_no": bill.bill_no, "vendor": bill.vendor.name,
+        "total": bill.total, "currency": bill.currency, "due_date": bill.due_date.isoformat(),
+    })
+    flash(f"Bill {bill.bill_no} approved and posted to the ledger.", "success")
+    return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
+
+
+@purchases_bp.route("/bills/<int:bill_id>/reject", methods=["POST"])
+@login_required
+@owner_required
+def bill_reject(bill_id):
+    bill = scoped_or_404(Bill, bill_id)
+    if bill.status != "pending_approval":
+        flash("This bill isn't awaiting approval.", "error")
+        return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
+
+    # Never posted anything to the ledger while pending, so rejecting is just marking
+    # it void — there's no journal entry to reverse, unlike bill_void below.
+    bill.status = "void"
+    bill.approved_by = current_user.id
+    bill.approved_at = datetime.utcnow()
+    bill.approval_note = request.form.get("note", "").strip() or None
+    log_audit("reject", "bill", bill.id, f"Rejected bill {bill.bill_no}" + (f": {bill.approval_note}" if bill.approval_note else ""), bill.bill_no)
+    db.session.commit()
+    flash(f"Bill {bill.bill_no} rejected.", "success")
+    return redirect(url_for("purchases.approval_list"))
 
 
 @purchases_bp.route("/bills/<int:bill_id>")
@@ -492,6 +715,9 @@ def bill_pdf(bill_id):
 @login_required
 def bill_void(bill_id):
     bill = scoped_or_404(Bill, bill_id)
+    if bill.status == "pending_approval":
+        flash("This bill is still awaiting approval — reject it instead of voiding (it was never posted).", "error")
+        return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
     if bill.amount_paid > 0:
         flash("Cannot void a bill that already has payments applied. Unapply payments first.", "error")
         return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
@@ -509,6 +735,13 @@ def bill_void(bill_id):
     for line in bill.lines:
         if line.item_id:
             item = line.item
+            if item.costing_method in ("fifo", "lifo"):
+                # Removes from whichever layer(s) fifo/lifo order says to consume next —
+                # not necessarily the exact layer this bill opened, if some of it has
+                # already sold. Same "current state, not exact history" tradeoff as the
+                # weighted-average case here already accepted.
+                item.consume_stock_layers(float(line.quantity))
+                item.refresh_average_cost()
             item.quantity_on_hand = float(item.quantity_on_hand) - float(line.quantity)  # cost_price left as-is
             db.session.add(StockMovement(
                 item_id=item.id, movement_date=date.today(), movement_type="purchase",
@@ -528,6 +761,246 @@ def bill_void(bill_id):
     db.session.commit()
     flash(f"Bill {bill.bill_no} voided.", "success")
     return redirect(url_for("purchases.bill_list"))
+
+
+# ── Recurring Bills ──────────────────────────────────────────────────
+# Vendor-side mirror of Sales > Recurring Invoices — a template that generates a real
+# Bill on a schedule (rent, subscriptions, retainers). Generation always goes through
+# post_bill(), so a recurring bill is indistinguishable from a hand-entered one once
+# it lands in the ledger.
+
+def _build_bill_from_template(template):
+    """Creates and posts one real Bill from a RecurringBill template, dated today.
+    Does not commit — caller commits once, after any bookkeeping (advancing next_run_date etc).
+    """
+    bill_date = date.today()
+    due_date = date.fromordinal(bill_date.toordinal() + template.due_days)
+    bill = Bill(
+        company_id=current_company_id(),
+        bill_no=next_bill_no(),
+        vendor_id=template.vendor_id,
+        bill_date=bill_date,
+        due_date=due_date,
+        memo=f"[Recurring: {template.name}]" + (f" - {template.memo}" if template.memo else ""),
+        vat_rate=template.vat_rate,
+    )
+    for line in template.lines:
+        bill.lines.append(
+            BillLine(
+                item_id=line.item_id, description=line.description, quantity=line.quantity,
+                unit_price=line.unit_price, taxable=line.taxable, expense_account_id=line.expense_account_id,
+            )
+        )
+
+    db.session.add(bill)
+    db.session.flush()
+    post_bill(bill)
+    return bill
+
+
+@purchases_bp.route("/recurring-bills")
+@login_required
+def recurring_bill_list():
+    templates = scoped_query(RecurringBill).order_by(RecurringBill.next_run_date).all()
+    due_count = sum(1 for t in templates if t.is_due)
+    return render_template("purchases/recurring_bill_list.html", templates=templates, due_count=due_count, today=date.today())
+
+
+@purchases_bp.route("/recurring-bills/new", methods=["GET", "POST"])
+@login_required
+def recurring_bill_new():
+    vendors = scoped_query(Vendor).filter_by(is_active=True).order_by(Vendor.name).all()
+    expense_accounts = scoped_query(Account).filter(
+        Account.is_active == True,  # noqa: E712
+        (Account.account_type == "Expense") | (Account.code.in_(["1300", "1500"])),
+    ).order_by(Account.code).all()
+    default_expense = scoped_query(Account).filter_by(code=DEFAULT_EXPENSE_CODE).first()
+    items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
+
+    def render_form(form):
+        return render_template(
+            "purchases/recurring_bill_form.html", vendors=vendors, expense_accounts=expense_accounts,
+            default_expense=default_expense, items=items, form=form, today=date.today().isoformat(),
+            frequencies=RECURRING_FREQUENCIES,
+        )
+
+    if request.method == "POST":
+        vendor_id = request.form.get("vendor_id")
+        name = request.form.get("name", "").strip()
+        if not vendor_id or not name:
+            flash("Name and vendor are both required.", "error")
+            return render_form(request.form)
+
+        start_date = datetime.strptime(request.form["start_date"], "%Y-%m-%d").date()
+        end_raw = request.form.get("end_date", "").strip()
+        end_date = datetime.strptime(end_raw, "%Y-%m-%d").date() if end_raw else None
+        frequency = request.form.get("frequency", "monthly")
+        if frequency not in RECURRING_FREQUENCIES:
+            frequency = "monthly"
+
+        descriptions = request.form.getlist("description")
+        quantities = request.form.getlist("quantity")
+        unit_prices = request.form.getlist("unit_price")
+        taxables = request.form.getlist("taxable")
+        expense_account_ids = request.form.getlist("expense_account_id")
+        item_ids = request.form.getlist("item_id")
+        item_ids += [""] * (len(descriptions) - len(item_ids))
+
+        template = RecurringBill(
+            company_id=current_company_id(),
+            name=name,
+            vendor_id=int(vendor_id),
+            memo=request.form.get("memo", "").strip() or None,
+            vat_rate=float(request.form.get("vat_rate") or 15.00),
+            frequency=frequency,
+            due_days=int(request.form.get("due_days") or 30),
+            start_date=start_date,
+            next_run_date=start_date,
+            end_date=end_date,
+        )
+
+        for i, (desc, qty, price, acc_id, item_id_raw) in enumerate(
+            zip(descriptions, quantities, unit_prices, expense_account_ids, item_ids)
+        ):
+            if not desc.strip() or not qty or not price:
+                continue
+            item = scoped_get(Item, int(item_id_raw)) if item_id_raw else None
+            template.lines.append(
+                RecurringBillLine(
+                    item=item,
+                    description=desc.strip(),
+                    quantity=float(qty),
+                    unit_price=float(price),
+                    taxable=str(i) in taxables,
+                    expense_account_id=item.inventory_account_id if (item and item.is_tracked) else int(acc_id),
+                )
+            )
+
+        if not template.lines:
+            flash("Add at least one line.", "error")
+            return render_form(request.form)
+
+        db.session.add(template)
+        db.session.flush()
+        log_audit("create", "recurring_bill", template.id, f"Created recurring bill template '{template.name}'", template.name)
+        db.session.commit()
+        flash(f"Recurring bill template '{template.name}' created — first bill due {template.next_run_date}.", "success")
+        return redirect(url_for("purchases.recurring_bill_detail", template_id=template.id))
+
+    return render_form({})
+
+
+@purchases_bp.route("/recurring-bills/<int:template_id>")
+@login_required
+def recurring_bill_detail(template_id):
+    template = scoped_or_404(RecurringBill, template_id)
+    generated = (
+        scoped_query(Bill)
+        .filter(Bill.memo.like(f"[Recurring: {template.name}]%"))
+        .order_by(Bill.bill_date.desc(), Bill.id.desc())
+        .all()
+    )
+    return render_template("purchases/recurring_bill_detail.html", template=template, generated=generated)
+
+
+@purchases_bp.route("/recurring-bills/<int:template_id>/toggle", methods=["POST"])
+@login_required
+def recurring_bill_toggle(template_id):
+    template = scoped_or_404(RecurringBill, template_id)
+    if not template.is_active and template.is_ended:
+        flash("This template's end date has passed — extend the end date before reactivating it.", "error")
+        return redirect(url_for("purchases.recurring_bill_detail", template_id=template.id))
+    template.is_active = not template.is_active
+    log_audit(
+        "update", "recurring_bill", template.id,
+        f"{'Resumed' if template.is_active else 'Paused'} recurring bill '{template.name}'", template.name,
+    )
+    db.session.commit()
+    flash(f"'{template.name}' {'resumed' if template.is_active else 'paused'}.", "success")
+    return redirect(url_for("purchases.recurring_bill_detail", template_id=template.id))
+
+
+@purchases_bp.route("/recurring-bills/<int:template_id>/delete", methods=["POST"])
+@login_required
+def recurring_bill_delete(template_id):
+    template = scoped_or_404(RecurringBill, template_id)
+    if template.bills_generated > 0:
+        flash("Can't delete a template that has already generated bills — pause it instead.", "error")
+        return redirect(url_for("purchases.recurring_bill_detail", template_id=template.id))
+    name = template.name
+    db.session.delete(template)
+    log_audit("delete", "recurring_bill", template_id, f"Deleted unused recurring bill template '{name}'", name)
+    db.session.commit()
+    flash(f"Template '{name}' deleted.", "success")
+    return redirect(url_for("purchases.recurring_bill_list"))
+
+
+@purchases_bp.route("/recurring-bills/<int:template_id>/generate", methods=["POST"])
+@login_required
+def recurring_bill_generate_now(template_id):
+    """Generates one bill from this template immediately, regardless of next_run_date,
+    then advances the schedule by one occurrence — same as if it had come due today."""
+    template = scoped_or_404(RecurringBill, template_id)
+    bill = _build_bill_from_template(template)
+
+    template.advance_next_run_date()
+    template.last_generated_at = datetime.utcnow()
+    template.bills_generated += 1
+    log_audit(
+        "generate", "recurring_bill", template.id,
+        f"Generated bill {bill.bill_no} from template '{template.name}'", template.name,
+    )
+    db.session.commit()
+
+    flash(f"Bill {bill.bill_no} generated from '{template.name}'.", "success")
+    return redirect(url_for("purchases.bill_detail", bill_id=bill.id))
+
+
+@purchases_bp.route("/recurring-bills/run-due", methods=["POST"])
+@login_required
+def recurring_bill_run_due():
+    """Bulk action: generates one bill for every active template in the current company
+    whose next_run_date has arrived. Same underlying logic the nightly scheduler (app/scheduler.py)
+    runs automatically across every company — this button exists so a due bill can be produced
+    on demand, without waiting for the next scheduled pass."""
+    generated_numbers, skipped = generate_due_bills_for_current_company(source="manual")
+    if not generated_numbers and not skipped:
+        flash("No recurring bills are due right now.", "success")
+    if generated_numbers:
+        flash(f"Generated {len(generated_numbers)} bill(s): {', '.join(generated_numbers)}.", "success")
+    for message in skipped:
+        flash(message, "error")
+    return redirect(url_for("purchases.recurring_bill_list"))
+
+
+def generate_due_bills_for_current_company(source="manual"):
+    """Generates one bill for every active template in the *currently active company*
+    (from current_company_id()) whose next_run_date has arrived, advancing each template's
+    schedule as it goes. Company-agnostic caller convention — see the identical comment on
+    sales.generate_due_invoices_for_current_company.
+
+    Returns (generated_bill_numbers, skipped_error_messages).
+    """
+    due_templates = [t for t in scoped_query(RecurringBill).all() if t.is_due]
+    generated_numbers = []
+    skipped = []
+    for template in due_templates:
+        try:
+            bill = _build_bill_from_template(template)
+        except Exception as exc:  # a missing Chart-of-Accounts entry etc — never let one bad template block the rest
+            db.session.rollback()
+            skipped.append(f"{template.name}: {exc}")
+            continue
+        template.advance_next_run_date()
+        template.last_generated_at = datetime.utcnow()
+        template.bills_generated += 1
+        log_audit(
+            "generate", "recurring_bill", template.id,
+            f"Generated bill {bill.bill_no} from template '{template.name}' ({source} run)", template.name,
+        )
+        db.session.commit()
+        generated_numbers.append(bill.bill_no)
+    return generated_numbers, skipped
 
 
 # ── Vendor Credits ────────────────────────────────────────────────────
@@ -785,6 +1258,7 @@ def payment_new():
     base_currency = current_company().base_currency
 
     vendor_id = request.values.get("vendor_id", type=int)
+    is_advance = bool(request.values.get("advance"))
     outstanding_bills = []
     if vendor_id:
         vendor = scoped_get(Vendor, vendor_id)
@@ -815,6 +1289,7 @@ def payment_new():
                 "purchases/payment_form.html", vendors=vendors, source_accounts=source_accounts,
                 selected_vendor_id=vendor_id, outstanding_bills=outstanding_bills,
                 form=request.form, today=date.today().isoformat(), currencies=CURRENCIES, base_currency=base_currency,
+                is_advance=is_advance,
             )
 
         if exchange_rate <= 0:
@@ -870,6 +1345,7 @@ def payment_new():
         "purchases/payment_form.html", vendors=vendors, source_accounts=source_accounts,
         selected_vendor_id=vendor_id, outstanding_bills=outstanding_bills,
         form={}, today=date.today().isoformat(), currencies=CURRENCIES, base_currency=base_currency,
+        is_advance=is_advance,
     )
 
 
@@ -893,7 +1369,7 @@ def post_vendor_payment(payment):
 
     ap_relief_total = 0.0
     for app in payment.applications:
-        ap_relief_total += round(float(app.amount_applied) * float(app.bill.exchange_rate), 2)
+        ap_relief_total += round(float(app.amount_applied) * app.bill.carrying_exchange_rate, 2)
     unapplied = round(float(payment.amount) - sum(float(a.amount_applied) for a in payment.applications), 2)
     ap_relief_total = round(ap_relief_total + unapplied * payment_rate, 2)
 
@@ -922,9 +1398,10 @@ def payment_detail(payment_id):
 
 # ── Reports ─────────────────────────────────────────────────────────
 
-@purchases_bp.route("/aging")
-@login_required
-def aging_report():
+AGING_BUCKET_LABELS = [("current", "Current"), ("1_30", "1-30 Days"), ("31_60", "31-60 Days"), ("61_90", "61-90 Days"), ("90_plus", "90+ Days")]
+
+
+def _ap_aging_buckets():
     today = date.today()
     bills = scoped_query(Bill).filter(Bill.status.in_(["open", "partial"])).all()
 
@@ -946,5 +1423,46 @@ def aging_report():
 
     totals = {key: sum((b.balance_due for b in bs), start=0.0) for key, bs in buckets.items()}
     grand_total = sum(totals.values(), start=0.0)
+    return today, buckets, totals, grand_total
 
+
+@purchases_bp.route("/aging")
+@login_required
+def aging_report():
+    today, buckets, totals, grand_total = _ap_aging_buckets()
     return render_template("purchases/aging.html", buckets=buckets, totals=totals, grand_total=grand_total, today=today)
+
+
+def _ap_aging_rows():
+    today, buckets, _, _ = _ap_aging_buckets()
+    rows = []
+    for key, label in AGING_BUCKET_LABELS:
+        for bill in buckets[key]:
+            rows.append((label, bill.bill_no, bill.vendor.name, bill.due_date.isoformat(), bill.days_overdue, round(bill.balance_due, 2)))
+    return today, rows
+
+
+@purchases_bp.route("/aging/export.xlsx")
+@login_required
+def aging_export_xlsx():
+    today, rows = _ap_aging_rows()
+    headers = ["Bucket", "Bill #", "Vendor", "Due Date", "Days Overdue", "Balance Due"]
+    buffer = rows_to_xlsx(headers, rows, sheet_title="AP Aging")
+    return send_file(
+        buffer, as_attachment=True, download_name=f"AP-Aging-{today.isoformat()}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@purchases_bp.route("/aging/export.pdf")
+@login_required
+def aging_export_pdf():
+    today, rows = _ap_aging_rows()
+    headers = ["Bucket", "Bill #", "Vendor", "Due Date", "Days Overdue", "Balance Due"]
+    buffer = rows_to_pdf(
+        "Accounts Payable Aging", f"As of {today.isoformat()}", headers, rows,
+        company=current_company(), numeric_cols={4, 5},
+    )
+    return send_file(
+        buffer, as_attachment=True, download_name=f"AP-Aging-{today.isoformat()}.pdf", mimetype="application/pdf",
+    )

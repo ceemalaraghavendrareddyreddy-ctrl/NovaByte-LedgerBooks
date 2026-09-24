@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Bank Feeds <span class="badge">Beta</span></h1>
+
+{% if company and company.bank_feed_provider == 'plaid' %}
+<div class="callout" style="background:var(--accent-soft,#eef4f1); border-left:3px solid var(--accent,#2f6b4f); padding:.75rem 1rem; border-radius:0 6px 6px 0; margin-bottom:1rem; font-size:.9rem;">
+  Plaid is genuinely connected — this pulls real transaction data from Plaid's Sandbox test
+  banks (not synthetic data invented by this app). It won't reach a real bank account until
+  the company applies for Plaid Production access directly with Plaid.
+</div>
+{% else %}
+<div class="callout" style="background:var(--accent-soft,#eef4f1); border-left:3px solid var(--accent,#2f6b4f); padding:.75rem 1rem; border-radius:0 6px 6px 0; margin-bottom:1rem; font-size:.9rem;">
+  No provider configured yet — or one other than Plaid is selected, which is still scaffolding
+  (see Settings → Company → Bank Feeds). Until then, keep using
+  <a href="{{ url_for('banking.import_start') }}">Import Statement (CSV)</a> — it works today.
+</div>
+{% endif %}
+
+{% if not is_configured %}
+<div class="card">
+  <p>No bank-feed provider is configured yet.</p>
+  <a class="btn secondary" href="{{ url_for('settings.company') }}#bank-feeds">Configure in Settings → Company</a>
+</div>
+{% else %}
+<div class="card">
+  <p>Provider: <strong>{{ company.bank_feed_provider }}</strong></p>
+</div>
+{% endif %}
+
+<div class="card">
+  <h3 style="margin-top:0;">Linked accounts</h3>
+  {% if accounts %}
+  <table>
+    <thead><tr><th>Account</th><th>Plaid connection</th><th>External account ID (manual override)</th><th></th></tr></thead>
+    <tbody>
+      {% for a in accounts %}
+      <tr>
+        <td>{{ a.code }} — {{ a.name }}</td>
+        <td>
+          {% if company and company.bank_feed_provider == 'plaid' %}
+            {% if a.bank_feed_access_token %}
+              <span class="badge debit">Connected</span>
+            {% else %}
+              <button class="btn small plaid-connect-btn" type="button" data-account-id="{{ a.id }}">Connect with Plaid</button>
+            {% endif %}
+          {% else %}
+            <span class="text-muted">-</span>
+          {% endif %}
+        </td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('banking.bank_feeds_link', account_id=a.id) }}" style="display:flex; gap:0.4rem;">
+            <input type="text" name="external_account_id" value="{{ a.bank_feed_external_account_id or '' }}" placeholder="not linked" style="max-width:200px;">
+            <button class="btn small secondary" type="submit">Save</button>
+          </form>
+        </td>
+        <td>
+          <form class="inline" method="post" action="{{ url_for('banking.bank_feeds_sync', account_id=a.id) }}">
+            <button class="btn small secondary" type="submit">Sync Now</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No bank/cash accounts yet — add one under <a href="{{ url_for('banking.account_list') }}">Bank Accounts</a> first.</p>
+  {% endif %}
+</div>
+
+<a class="btn secondary" href="{{ url_for('banking.account_list') }}">Back to Bank Accounts</a>
+
+{% if company and company.bank_feed_provider == 'plaid' %}
+<script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+<script>
+document.querySelectorAll('.plaid-connect-btn').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    const accountId = btn.dataset.accountId;
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+      const resp = await fetch("{{ url_for('banking.bank_feeds_plaid_link_token') }}", { method: 'POST' });
+      const data = await resp.json();
+      if (!resp.ok) { alert(data.error || 'Could not start Plaid Link.'); btn.disabled = false; btn.textContent = 'Connect with Plaid'; return; }
+
+      const handler = Plaid.create({
+        token: data.link_token,
+        onSuccess: (public_token) => {
+          const form = document.createElement('form');
+          form.method = 'POST';
+          form.action = `/banking/bank-feeds/${accountId}/plaid/exchange`;
+          const input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = 'public_token';
+          input.value = public_token;
+          form.appendChild(input);
+          document.body.appendChild(form);
+          form.submit();
+        },
+        onExit: () => {
+          btn.disabled = false;
+          btn.textContent = 'Connect with Plaid';
+        },
+      });
+      handler.open();
+    } catch (e) {
+      alert('Could not reach the server to start Plaid Link.');
+      btn.disabled = false;
+      btn.textContent = 'Connect with Plaid';
+    }
+  });
+});
+</script>
+{% endif %}
+{% endblock %}

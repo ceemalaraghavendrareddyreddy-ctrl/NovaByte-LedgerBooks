@@ -11,7 +11,7 @@ access silently changed the day this shipped.
 """
 from functools import wraps
 
-from flask import abort
+from flask import abort, request
 from flask_login import current_user
 
 MODULES = [
@@ -27,14 +27,27 @@ MODULES = [
 MODULE_KEYS = {key for key, _, _ in MODULES}
 
 
+SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
+
+
 def module_required(module_key):
     """Gates every route in a blueprint via that blueprint's before_request —
     see app/__init__.py's register_module_guards() — rather than decorating
-    each view individually, so a route added later is covered automatically."""
+    each view individually, so a route added later is covered automatically.
+
+    A view-only user (see User.module_view_only) can still reach every GET page in
+    the module — including a page that renders a form — but any request that
+    actually changes something (POST/PUT/PATCH/DELETE) 403s. This is a blunt
+    instrument compared to per-action permissions, but it's the same GET-is-safe
+    convention this app's own routes already follow everywhere, so it needs no
+    per-view opt-in to work correctly.
+    """
     def check():
         if not current_user.is_authenticated:
             return  # login_required elsewhere handles the actual redirect
         if not current_user.can_use_module(module_key):
+            abort(403)
+        if request.method not in SAFE_METHODS and current_user.module_view_only(module_key):
             abort(403)
     return check
 

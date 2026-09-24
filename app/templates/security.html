@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Security</h1>
+<div class="card" style="max-width:520px;">
+  <h3 style="margin-top:0;">Two-Factor Authentication</h3>
+  {% if current_user.totp_enabled %}
+  <p><span class="badge debit">Enabled</span> Your account requires an authenticator code at sign-in.</p>
+  <a class="btn danger" href="{{ url_for('auth.disable_2fa') }}">Disable Two-Factor Authentication</a>
+  {% else %}
+  <p style="color:var(--muted);">Add an extra layer of security: after your password, you'll also need a 6-digit code from an authenticator app (Google Authenticator, Authy, 1Password, etc.).</p>
+  <a class="btn" href="{{ url_for('auth.setup_2fa') }}">Enable Two-Factor Authentication</a>
+  {% endif %}
+</div>
+<div class="card" style="max-width:520px;">
+  <h3 style="margin-top:0;">Password</h3>
+  <a class="btn secondary" href="{{ url_for('auth.change_password') }}">Change Password</a>
+</div>
+{% endblock %}

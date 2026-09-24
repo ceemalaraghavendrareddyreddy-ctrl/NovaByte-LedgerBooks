@@ -6,11 +6,47 @@ from flask_login import current_user, login_required
 from app import db
 from app.audit import log_audit
 from app.auth import current_company_id
-from app.models import ACCOUNT_TYPES, Account, JournalEntry, JournalLine
+from app.models import ACCOUNT_TYPES, CURRENCIES, Account, JournalEntry, JournalLine
 from app.period_lock import assert_period_open
 from app.scoping import scoped_or_404, scoped_query
 
 ledger_bp = Blueprint("ledger", __name__, url_prefix="/ledger")
+
+VAT_PAYABLE_CODE = "2100"     # output VAT — credited when a line's own tax % applies to a credit
+VAT_RECEIVABLE_CODE = "2110"  # input VAT — debited when a line's own tax % applies to a debit
+
+
+def _expand_line_with_tax(lines_out, account_id, debit, credit, memo, tax_rate):
+    """Appends one plain JournalLine for (account_id, debit, credit) to lines_out, plus —
+    if tax_rate is set — a second line posting that percentage of whichever side is
+    non-zero to the matching VAT account. The tax amount is ADDED on top of the entered
+    amount (the same "line amount is net, VAT is extra" convention Invoice/Bill lines
+    already use), so a manual entry with tax looks exactly like an invoice/bill line:
+    100 + 15% VAT needs a 115 line on the other side of the entry, not a 100 one.
+
+    Returns (extra_debit, extra_credit) to add to the entry's running totals, or None if
+    the required VAT account is missing (caller flashes and aborts in that case).
+    """
+    if not tax_rate:
+        lines_out.append(JournalLine(account_id=account_id, debit=debit, credit=credit, memo=memo))
+        return 0.0, 0.0
+
+    if debit > 0:
+        vat_account = scoped_query(Account).filter_by(code=VAT_RECEIVABLE_CODE).first()
+        if not vat_account:
+            return None
+        tax_amount = round(debit * tax_rate / 100, 2)
+        lines_out.append(JournalLine(account_id=account_id, debit=debit, credit=0, memo=memo))
+        lines_out.append(JournalLine(account_id=vat_account.id, debit=tax_amount, credit=0, memo=f"VAT {tax_rate:g}%" + (f" - {memo}" if memo else "")))
+        return tax_amount, 0.0
+    else:
+        vat_account = scoped_query(Account).filter_by(code=VAT_PAYABLE_CODE).first()
+        if not vat_account:
+            return None
+        tax_amount = round(credit * tax_rate / 100, 2)
+        lines_out.append(JournalLine(account_id=account_id, debit=0, credit=credit, memo=memo))
+        lines_out.append(JournalLine(account_id=vat_account.id, debit=0, credit=tax_amount, memo=f"VAT {tax_rate:g}%" + (f" - {memo}" if memo else "")))
+        return 0.0, tax_amount
 
 
 # ── Chart of Accounts ──────────────────────────────────────────────
@@ -30,7 +66,7 @@ def account_new():
         code = request.form["code"].strip()
         if scoped_query(Account).filter_by(code=code).first():
             flash(f"Account code {code} already exists.", "error")
-            return render_template("ledger/account_form.html", account_types=ACCOUNT_TYPES, form=request.form)
+            return render_template("ledger/account_form.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES, form=request.form)
 
         account = Account(
             company_id=current_company_id(),
@@ -41,6 +77,9 @@ def account_new():
             parent_id=request.form.get("parent_id") or None,
             description=request.form.get("description", "").strip() or None,
             opening_balance=request.form.get("opening_balance") or 0,
+            bank_name=request.form.get("bank_name", "").strip() or None,
+            account_number=request.form.get("account_number", "").strip() or None,
+            currency=request.form.get("currency") or "MUR",
         )
         db.session.add(account)
         db.session.commit()
@@ -51,7 +90,7 @@ def account_new():
     # Lets the Banking > Accounts page's "+ Add Bank Account" link pre-fill type/subtype
     # via query string, so someone adding a bank account doesn't need to know that's
     # "Asset" + "Cash and Cash Equivalents" under the hood.
-    return render_template("ledger/account_form.html", account_types=ACCOUNT_TYPES, accounts=accounts, form=request.args)
+    return render_template("ledger/account_form.html", account_types=ACCOUNT_TYPES, currencies=CURRENCIES, accounts=accounts, form=request.args)
 
 
 @ledger_bp.route("/accounts/<int:account_id>")
@@ -108,6 +147,8 @@ def journal_new():
         debits = request.form.getlist("debit")
         credits = request.form.getlist("credit")
         line_memos = request.form.getlist("line_memo")
+        tax_rates = request.form.getlist("tax_rate")
+        tax_rates += [""] * (len(account_ids) - len(tax_rates))
 
         entry = JournalEntry(
             company_id=current_company_id(),
@@ -120,18 +161,23 @@ def journal_new():
 
         total_debit = 0
         total_credit = 0
-        for acc_id, debit_raw, credit_raw, line_memo in zip(account_ids, debits, credits, line_memos):
+        for acc_id, debit_raw, credit_raw, line_memo, tax_rate_raw in zip(account_ids, debits, credits, line_memos, tax_rates):
             if not acc_id:
                 continue
             debit = float(debit_raw or 0)
             credit = float(credit_raw or 0)
             if debit == 0 and credit == 0:
                 continue
-            total_debit += debit
-            total_credit += credit
-            entry.lines.append(
-                JournalLine(account_id=int(acc_id), debit=debit, credit=credit, memo=line_memo.strip() or None)
-            )
+            tax_rate = float(tax_rate_raw) if tax_rate_raw.strip() != "" else 0.0
+            memo_text = line_memo.strip() or None
+            result = _expand_line_with_tax(entry.lines, int(acc_id), debit, credit, memo_text, tax_rate)
+            if result is None:
+                missing_code = VAT_RECEIVABLE_CODE if debit > 0 else VAT_PAYABLE_CODE
+                flash(f"Can't apply tax: account {missing_code} is missing from the Chart of Accounts.", "error")
+                return render_template("ledger/journal_form.html", accounts=accounts, form=request.form)
+            extra_debit, extra_credit = result
+            total_debit += debit + extra_debit
+            total_credit += credit + extra_credit
 
         if not entry.lines:
             flash("Add at least one line with an amount.", "error")
@@ -181,20 +227,29 @@ def journal_edit(entry_id):
         debits = request.form.getlist("debit")
         credits = request.form.getlist("credit")
         line_memos = request.form.getlist("line_memo")
+        tax_rates = request.form.getlist("tax_rate")
+        tax_rates += [""] * (len(account_ids) - len(tax_rates))
 
         new_lines = []
         total_debit = 0
         total_credit = 0
-        for acc_id, debit_raw, credit_raw, line_memo in zip(account_ids, debits, credits, line_memos):
+        for acc_id, debit_raw, credit_raw, line_memo, tax_rate_raw in zip(account_ids, debits, credits, line_memos, tax_rates):
             if not acc_id:
                 continue
             debit = float(debit_raw or 0)
             credit = float(credit_raw or 0)
             if debit == 0 and credit == 0:
                 continue
-            total_debit += debit
-            total_credit += credit
-            new_lines.append(JournalLine(account_id=int(acc_id), debit=debit, credit=credit, memo=line_memo.strip() or None))
+            tax_rate = float(tax_rate_raw) if tax_rate_raw.strip() != "" else 0.0
+            memo_text = line_memo.strip() or None
+            result = _expand_line_with_tax(new_lines, int(acc_id), debit, credit, memo_text, tax_rate)
+            if result is None:
+                missing_code = VAT_RECEIVABLE_CODE if debit > 0 else VAT_PAYABLE_CODE
+                flash(f"Can't apply tax: account {missing_code} is missing from the Chart of Accounts.", "error")
+                return render_template("ledger/journal_form.html", accounts=accounts, form=request.form, editing=True, entry=entry)
+            extra_debit, extra_credit = result
+            total_debit += debit + extra_debit
+            total_credit += credit + extra_credit
 
         if not new_lines:
             flash("Add at least one line with an amount.", "error")

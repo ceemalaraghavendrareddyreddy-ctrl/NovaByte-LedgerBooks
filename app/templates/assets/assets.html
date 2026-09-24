@@ -13,12 +13,14 @@
 <div class="card">
   {% if assets %}
   <table>
-    <thead><tr><th>Asset</th><th>Account</th><th>Purchased</th><th class="num">Cost</th><th class="num">Acc. Depreciation</th><th class="num">Net Book Value</th><th>Status</th></tr></thead>
+    <thead><tr><th>Asset</th><th>Account</th><th>Method</th><th>Purchased</th><th class="num">Cost</th><th class="num">Acc. Depreciation</th><th class="num">Net Book Value</th><th>Status</th><th></th></tr></thead>
     <tbody>
       {% for a in assets %}
       <tr>
         <td><a href="{{ url_for('assets.asset_detail', asset_id=a.id) }}">{{ a.name }}</a></td>
         <td>{{ a.asset_account.code }} - {{ a.asset_account.name }}</td>
+        {% set method_short = {'straight_line': 'Straight Line', 'reducing_balance': 'Reducing Bal.', 'declining_150': '150% Declining', 'declining_200': '200% Declining'} %}
+        <td>{{ method_short.get(a.depreciation_method, 'Straight Line') }} &middot; {{ 'Yearly' if a.depreciation_frequency == 'yearly' else 'Monthly' }}</td>
         <td>{{ a.purchase_date }}</td>
         <td class="num">{{ '%.2f'|format(a.purchase_cost) }}</td>
         <td class="num">{{ '%.2f'|format(a.accumulated_depreciation) }}</td>
@@ -29,6 +31,7 @@
           {% else %}<span class="badge debit">active</span>{% endif %}
           {% if a.is_due %}<span class="badge" style="background:#fbe6e4;color:var(--error);">due</span>{% endif %}
         </td>
+        <td>{% if a.status != 'disposed' %}<a class="btn small secondary" href="{{ url_for('assets.asset_edit', asset_id=a.id) }}">Edit</a>{% endif %}</td>
       </tr>
       {% endfor %}
     </tbody>

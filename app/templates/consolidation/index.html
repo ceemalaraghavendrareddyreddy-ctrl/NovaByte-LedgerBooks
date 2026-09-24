@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Consolidated Report</h1>
+<p style="color:var(--muted);">Rolls up every company you have access to into one reporting currency ({{ reporting_currency }}). Each company keeps its own separate books — this is a read-only summary, not a merge. Intercompany transactions are not eliminated.</p>
+
+<form method="get" class="card">
+  <div class="form-row" style="max-width:200px;"><label>P&amp;L From</label><input type="date" name="start_date" value="{{ start_date }}"></div>
+  <div class="form-row" style="max-width:200px;"><label>P&amp;L To</label><input type="date" name="end_date" value="{{ end_date }}"></div>
+  <div class="form-row" style="max-width:200px;"><label>Balance Sheet As Of</label><input type="date" name="as_of" value="{{ as_of }}"></div>
+
+  {% for row in rows if row.needs_rate %}
+  <div class="form-row" style="max-width:260px;">
+    <label>{{ row.company.business_name }} rate ({{ row.company.base_currency }} → {{ reporting_currency }})</label>
+    <input type="number" step="0.000001" name="rate_{{ row.company.id }}" value="{{ row.rate }}">
+  </div>
+  {% endfor %}
+
+  <button class="btn" type="submit">Recalculate</button>
+</form>
+
+<div class="card">
+  <h3 style="margin-top:0;">Profit &amp; Loss — {{ start_date }} to {{ end_date }}</h3>
+  <table>
+    <thead><tr><th>Company</th><th class="num">Income</th><th class="num">Expense</th><th class="num">Net Income</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.company.business_name }}{% if row.needs_rate %} <span style="color:var(--muted); font-size:0.8em;">({{ row.company.base_currency }} @ {{ row.rate }})</span>{% endif %}</td>
+        <td class="num">{{ '%.2f'|format(row.income) }}</td>
+        <td class="num">{{ '%.2f'|format(row.expense) }}</td>
+        <td class="num">{{ '%.2f'|format(row.income - row.expense) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Consolidated Total ({{ reporting_currency }})</th>
+        <th class="num">{{ '%.2f'|format(total_income) }}</th>
+        <th class="num">{{ '%.2f'|format(total_expense) }}</th>
+        <th class="num">{{ '%.2f'|format(net_income) }}</th>
+      </tr>
+    </tfoot>
+  </table>
+</div>
+
+<div class="card">
+  <h3 style="margin-top:0;">Balance Sheet — as of {{ as_of }}</h3>
+  <table>
+    <thead><tr><th>Company</th><th class="num">Assets</th><th class="num">Liabilities</th><th class="num">Equity</th></tr></thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>
+        <td>{{ row.company.business_name }}</td>
+        <td class="num">{{ '%.2f'|format(row.assets) }}</td>
+        <td class="num">{{ '%.2f'|format(row.liabilities) }}</td>
+        <td class="num">{{ '%.2f'|format(row.equity) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <th>Consolidated Total ({{ reporting_currency }})</th>
+        <th class="num">{{ '%.2f'|format(total_assets) }}</th>
+        <th class="num">{{ '%.2f'|format(total_liabilities) }}</th>
+        <th class="num">{{ '%.2f'|format(total_equity) }}</th>
+      </tr>
+    </tfoot>
+  </table>
+  {% if (total_assets - total_liabilities - total_equity)|abs > 0.01 %}
+  <p style="color:var(--muted); font-size:0.85rem;">Note: totals may not balance to the cent across currencies purely due to manual rate rounding.</p>
+  {% endif %}
+</div>
+{% endblock %}

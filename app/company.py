@@ -26,6 +26,7 @@ STARTER_ACCOUNTS = [
     ("4900", "Other Income", "Income", None),
     ("4910", "Gain/Loss on Disposal of Assets", "Income", None),  # a loss posts as a debit here, reducing it
     ("4920", "Realized Gain/Loss on Exchange", "Income", None),  # a loss posts as a debit here, reducing it
+    ("4925", "Unrealized Gain/Loss on Exchange", "Income", None),  # period-end AR/AP revaluation — see app/fx_revaluation.py
     ("5000", "Cost of Goods Sold", "Expense", "Cost of Goods Sold"),
     ("6000", "Rent Expense", "Expense", "Operating Expense"),
     ("6100", "Utilities Expense", "Expense", "Operating Expense"),

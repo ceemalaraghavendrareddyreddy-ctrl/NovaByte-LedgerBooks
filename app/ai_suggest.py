@@ -7,14 +7,17 @@ external API, costs nothing per use, and is honest about what it is: a
 best-effort suggestion, never authoritative, and the category dropdown it
 feeds stays fully editable regardless of what it suggests.
 
-Two layers, in priority order, so it also gets more useful the more a
+Three layers, in priority order, so it also gets more useful the more a
 company actually uses Import Statement — the thing a static keyword list
 alone never does:
 
-  1. History — has a transaction with a similar description been
+  1. User-defined Bank Rules (app/bank_rules.py) — an explicit "if the
+     description contains X, use account Y" rule the user set up themselves.
+     Always wins, since the user said so directly.
+  2. History — has a transaction with a similar description been
      categorized before, on this same bank account? If so, suggest whatever
      account was used then.
-  2. Keyword rules — a small dictionary of common expense terms, as a
+  3. Keyword rules — a small dictionary of common expense terms, as a
      sensible default before any history exists.
 
 Swapping in a real model later means replacing suggest_category_account's
@@ -24,7 +27,7 @@ None out) doesn't change.
 """
 import re
 
-from app.models import Account, BankImportLine, BankStatementImport
+from app.models import Account, BankImportLine, BankRule, BankStatementImport
 
 # (keywords to look for in the statement line's description, account code to suggest)
 KEYWORD_RULES = [
@@ -75,12 +78,24 @@ def _history_match(description, bank_account_id, company_id):
     return None
 
 
+def _rule_match(description, company_id):
+    rules = BankRule.query.filter_by(company_id=company_id, is_active=True).order_by(BankRule.id).all()
+    for rule in rules:
+        if rule.matches(description) and rule.account.is_active:
+            return rule.account
+    return None
+
+
 def suggest_category_account(description, bank_account_id, company_id):
     """Best-effort suggestion for which Chart of Accounts entry a bank
     statement line probably belongs to. Returns (Account, reason) — reason
-    is "history" or "keyword", so the UI can say honestly which one it was —
-    or (None, None) if nothing matched. Always just a suggestion, never
-    assumed to be correct."""
+    is "rule", "history" or "keyword", so the UI can say honestly which one
+    it was — or (None, None) if nothing matched. Always just a suggestion,
+    never assumed to be correct."""
+    rule_account = _rule_match(description, company_id)
+    if rule_account:
+        return rule_account, "rule"
+
     history = _history_match(description, bank_account_id, company_id)
     if history and history.is_active:
         return history, "history"

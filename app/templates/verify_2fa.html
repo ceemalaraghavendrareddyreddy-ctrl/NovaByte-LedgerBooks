@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Verify · LedgerBooks{% endblock %}
+{% block content %}
+<div class="auth-card">
+  <div class="auth-brand">
+    <span class="brand-logo">LB</span>
+    <span class="auth-brand-title">LedgerBooks</span>
+  </div>
+  <h1 class="auth-title">Two-factor verification</h1>
+  <p class="auth-sub">Enter the 6-digit code from your authenticator app.</p>
+  <form method="post">
+    <div class="auth-field">
+      <label for="code">Authentication code</label>
+      <input id="code" type="text" name="code" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" autofocus>
+    </div>
+    <button class="btn primary" type="submit">Verify</button>
+  </form>
+  <p class="auth-sub" style="margin-top:1.5rem;font-size:0.9rem;">Lost your device?</p>
+  <form method="post">
+    <div class="auth-field">
+      <label for="recovery_code">Recovery code</label>
+      <input id="recovery_code" type="text" name="recovery_code" placeholder="xxxx-xxxx">
+    </div>
+    <button class="btn secondary" type="submit">Use recovery code</button>
+  </form>
+  <div class="auth-footer">
+    <a href="{{ url_for('auth.login') }}">Back to sign in</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Disable Two-Factor Authentication</h1>
+<div class="card" style="max-width:480px;">
+  <p style="color:var(--muted);">Confirm your password to turn off two-factor authentication.</p>
+  <form method="post">
+    <div class="form-row"><label>Password</label><input type="password" name="password" autocomplete="current-password" required autofocus></div>
+    <button class="btn danger" type="submit">Disable</button>
+    <a class="btn secondary" href="{{ url_for('auth.security') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

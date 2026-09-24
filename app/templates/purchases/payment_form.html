@@ -1,8 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Pay Vendor</h1>
+<h1>{{ 'Record Advance Payment' if is_advance else 'Pay Vendor' }}</h1>
+{% if is_advance %}
+<p class="flash flash-success">
+  Recording an advance/prepayment to this vendor — leave "Apply to Bills" at 0 to keep it fully
+  on account; you can apply it to a bill later from the vendor's own page.
+</p>
+{% endif %}
 <div class="card">
   <form method="get" id="vendor-select-form">
+    {% if is_advance %}<input type="hidden" name="advance" value="1">{% endif %}
     <div class="form-row">
       <label>Vendor</label>
       <select name="vendor_id" onchange="this.form.submit()">
@@ -17,6 +24,7 @@
   {% if selected_vendor_id %}
   <form method="post" id="payment-form">
     <input type="hidden" name="vendor_id" value="{{ selected_vendor_id }}">
+    {% if is_advance %}<input type="hidden" name="advance" value="1">{% endif %}
     <div class="form-row">
       <label>Payment Date</label>
       <input type="date" name="payment_date" required value="{{ form.payment_date or today }}">

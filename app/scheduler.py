@@ -66,6 +66,15 @@ def run_due_recurring_invoices(app):
     )
 
 
+def run_due_recurring_bills(app):
+    """Runs one pass across every company, generating whatever recurring bills are due."""
+    from app.purchases import generate_due_bills_for_current_company
+    _run_across_companies(
+        app, lambda: generate_due_bills_for_current_company(source="scheduled"),
+        "Recurring bills",
+    )
+
+
 def run_due_asset_depreciation(app):
     """Runs one pass across every company, posting depreciation for whatever fixed
     assets are due (a no-op for any asset not yet due — see Asset.is_due)."""
@@ -74,6 +83,22 @@ def run_due_asset_depreciation(app):
         app, lambda: run_depreciation_for_current_company(source="scheduled"),
         "Asset depreciation",
     )
+
+
+def run_due_reminders(app):
+    """Runs one pass across every company, auto-emailing overdue-invoice reminders
+    for whichever companies opted in (CompanySettings.auto_reminders_enabled) — a
+    no-op everywhere else."""
+    from app.reminders import send_auto_reminders_for_current_company
+    _run_across_companies(app, send_auto_reminders_for_current_company, "Auto reminders")
+
+
+def run_due_scheduled_reports(app):
+    """Runs one pass across every company, sending the scheduled digest email for
+    whichever companies opted in AND whose cadence is actually due today — a no-op
+    everywhere else."""
+    from app.scheduled_reports import send_scheduled_report_for_current_company
+    _run_across_companies(app, send_scheduled_report_for_current_company, "Scheduled report")
 
 
 def init_scheduler(app, hour=6, minute=0):
@@ -101,6 +126,12 @@ def init_scheduler(app, hour=6, minute=0):
     inv_minute = app.config.get("RECURRING_INVOICE_MINUTE", minute)
     dep_hour = app.config.get("ASSET_DEPRECIATION_HOUR", hour)
     dep_minute = app.config.get("ASSET_DEPRECIATION_MINUTE", minute + 5)
+    reminders_hour = app.config.get("AUTO_REMINDERS_HOUR", hour)
+    reminders_minute = app.config.get("AUTO_REMINDERS_MINUTE", minute + 10)
+    report_hour = app.config.get("SCHEDULED_REPORT_HOUR", hour)
+    report_minute = app.config.get("SCHEDULED_REPORT_MINUTE", minute + 15)
+    bill_hour = app.config.get("RECURRING_BILL_HOUR", hour)
+    bill_minute = app.config.get("RECURRING_BILL_MINUTE", minute + 20)
 
     scheduler = BackgroundScheduler(daemon=True)
     scheduler.add_job(
@@ -111,10 +142,24 @@ def init_scheduler(app, hour=6, minute=0):
         run_due_asset_depreciation, "cron", hour=dep_hour, minute=dep_minute,
         args=[app], id="asset_depreciation_daily", replace_existing=True,
     )
+    scheduler.add_job(
+        run_due_reminders, "cron", hour=reminders_hour, minute=reminders_minute,
+        args=[app], id="auto_reminders_daily", replace_existing=True,
+    )
+    scheduler.add_job(
+        run_due_scheduled_reports, "cron", hour=report_hour, minute=report_minute,
+        args=[app], id="scheduled_reports_daily", replace_existing=True,
+    )
+    scheduler.add_job(
+        run_due_recurring_bills, "cron", hour=bill_hour, minute=bill_minute,
+        args=[app], id="recurring_bills_daily", replace_existing=True,
+    )
     scheduler.start()
     logger.info(
-        "Scheduler started — recurring invoices at %02d:%02d, asset depreciation at %02d:%02d.",
-        inv_hour, inv_minute, dep_hour, dep_minute,
+        "Scheduler started — recurring invoices at %02d:%02d, asset depreciation at %02d:%02d, "
+        "auto reminders at %02d:%02d, scheduled reports at %02d:%02d, recurring bills at %02d:%02d.",
+        inv_hour, inv_minute, dep_hour, dep_minute, reminders_hour, reminders_minute, report_hour, report_minute,
+        bill_hour, bill_minute,
     )
     _scheduler = scheduler
     return scheduler

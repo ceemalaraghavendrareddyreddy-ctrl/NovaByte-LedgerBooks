@@ -224,8 +224,11 @@ def generate_invoice_pdf(invoice, company, template=None):
     meta_lines = [
         f"Date: {invoice.invoice_date.strftime('%d %b %Y')}",
         f"Due: {invoice.due_date.strftime('%d %b %Y')}",
+        f"Payment Terms: {invoice.payment_terms}",
         f"Status: {invoice.status.upper()}",
     ]
+    if invoice.customer_po_number:
+        meta_lines.insert(2, f"Customer PO #: {invoice.customer_po_number}")
     totals_rows = [
         ["Subtotal", f"{invoice.currency} {float(invoice.subtotal):,.2f}", False],
         [f"VAT ({float(invoice.vat_rate):g}%)", f"{invoice.currency} {float(invoice.vat_amount):,.2f}", False],

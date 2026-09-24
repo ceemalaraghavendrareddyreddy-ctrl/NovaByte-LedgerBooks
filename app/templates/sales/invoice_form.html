@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}New invoice · LedgerBooks{% endblock %}
+{% block title %}{{ 'Edit invoice' if editing else 'New invoice' }} · LedgerBooks{% endblock %}
 {% block content %}
 <div class="page-header">
   <div>
-    <div class="breadcrumb"><a href="{{ url_for('sales.invoice_list') }}">Sales</a> / Invoices / New</div>
-    <h1>New invoice</h1>
+    <div class="breadcrumb"><a href="{{ url_for('sales.invoice_list') }}">Sales</a> / Invoices / {{ 'Edit' if editing else 'New' }}</div>
+    <h1>{{ 'Edit invoice ' + invoice.invoice_no if editing else 'New invoice' }}</h1>
   </div>
 </div>
 
@@ -29,6 +29,19 @@
       <div class="form-row">
         <label>Due date</label>
         <input type="date" name="due_date" id="due-date" required value="{{ form.due_date or today }}">
+      </div>
+      <div class="form-row">
+        <label>Payment terms</label>
+        <select name="payment_terms" id="payment-terms-select" style="max-width:160px;">
+          {% for t in payment_terms_options %}
+          <option value="{{ t }}" {% if (form.payment_terms or 'Due on Receipt') == t %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <span class="text-muted" style="font-size:0.78rem;">Sets the due date above automatically; still editable.</span>
+      </div>
+      <div class="form-row">
+        <label>Customer PO #</label>
+        <input type="text" name="customer_po_number" value="{{ form.customer_po_number or '' }}" placeholder="optional — their purchase order / reference number">
       </div>
       <div class="form-row">
         <label>VAT rate %</label>
@@ -66,33 +79,45 @@
       </div>
       {% endif %}
 
+      {% if unbilled_time_by_customer %}
+      <div class="section-title">Unbilled Time</div>
+      <div id="unbilled-time-section">
+        <table id="unbilled-time-table" style="display:none;">
+          <thead><tr><th></th><th>Date</th><th>Description</th><th class="num">Hours</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
+          <tbody id="unbilled-time-body"></tbody>
+        </table>
+        <p id="unbilled-time-empty" style="color:var(--muted); font-size:0.85rem;">No unbilled time for this customer.</p>
+      </div>
+      {% endif %}
+
       <div class="section-title">Line items</div>
       <table class="journal-lines-table">
         <thead>
-          <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th>Income account</th><th>Taxable</th><th>VAT %</th><th></th></tr>
+          <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th>Income account</th><th>Taxable</th><th>VAT %</th><th>Warehouse / Lot #</th><th></th></tr>
         </thead>
         <tbody id="lines-body">
-          <tr>
+          {% for line in (form.lines or [{}]) %}
+          <tr data-vat-rate="{{ line.line_vat_rate if (line.line_vat_rate is defined and line.line_vat_rate is not none) else '' }}">
             <td>
               <select class="item-select">
                 <option value="">— manual line —</option>
                 {% for it in items %}
-                <option value="{{ it.id }}">{{ it.sku }} - {{ it.name }}{% if it.is_tracked %} ({{ it.quantity_on_hand }} {{ it.unit }} avail){% endif %}</option>
+                <option value="{{ it.id }}" {% if line.item_id and it.id == line.item_id %}selected{% endif %}>{{ it.sku }} - {{ it.name }}{% if it.is_tracked %} ({{ it.quantity_on_hand }} {{ it.unit }} avail){% endif %}</option>
                 {% endfor %}
               </select>
-              <input type="hidden" name="item_id" class="item-id-input" value="">
+              <input type="hidden" name="item_id" class="item-id-input" value="{{ line.item_id or '' }}">
             </td>
-            <td><input type="text" name="description" class="desc-input"></td>
-            <td><input type="number" step="0.01" name="quantity" class="qty-input" value="1"></td>
-            <td><input type="number" step="0.01" name="unit_price" class="price-input"></td>
+            <td><input type="text" name="description" class="desc-input" value="{{ line.description or '' }}"></td>
+            <td><input type="number" step="0.01" name="quantity" class="qty-input" value="{{ line.quantity or 1 }}"></td>
+            <td><input type="number" step="0.01" name="unit_price" class="price-input" value="{{ line.unit_price if line.unit_price is not none else '' }}"></td>
             <td>
               <select name="income_account_id">
                 {% for a in income_accounts %}
-                <option value="{{ a.id }}" {% if default_income and a.id == default_income.id %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
+                <option value="{{ a.id }}" {% if (line.income_account_id and a.id == line.income_account_id) or (not line.income_account_id and default_income and a.id == default_income.id) %}selected{% endif %}>{{ a.code }} - {{ a.name }}</option>
                 {% endfor %}
               </select>
             </td>
-            <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" checked></td>
+            <td style="text-align:center;"><input type="checkbox" name="taxable" value="0" {% if line.taxable is not defined or line.taxable %}checked{% endif %}></td>
             <td style="min-width:110px;">
               <select class="line-vat-select" style="width:100%;" title="Blank = use the invoice's own VAT rate above">
                 <option value="">Inv. rate</option>
@@ -102,8 +127,20 @@
               <input type="number" step="0.01" class="line-vat-custom" style="width:100%; display:none; margin-top:2px;" placeholder="%">
               <input type="hidden" name="line_vat_rate" class="line-vat-hidden" value="">
             </td>
+            <td style="min-width:130px;">
+              {% if warehouses %}
+              <select name="line_warehouse_id" style="width:100%;">
+                <option value="">— warehouse —</option>
+                {% for w in warehouses %}
+                <option value="{{ w.id }}" {% if line.warehouse_id and w.id == line.warehouse_id %}selected{% endif %}>{{ w.code }}</option>
+                {% endfor %}
+              </select>
+              {% endif %}
+              <input type="text" name="line_lot_number" value="{{ line.lot_number or '' }}" placeholder="Lot/Serial #" style="width:100%; margin-top:2px;">
+            </td>
             <td><button type="button" class="btn small secondary remove-line" aria-label="Remove line">×</button></td>
           </tr>
+          {% endfor %}
         </tbody>
       </table>
       <button type="button" class="btn small secondary" id="add-line">+ Add line</button>
@@ -118,8 +155,8 @@
       </div>
 
       <div style="margin-top:1.25rem;" class="btn-group">
-        <button class="btn primary" type="submit">Save &amp; post invoice</button>
-        <a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Cancel</a>
+        <button class="btn primary" type="submit">{{ 'Save changes' if editing else 'Save & post invoice' }}</button>
+        <a class="btn secondary" href="{{ url_for('sales.invoice_detail', invoice_id=invoice.id) if editing else url_for('sales.invoice_list') }}">Cancel</a>
       </div>
     </form>
   </div>
@@ -218,6 +255,8 @@ function clearRowInputs(row) {
   row.querySelector('input[type=checkbox]').checked = true;
   row.querySelector('.item-select').selectedIndex = 0;
   row.querySelector('.item-id-input').value = '';
+  const warehouseSelect = row.querySelector('select[name=line_warehouse_id]');
+  if (warehouseSelect) warehouseSelect.selectedIndex = 0;
   setLineVat(row, null);
 }
 
@@ -356,6 +395,33 @@ linesBody.addEventListener('input', (e) => {
 document.getElementById('currency-select').addEventListener('change', updateCurrencyUI);
 document.getElementById('exchange-rate-input').addEventListener('input', recalcTotals);
 
+{% if unbilled_time_by_customer %}
+// Unbilled Time — same "swap the list the instant a customer is picked" pattern as
+// credit_memo_form.html's related-invoice dropdown. Checked rows submit as
+// billed_time_entry_id, which sales.invoice_new turns into extra invoice lines server-side.
+const UNBILLED_TIME = {{ unbilled_time_by_customer | tojson }};
+function refreshUnbilledTime() {
+  const custId = document.getElementById('customer-select').value;
+  const entries = UNBILLED_TIME[custId] || [];
+  const table = document.getElementById('unbilled-time-table');
+  const body = document.getElementById('unbilled-time-body');
+  const empty = document.getElementById('unbilled-time-empty');
+  body.innerHTML = entries.map(e => `
+    <tr>
+      <td><input type="checkbox" name="billed_time_entry_id" value="${e.id}"></td>
+      <td>${e.date}</td>
+      <td>${e.description}</td>
+      <td class="num">${e.hours}</td>
+      <td class="num">${e.rate.toFixed(2)}</td>
+      <td class="num">${e.amount.toFixed(2)}</td>
+    </tr>`).join('');
+  table.style.display = entries.length ? '' : 'none';
+  empty.style.display = entries.length ? 'none' : '';
+}
+document.getElementById('customer-select').addEventListener('change', refreshUnbilledTime);
+refreshUnbilledTime();
+{% endif %}
+
 // "Get today's rate" — fetches a suggested rate from a live source and fills the
 // field; never overwrites without this being clicked, and stays a plain editable
 // number afterward, exactly like typing it in by hand.
@@ -373,6 +439,29 @@ document.getElementById('fetch-rate-btn').addEventListener('click', async () => 
   } catch (e) {
     statusEl.textContent = 'Could not reach the rate source — enter it manually.';
   }
+});
+
+// Restore each pre-rendered row's VAT-override UI (select / custom box / hidden value)
+// from the data-vat-rate attribute the server rendered it with — new rows added via
+// "+ Add line" go through clearRowInputs()/setLineVat(row, null) instead.
+linesBody.querySelectorAll('tr').forEach(row => {
+  const raw = row.dataset.vatRate;
+  setLineVat(row, raw === undefined || raw === '' ? null : raw);
+});
+
+// Payment terms is just a label choice, but as a convenience it recomputes Due date
+// from Invoice date the moment it's changed — Due date stays a plain, editable field
+// afterward, exactly like "Get today's rate" only pre-filling a starting point.
+const TERM_DAYS = {"Due on Receipt": 0, "Net 7": 7, "Net 15": 15, "Net 30": 30, "Net 45": 45, "Net 60": 60};
+document.getElementById('payment-terms-select').addEventListener('change', function () {
+  const days = TERM_DAYS[this.value];
+  if (days === undefined) return; // "Custom" — leave the due date alone
+  const invDate = document.getElementById('invoice-date').value;
+  if (!invDate) return;
+  const d = new Date(invDate + 'T00:00:00');
+  d.setDate(d.getDate() + days);
+  document.getElementById('due-date').value = d.toISOString().slice(0, 10);
+  recalcTotals();
 });
 
 reindexCheckboxes();

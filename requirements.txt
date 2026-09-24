@@ -6,6 +6,9 @@ PyMySQL==1.1.1
 psycopg2-binary==2.9.9
 python-dotenv==1.0.1
 reportlab==5.0.0
+openpyxl==3.1.5
 waitress==3.0.2
 requests
 APScheduler>=3.10,<4
+pyotp==2.10.0
+qrcode[pil]==8.2

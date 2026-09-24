@@ -1,25 +1,32 @@
+import smtplib
 from datetime import date, datetime
+from email.message import EmailMessage
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, send_file, url_for
 from flask_login import current_user, login_required
+from werkzeug.security import generate_password_hash
 
 from app import db
 from app.audit import log_audit
-from app.auth import current_company, current_company_id
+from app.auth import current_company, current_company_id, owner_required
 from app.models import (
     Account, CURRENCIES, CreditMemo, CreditMemoApplication, CreditMemoLine, Customer, Estimate,
     EstimateLine, Invoice, InvoiceLine, Item, JournalEntry, JournalLine, Payment, PaymentApplication,
-    Project, RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, StockMovement,
+    Project, RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, StockMovement, TimeEntry, Warehouse,
 )
 from app.pdf import generate_credit_memo_pdf, generate_invoice_pdf
+from app.report_export import rows_to_pdf, rows_to_xlsx
 from app.scoping import scoped_get, scoped_or_404, scoped_query
 from app.share_links import share_url, whatsapp_link
 from app.mra_bridge import (
     fiscalize_invoice_with_mra, fiscalize_credit_memo_with_mra,
     void_invoice_via_credit_note, void_credit_memo_via_debit_note,
 )
+from app.webhooks import fire_webhook
 
 sales_bp = Blueprint("sales", __name__, url_prefix="/sales")
+
+PAYMENT_TERMS_OPTIONS = ["Due on Receipt", "Net 7", "Net 15", "Net 30", "Net 45", "Net 60", "Custom"]
 
 AR_ACCOUNT_CODE = "1200"
 VAT_PAYABLE_CODE = "2100"
@@ -60,20 +67,27 @@ def customer_list():
 @login_required
 def customer_new():
     if request.method == "POST":
+        customer_type = request.form.get("customer_type") if request.form.get("customer_type") in ("individual", "company") else "company"
         customer = Customer(
             company_id=current_company_id(),
             name=request.form["name"].strip(),
+            customer_type=customer_type,
             email=request.form.get("email", "").strip() or None,
             phone=request.form.get("phone", "").strip() or None,
+            phone2=request.form.get("phone2", "").strip() or None,
             address=request.form.get("address", "").strip() or None,
             vat_number=request.form.get("vat_number", "").strip() or None,
+            brn=request.form.get("brn", "").strip() or None if customer_type == "company" else None,
+            billing_currency=request.form.get("billing_currency") or "MUR",
             opening_balance=request.form.get("opening_balance") or 0,
         )
         db.session.add(customer)
         db.session.commit()
         flash(f"Customer '{customer.name}' created.", "success")
-        return redirect(url_for("sales.customer_list"))
-    return render_template("sales/customer_form.html", form={}, action_url=url_for("sales.customer_new"))
+        return redirect(url_for("sales.customer_detail", customer_id=customer.id))
+    return render_template(
+        "sales/customer_form.html", form={}, action_url=url_for("sales.customer_new"), currencies=CURRENCIES,
+    )
 
 
 @sales_bp.route("/customers/<int:customer_id>/edit", methods=["GET", "POST"])
@@ -81,18 +95,23 @@ def customer_new():
 def customer_edit(customer_id):
     customer = scoped_or_404(Customer, customer_id)
     if request.method == "POST":
+        customer_type = request.form.get("customer_type") if request.form.get("customer_type") in ("individual", "company") else "company"
         customer.name = request.form["name"].strip()
+        customer.customer_type = customer_type
         customer.email = request.form.get("email", "").strip() or None
         customer.phone = request.form.get("phone", "").strip() or None
+        customer.phone2 = request.form.get("phone2", "").strip() or None
         customer.address = request.form.get("address", "").strip() or None
         customer.vat_number = request.form.get("vat_number", "").strip() or None
+        customer.brn = request.form.get("brn", "").strip() or None if customer_type == "company" else None
+        customer.billing_currency = request.form.get("billing_currency") or "MUR"
         customer.opening_balance = request.form.get("opening_balance") or 0
         db.session.commit()
         flash(f"Customer '{customer.name}' updated.", "success")
         return redirect(url_for("sales.customer_detail", customer_id=customer.id))
     return render_template(
         "sales/customer_form.html", form=customer, action_url=url_for("sales.customer_edit", customer_id=customer.id),
-        editing=True,
+        editing=True, currencies=CURRENCIES,
     )
 
 
@@ -106,6 +125,32 @@ def customer_toggle(customer_id):
     return redirect(url_for("sales.customer_list"))
 
 
+@sales_bp.route("/customers/<int:customer_id>/portal-access", methods=["POST"])
+@login_required
+def customer_portal_access(customer_id):
+    customer = scoped_or_404(Customer, customer_id)
+    portal_enabled = request.form.get("portal_enabled") == "on"
+    if portal_enabled and not customer.email:
+        flash("Add an email address for this customer before enabling portal access.", "error")
+        return redirect(url_for("sales.customer_detail", customer_id=customer.id))
+
+    new_password = request.form.get("portal_password", "")
+    if new_password.strip():
+        if len(new_password) < 6:
+            flash("Portal password must be at least 6 characters.", "error")
+            return redirect(url_for("sales.customer_detail", customer_id=customer.id))
+        customer.portal_password_hash = generate_password_hash(new_password)
+    elif portal_enabled and not customer.portal_password_hash:
+        flash("Set a password before enabling portal access.", "error")
+        return redirect(url_for("sales.customer_detail", customer_id=customer.id))
+
+    customer.portal_enabled = portal_enabled
+    db.session.commit()
+    log_audit("edit", "customer", customer.id, f"{'Enabled' if portal_enabled else 'Disabled'} portal access for {customer.name}")
+    flash(f"Portal access {'enabled' if portal_enabled else 'updated'} for {customer.name}.", "success")
+    return redirect(url_for("sales.customer_detail", customer_id=customer.id))
+
+
 @sales_bp.route("/customers/<int:customer_id>")
 @login_required
 def customer_detail(customer_id):
@@ -115,6 +160,104 @@ def customer_detail(customer_id):
     )
     payments = sorted(customer.payments, key=lambda p: p.payment_date, reverse=True)
     return render_template("sales/customer_detail.html", customer=customer, invoices=invoices, payments=payments)
+
+
+def _customer_statement_data(customer, start_date, end_date):
+    """One customer's AR activity as a chronological ledger — the same three document
+    types that make up customer.balance_due (invoices, payments, credit memos), each
+    contributing a signed movement, with a running balance after every line. Returns
+    (opening_balance, rows, closing_balance); rows already carry the "balance" key.
+
+    Transactions are gathered and sorted first, THEN windowed to [start_date, end_date] —
+    opening_balance is the running total right before the window starts, closing_balance
+    is the running total after the last transaction on or before end_date, so both are
+    correct even when the window doesn't start at the customer's very first transaction.
+    """
+    transactions = []
+    for inv in customer.invoices:
+        if inv.status == "void":
+            continue
+        transactions.append({
+            "date": inv.invoice_date, "type": "Invoice", "doc_no": inv.invoice_no, "id": inv.id,
+            "debit": float(inv.total), "credit": 0.0,
+            "url": url_for("sales.invoice_detail", invoice_id=inv.id),
+        })
+    for p in customer.payments:
+        transactions.append({
+            "date": p.payment_date, "type": "Payment", "doc_no": p.reference_no or f"Payment #{p.id}", "id": p.id,
+            "debit": 0.0, "credit": float(p.amount),
+            "url": url_for("sales.payment_detail", payment_id=p.id),
+        })
+    for cm in scoped_query(CreditMemo).filter_by(customer_id=customer.id).all():
+        if cm.status == "void":
+            continue
+        transactions.append({
+            "date": cm.credit_date, "type": "Credit Memo", "doc_no": cm.credit_no, "id": cm.id,
+            "debit": 0.0, "credit": float(cm.total),
+            "url": url_for("sales.credit_memo_detail", credit_memo_id=cm.id),
+        })
+    transactions.sort(key=lambda t: (t["date"], t["type"]))
+
+    running = float(customer.opening_balance)
+    opening_balance = running
+    opening_captured = False
+    rows = []
+    for t in transactions:
+        if t["date"] > end_date:
+            break
+        if not opening_captured and t["date"] >= start_date:
+            opening_balance = running
+            opening_captured = True
+        running += t["debit"] - t["credit"]
+        if t["date"] >= start_date:
+            rows.append({**t, "balance": running})
+    if not opening_captured:
+        opening_balance = running
+    return opening_balance, rows, running
+
+
+@sales_bp.route("/customers/<int:customer_id>/statement")
+@login_required
+def customer_statement(customer_id):
+    customer = scoped_or_404(Customer, customer_id)
+    start_raw = request.args.get("start_date")
+    end_raw = request.args.get("end_date")
+    start_date = datetime.strptime(start_raw, "%Y-%m-%d").date() if start_raw else date(date.today().year, 1, 1)
+    end_date = datetime.strptime(end_raw, "%Y-%m-%d").date() if end_raw else date.today()
+
+    opening_balance, rows, closing_balance = _customer_statement_data(customer, start_date, end_date)
+    return render_template(
+        "sales/customer_statement.html", customer=customer, rows=rows,
+        opening_balance=opening_balance, closing_balance=closing_balance,
+        start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
+
+@sales_bp.route("/customers/<int:customer_id>/statement.pdf")
+@login_required
+def customer_statement_pdf(customer_id):
+    customer = scoped_or_404(Customer, customer_id)
+    start_raw = request.args.get("start_date")
+    end_raw = request.args.get("end_date")
+    start_date = datetime.strptime(start_raw, "%Y-%m-%d").date() if start_raw else date(date.today().year, 1, 1)
+    end_date = datetime.strptime(end_raw, "%Y-%m-%d").date() if end_raw else date.today()
+
+    opening_balance, rows, closing_balance = _customer_statement_data(customer, start_date, end_date)
+    table_rows = [(start_date.isoformat(), "Opening Balance", "-", "", "", f"{opening_balance:,.2f}")]
+    table_rows += [
+        (r["date"].isoformat(), r["type"], r["doc_no"], f"{r['debit']:,.2f}" if r["debit"] else "",
+         f"{r['credit']:,.2f}" if r["credit"] else "", f"{r['balance']:,.2f}")
+        for r in rows
+    ]
+    buffer = rows_to_pdf(
+        f"Statement — {customer.name}", f"{start_date.isoformat()} to {end_date.isoformat()}",
+        ["Date", "Type", "Document #", "Debit", "Credit", "Balance"], table_rows,
+        company=current_company(), numeric_cols={3, 4, 5},
+    )
+    return send_file(
+        buffer, as_attachment=True, download_name=f"Statement-{customer.name}-{end_date.isoformat()}.pdf",
+        mimetype="application/pdf",
+    )
 
 
 # ── Estimates (Quotes) ─────────────────────────────────────────────────
@@ -223,27 +366,19 @@ def estimate_status(estimate_id):
     return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
 
 
-@sales_bp.route("/estimates/<int:estimate_id>/convert", methods=["POST"])
-@login_required
-def estimate_convert(estimate_id):
-    estimate = scoped_or_404(Estimate, estimate_id)
-    if estimate.status == "converted":
-        flash("This estimate was already converted to an invoice.", "error")
-        return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
-    if estimate.status == "declined":
-        flash("Can't convert a declined estimate. Reopen it first if this was a mistake.", "error")
-        return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
-
+def _convert_estimate_to_invoice(estimate, due_date=None):
+    """Shared by the staff-side Convert button (estimate_convert below) and the
+    customer portal's e-signature flow (app/portal.py's estimate_sign) — same
+    conversion either way, just triggered by a different person. Returns
+    (invoice_or_None, error_message_or_None). Never commits; the caller decides
+    when (so the portal route can set signature fields in the same transaction)."""
     invoice_date = date.today()
-    due_date_raw = request.form.get("due_date", "").strip()
-    due_date = datetime.strptime(due_date_raw, "%Y-%m-%d").date() if due_date_raw else invoice_date
-
     invoice = Invoice(
-        company_id=current_company_id(),
+        company_id=estimate.company_id,
         invoice_no=next_invoice_no(),
         customer_id=estimate.customer_id,
         invoice_date=invoice_date,
-        due_date=due_date,
+        due_date=due_date or invoice_date,
         memo=f"Converted from {estimate.estimate_no}" + (f" - {estimate.memo}" if estimate.memo else ""),
         vat_rate=estimate.vat_rate,
     )
@@ -260,22 +395,43 @@ def estimate_convert(estimate_id):
     required_qty = {}
     for line in invoice.lines:
         if line.item_id:
-            item = scoped_get(Item, line.item_id)
+            item = Item.query.get(line.item_id)
             if item.is_tracked:
                 required_qty[item] = required_qty.get(item, 0) + float(line.quantity)
     for item, needed in required_qty.items():
         if needed > float(item.quantity_on_hand):
-            flash(
+            return None, (
                 f"Can't convert: not enough stock for {item.name} ({item.sku}) — "
-                f"have {item.quantity_on_hand} {item.unit}, need {needed}.", "error",
+                f"have {item.quantity_on_hand} {item.unit}, need {needed}."
             )
-            return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
 
     db.session.add(invoice)
     db.session.flush()
     post_invoice(invoice)
     estimate.status = "converted"
     estimate.converted_invoice_id = invoice.id
+    return invoice, None
+
+
+@sales_bp.route("/estimates/<int:estimate_id>/convert", methods=["POST"])
+@login_required
+def estimate_convert(estimate_id):
+    estimate = scoped_or_404(Estimate, estimate_id)
+    if estimate.status == "converted":
+        flash("This estimate was already converted to an invoice.", "error")
+        return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
+    if estimate.status == "declined":
+        flash("Can't convert a declined estimate. Reopen it first if this was a mistake.", "error")
+        return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
+
+    due_date_raw = request.form.get("due_date", "").strip()
+    due_date = datetime.strptime(due_date_raw, "%Y-%m-%d").date() if due_date_raw else None
+
+    invoice, error = _convert_estimate_to_invoice(estimate, due_date)
+    if error:
+        flash(error, "error")
+        return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
+
     log_audit(
         "convert", "estimate", estimate.id,
         f"Converted estimate {estimate.estimate_no} to invoice {invoice.invoice_no}", estimate.estimate_no,
@@ -306,14 +462,28 @@ def invoice_new():
     default_income = scoped_query(Account).filter_by(code=DEFAULT_INCOME_CODE).first()
     items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
     projects = scoped_query(Project).filter_by(is_active=True).order_by(Project.name).all()
+    warehouses = scoped_query(Warehouse).filter_by(is_active=True).order_by(Warehouse.code).all()
     preselected_customer_id = request.args.get("customer_id", type=int)
     base_currency = current_company().base_currency
+
+    # Unbilled, billable time entries, grouped by customer — same "JS swaps the list the
+    # instant you pick a customer" pattern credit_memo_form.html uses for related invoices.
+    unbilled_time_by_customer = {}
+    for entry in scoped_query(TimeEntry).filter_by(is_billable=True, invoice_line_id=None).order_by(TimeEntry.entry_date).all():
+        if not entry.customer_id:
+            continue
+        unbilled_time_by_customer.setdefault(entry.customer_id, []).append({
+            "id": entry.id, "date": entry.entry_date.isoformat(), "description": entry.description,
+            "hours": float(entry.hours), "rate": float(entry.hourly_rate), "amount": entry.amount,
+        })
 
     def render_form(form):
         return render_template(
             "sales/invoice_form.html", customers=customers, income_accounts=income_accounts,
-            default_income=default_income, items=items, projects=projects, form=form, today=date.today().isoformat(),
-            currencies=CURRENCIES, base_currency=base_currency,
+            default_income=default_income, items=items, projects=projects, warehouses=warehouses,
+            form=form, today=date.today().isoformat(),
+            currencies=CURRENCIES, base_currency=base_currency, payment_terms_options=PAYMENT_TERMS_OPTIONS,
+            unbilled_time_by_customer=unbilled_time_by_customer,
         )
 
     if request.method == "POST":
@@ -340,10 +510,14 @@ def invoice_new():
         # Per-line VAT % override — blank means "use this invoice's own vat_rate
         # above", exactly like every line did before this field existed.
         line_vat_rates = request.form.getlist("line_vat_rate")
+        line_warehouse_ids = request.form.getlist("line_warehouse_id")
+        line_lot_numbers = request.form.getlist("line_lot_number")
         # zip() truncates to the shortest list — pad item_ids so a row missing that field
         # doesn't silently drop every line below it (the real form always sends it, but be defensive).
         item_ids += [""] * (len(descriptions) - len(item_ids))
         line_vat_rates += [""] * (len(descriptions) - len(line_vat_rates))
+        line_warehouse_ids += [""] * (len(descriptions) - len(line_warehouse_ids))
+        line_lot_numbers += [""] * (len(descriptions) - len(line_lot_numbers))
 
         invoice = Invoice(
             company_id=current_company_id(),
@@ -351,6 +525,8 @@ def invoice_new():
             customer_id=int(customer_id),
             invoice_date=invoice_date,
             due_date=due_date,
+            payment_terms=request.form.get("payment_terms", "Due on Receipt").strip() or "Due on Receipt",
+            customer_po_number=request.form.get("customer_po_number", "").strip() or None,
             memo=request.form.get("memo", "").strip() or None,
             project_id=int(request.form["project_id"]) if request.form.get("project_id") else None,
             vat_rate=float(request.form.get("vat_rate") or 15.00),
@@ -358,8 +534,8 @@ def invoice_new():
             exchange_rate=exchange_rate,
         )
 
-        for i, (desc, qty, price, acc_id, item_id_raw, vat_rate_raw) in enumerate(
-            zip(descriptions, quantities, unit_prices, income_account_ids, item_ids, line_vat_rates)
+        for i, (desc, qty, price, acc_id, item_id_raw, vat_rate_raw, warehouse_id_raw, lot_number_raw) in enumerate(
+            zip(descriptions, quantities, unit_prices, income_account_ids, item_ids, line_vat_rates, line_warehouse_ids, line_lot_numbers)
         ):
             if not desc.strip() or not qty or not price:
                 continue
@@ -372,9 +548,30 @@ def invoice_new():
                     unit_price=float(price),
                     taxable=str(i) in taxables,
                     vat_rate=float(vat_rate_raw) if vat_rate_raw.strip() != "" else None,
+                    warehouse_id=int(warehouse_id_raw) if warehouse_id_raw else None,
+                    lot_number=lot_number_raw.strip() or None,
                     income_account_id=item.income_account_id if item else int(acc_id),
                 )
             )
+
+        # Billable time entries selected via the "Unbilled Time" checklist — each becomes
+        # its own invoice line (hours as quantity, hourly rate as unit price). Re-validated
+        # here rather than trusted from the form: must still belong to this customer, still
+        # be billable, and not already billed on some other invoice created in the meantime.
+        time_entry_line_pairs = []
+        for time_entry_id_raw in request.form.getlist("billed_time_entry_id"):
+            time_entry = scoped_get(TimeEntry, int(time_entry_id_raw))
+            if not time_entry or time_entry.customer_id != int(customer_id):
+                continue
+            if not time_entry.is_billable or time_entry.is_invoiced:
+                continue
+            new_line = InvoiceLine(
+                description=time_entry.description, quantity=time_entry.hours,
+                unit_price=time_entry.hourly_rate, taxable=True,
+                income_account_id=default_income.id if default_income else get_account_or_400(DEFAULT_INCOME_CODE, "Sales Revenue").id,
+            )
+            invoice.lines.append(new_line)
+            time_entry_line_pairs.append((time_entry, new_line))
 
         if not invoice.lines:
             flash("Add at least one invoice line.", "error")
@@ -397,6 +594,22 @@ def invoice_new():
 
         db.session.add(invoice)
         db.session.flush()  # assign invoice.id before post_invoice needs it for StockMovement.reference_id
+
+        for time_entry, new_line in time_entry_line_pairs:
+            time_entry.invoice_line_id = new_line.id  # marks it billed — never offered on another invoice again;
+            # if this invoice ends up rejected below, invoice_reject() unlinks these again.
+
+        settings = current_company()
+        threshold = float(settings.invoice_approval_threshold) if settings.invoice_approval_threshold is not None else 0.0
+        needs_approval = settings.invoice_approval_enabled and invoice.total_base >= threshold
+        if needs_approval:
+            invoice.status = "pending_approval"
+            invoice.submitted_by = current_user.id
+            log_audit("submit", "invoice", invoice.id, f"Submitted invoice {invoice.invoice_no} for approval (total {invoice.total:.2f})", invoice.invoice_no)
+            db.session.commit()
+            flash(f"Invoice {invoice.invoice_no} submitted for approval — it won't post to the ledger until an owner approves it.", "success")
+            return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
         post_invoice(invoice)
         log_audit("create", "invoice", invoice.id, f"Created invoice {invoice.invoice_no} (total {invoice.total:.2f})", invoice.invoice_no)
         db.session.commit()
@@ -405,6 +618,11 @@ def invoice_new():
         # ledger posting above, even if MRA_TaxInvoice_System is unreachable.
         fiscalize_invoice_with_mra(invoice)
         db.session.commit()
+
+        fire_webhook(current_company_id(), "invoice.created", {
+            "id": invoice.id, "invoice_no": invoice.invoice_no, "customer": invoice.customer.name,
+            "total": invoice.total, "currency": invoice.currency, "due_date": invoice.due_date.isoformat(),
+        })
 
         flash(f"Invoice {invoice.invoice_no} created and posted to the ledger.", "success")
         return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
@@ -437,7 +655,7 @@ def post_invoice(invoice):
              + (f" ({invoice.currency} {invoice.total:.2f} @ {rate})" if invoice.is_foreign else ""),
         source_type="invoice",
         project_id=invoice.project_id,
-        created_by=current_user.id,
+        created_by=current_user.id if current_user.is_authenticated else None,
     )
     entry.lines.append(JournalLine(account=ar_account, debit=invoice.total_base, credit=0, memo=invoice.invoice_no))
 
@@ -481,6 +699,7 @@ def post_invoice(invoice):
             reference_type="invoice", reference_id=invoice.id,
             running_quantity=item.quantity_on_hand, running_avg_cost=item.cost_price,
             memo=f"Sold via {invoice.invoice_no}",
+            warehouse_id=line.warehouse_id, lot_number=line.lot_number,
         ))
 
     for account_id, amount in cogs_totals.items():
@@ -493,6 +712,248 @@ def post_invoice(invoice):
     invoice.journal_entry_id = entry.id
 
 
+@sales_bp.route("/invoices/approvals")
+@login_required
+@owner_required
+def invoice_approval_list():
+    pending = (
+        scoped_query(Invoice).filter_by(status="pending_approval")
+        .order_by(Invoice.invoice_date.desc()).all()
+    )
+    return render_template("sales/invoice_approval_list.html", invoices=pending)
+
+
+@sales_bp.route("/invoices/<int:invoice_id>/approve", methods=["POST"])
+@login_required
+@owner_required
+def invoice_approve(invoice_id):
+    invoice = scoped_or_404(Invoice, invoice_id)
+    if invoice.status != "pending_approval":
+        flash("This invoice isn't awaiting approval.", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+    post_invoice(invoice)
+    invoice.status = "open"
+    invoice.approved_by = current_user.id
+    invoice.approved_at = datetime.utcnow()
+    log_audit("approve", "invoice", invoice.id, f"Approved and posted invoice {invoice.invoice_no} (total {invoice.total:.2f})", invoice.invoice_no)
+    db.session.commit()
+
+    fiscalize_invoice_with_mra(invoice)
+    db.session.commit()
+
+    fire_webhook(current_company_id(), "invoice.created", {
+        "id": invoice.id, "invoice_no": invoice.invoice_no, "customer": invoice.customer.name,
+        "total": invoice.total, "currency": invoice.currency, "due_date": invoice.due_date.isoformat(),
+    })
+    flash(f"Invoice {invoice.invoice_no} approved and posted to the ledger.", "success")
+    return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+
+@sales_bp.route("/invoices/<int:invoice_id>/reject", methods=["POST"])
+@login_required
+@owner_required
+def invoice_reject(invoice_id):
+    invoice = scoped_or_404(Invoice, invoice_id)
+    if invoice.status != "pending_approval":
+        flash("This invoice isn't awaiting approval.", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+    # Never posted anything to the ledger or touched stock while pending, so rejecting
+    # is just marking it void — there's nothing to reverse, unlike invoice_void below.
+    # Time entries pulled onto this invoice DO need unlinking though — they were marked
+    # billed at creation time (see invoice_new), so a rejection must free them again.
+    line_ids = [line.id for line in invoice.lines]
+    if line_ids:
+        TimeEntry.query.filter(TimeEntry.invoice_line_id.in_(line_ids)).update(
+            {TimeEntry.invoice_line_id: None}, synchronize_session=False
+        )
+
+    invoice.status = "void"
+    invoice.approved_by = current_user.id
+    invoice.approved_at = datetime.utcnow()
+    invoice.approval_note = request.form.get("note", "").strip() or None
+    log_audit("reject", "invoice", invoice.id, f"Rejected invoice {invoice.invoice_no}" + (f": {invoice.approval_note}" if invoice.approval_note else ""), invoice.invoice_no)
+    db.session.commit()
+    flash(f"Invoice {invoice.invoice_no} rejected.", "success")
+    return redirect(url_for("sales.invoice_approval_list"))
+
+
+def _invoice_not_editable_reason(invoice):
+    """None if the invoice can be amended in place; otherwise a user-facing reason
+    it can't be, mirroring the same guards invoice_void already enforces."""
+    if invoice.status == "void":
+        return "it has been voided"
+    if invoice.status == "pending_approval":
+        return "it's awaiting approval — reject it and create a new one instead of editing"
+    if invoice.amount_paid > 0:
+        return "it already has payments or credits applied — unapply them first"
+    if invoice.mra_invoice_number:
+        return (
+            "it has already been fiscalised with the MRA — a fiscalised invoice can only be "
+            "reversed with a credit note (Void), never altered, then reissued as a new invoice"
+        )
+    return None
+
+
+@sales_bp.route("/invoices/<int:invoice_id>/edit", methods=["GET", "POST"])
+@login_required
+def invoice_edit(invoice_id):
+    invoice = scoped_or_404(Invoice, invoice_id)
+    not_editable_reason = _invoice_not_editable_reason(invoice)
+    if not_editable_reason:
+        flash(f"Invoice {invoice.invoice_no} can't be edited because {not_editable_reason}.", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+    customers = scoped_query(Customer).filter_by(is_active=True).order_by(Customer.name).all()
+    income_accounts = scoped_query(Account).filter_by(account_type="Income", is_active=True).order_by(Account.code).all()
+    default_income = scoped_query(Account).filter_by(code=DEFAULT_INCOME_CODE).first()
+    items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
+    projects = scoped_query(Project).filter_by(is_active=True).order_by(Project.name).all()
+    warehouses = scoped_query(Warehouse).filter_by(is_active=True).order_by(Warehouse.code).all()
+    base_currency = current_company().base_currency
+
+    def render_form(form):
+        return render_template(
+            "sales/invoice_form.html", customers=customers, income_accounts=income_accounts,
+            default_income=default_income, items=items, projects=projects, warehouses=warehouses,
+            form=form, today=date.today().isoformat(),
+            currencies=CURRENCIES, base_currency=base_currency, payment_terms_options=PAYMENT_TERMS_OPTIONS,
+            editing=True, invoice=invoice,
+        )
+
+    if request.method == "POST":
+        customer_id = request.form.get("customer_id")
+        if not customer_id:
+            flash("Select a customer.", "error")
+            return render_form(request.form)
+
+        invoice_date = datetime.strptime(request.form["invoice_date"], "%Y-%m-%d").date()
+        due_date = datetime.strptime(request.form["due_date"], "%Y-%m-%d").date()
+
+        currency = request.form.get("currency", base_currency) or base_currency
+        exchange_rate = float(request.form.get("exchange_rate") or 1.0) if currency != base_currency else 1.0
+        if exchange_rate <= 0:
+            flash("Exchange rate must be greater than zero.", "error")
+            return render_form(request.form)
+
+        descriptions = request.form.getlist("description")
+        quantities = request.form.getlist("quantity")
+        unit_prices = request.form.getlist("unit_price")
+        taxables = request.form.getlist("taxable")
+        income_account_ids = request.form.getlist("income_account_id")
+        item_ids = request.form.getlist("item_id")
+        line_vat_rates = request.form.getlist("line_vat_rate")
+        line_warehouse_ids = request.form.getlist("line_warehouse_id")
+        line_lot_numbers = request.form.getlist("line_lot_number")
+        item_ids += [""] * (len(descriptions) - len(item_ids))
+        line_vat_rates += [""] * (len(descriptions) - len(line_vat_rates))
+        line_warehouse_ids += [""] * (len(descriptions) - len(line_warehouse_ids))
+        line_lot_numbers += [""] * (len(descriptions) - len(line_lot_numbers))
+
+        new_lines = []
+        for i, (desc, qty, price, acc_id, item_id_raw, vat_rate_raw, warehouse_id_raw, lot_number_raw) in enumerate(
+            zip(descriptions, quantities, unit_prices, income_account_ids, item_ids, line_vat_rates, line_warehouse_ids, line_lot_numbers)
+        ):
+            if not desc.strip() or not qty or not price:
+                continue
+            item = scoped_get(Item, int(item_id_raw)) if item_id_raw else None
+            new_lines.append(
+                InvoiceLine(
+                    item=item,
+                    description=desc.strip(),
+                    quantity=float(qty),
+                    unit_price=float(price),
+                    taxable=str(i) in taxables,
+                    vat_rate=float(vat_rate_raw) if vat_rate_raw.strip() != "" else None,
+                    income_account_id=item.income_account_id if item else int(acc_id),
+                    warehouse_id=int(warehouse_id_raw) if warehouse_id_raw else None,
+                    lot_number=lot_number_raw.strip() or None,
+                )
+            )
+
+        if not new_lines:
+            flash("Add at least one invoice line.", "error")
+            return render_form(request.form)
+
+        # Return stock issued by the invoice's CURRENT (pre-edit) tracked lines first, so
+        # availability for the new lines is checked against the right baseline — otherwise
+        # a line that isn't even changing would look like it's competing with itself.
+        for old_line in invoice.lines:
+            if old_line.item_id and old_line.item.is_tracked:
+                item = old_line.item
+                item.quantity_on_hand = float(item.quantity_on_hand) + float(old_line.quantity)
+                db.session.add(StockMovement(
+                    item_id=item.id, movement_date=date.today(), movement_type="sale",
+                    quantity=float(old_line.quantity), unit_cost=item.cost_price,
+                    reference_type="invoice", reference_id=invoice.id,
+                    running_quantity=item.quantity_on_hand, running_avg_cost=item.cost_price,
+                    memo=f"Reversal - {invoice.invoice_no} amended",
+                ))
+
+        required_qty = {}
+        for line in new_lines:
+            if line.item and line.item.is_tracked:
+                required_qty[line.item] = required_qty.get(line.item, 0) + float(line.quantity)
+        for item, needed in required_qty.items():
+            if needed > float(item.quantity_on_hand):
+                db.session.rollback()
+                flash(
+                    f"Not enough stock for {item.name} ({item.sku}): have {item.quantity_on_hand} {item.unit}, "
+                    f"invoice needs {needed}.", "error",
+                )
+                return render_form(request.form)
+
+        if invoice.journal_entry_id:
+            old_entry = JournalEntry.query.get(invoice.journal_entry_id)
+            if old_entry:
+                db.session.delete(old_entry)
+        invoice.journal_entry_id = None
+        invoice.lines = new_lines
+
+        invoice.customer_id = int(customer_id)
+        invoice.invoice_date = invoice_date
+        invoice.due_date = due_date
+        invoice.payment_terms = request.form.get("payment_terms", "Due on Receipt").strip() or "Due on Receipt"
+        invoice.customer_po_number = request.form.get("customer_po_number", "").strip() or None
+        invoice.memo = request.form.get("memo", "").strip() or None
+        invoice.project_id = int(request.form["project_id"]) if request.form.get("project_id") else None
+        invoice.vat_rate = float(request.form.get("vat_rate") or 15.00)
+        invoice.currency = currency
+        invoice.exchange_rate = exchange_rate
+
+        db.session.flush()
+        post_invoice(invoice)
+        log_audit("edit", "invoice", invoice.id, f"Amended invoice {invoice.invoice_no} (total {invoice.total:.2f})", invoice.invoice_no)
+        db.session.commit()
+
+        # Same best-effort fiscalisation as a brand-new invoice — this is the first time
+        # THESE contents are being fiscalised, since editing was only allowed pre-fiscalisation.
+        fiscalize_invoice_with_mra(invoice)
+        db.session.commit()
+
+        flash(f"Invoice {invoice.invoice_no} updated and re-posted to the ledger.", "success")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+    form = {
+        "customer_id": invoice.customer_id, "invoice_date": invoice.invoice_date.isoformat(),
+        "due_date": invoice.due_date.isoformat(), "payment_terms": invoice.payment_terms,
+        "customer_po_number": invoice.customer_po_number,
+        "vat_rate": float(invoice.vat_rate), "currency": invoice.currency,
+        "exchange_rate": float(invoice.exchange_rate), "memo": invoice.memo, "project_id": invoice.project_id,
+        "lines": [
+            {
+                "item_id": line.item_id, "description": line.description, "quantity": float(line.quantity),
+                "unit_price": float(line.unit_price), "income_account_id": line.income_account_id,
+                "taxable": line.taxable, "line_vat_rate": float(line.vat_rate) if line.vat_rate is not None else None,
+                "warehouse_id": line.warehouse_id, "lot_number": line.lot_number,
+            }
+            for line in invoice.lines
+        ],
+    }
+    return render_form(form)
+
+
 @sales_bp.route("/invoices/<int:invoice_id>")
 @login_required
 def invoice_detail(invoice_id):
@@ -503,10 +964,57 @@ def invoice_detail(invoice_id):
         f"{invoice.currency} {invoice.total:.2f}, due {invoice.due_date.strftime('%d %b %Y')}. "
         f"View/download: {share_link}"
     )
+    company = current_company()
     return render_template(
         "sales/invoice_detail.html", invoice=invoice,
         whatsapp_href=whatsapp_link(invoice.customer.phone, whatsapp_message),
+        not_editable_reason=_invoice_not_editable_reason(invoice),
+        smtp_ready=bool(company and company.smtp_host and company.smtp_from and company.smtp_port),
     )
+
+
+@sales_bp.route("/invoices/<int:invoice_id>/email", methods=["POST"])
+@login_required
+def invoice_email(invoice_id):
+    invoice = scoped_or_404(Invoice, invoice_id)
+    company = current_company()
+    if not (company and company.smtp_host and company.smtp_from and company.smtp_port):
+        flash("SMTP isn't configured yet — set host, port and from-address in Settings → Company.", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+    if not invoice.customer.email:
+        flash(f"{invoice.customer.name} has no email address on file.", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+    pdf_buffer = generate_invoice_pdf(invoice, company)
+
+    msg = EmailMessage()
+    msg["Subject"] = f"Invoice {invoice.invoice_no} from {company.business_name}"
+    msg["From"] = company.smtp_from
+    msg["To"] = invoice.customer.email
+    msg.set_content(
+        f"Hi {invoice.customer.name},\n\n"
+        f"Please find attached Invoice {invoice.invoice_no} from {company.business_name} — "
+        f"{invoice.currency} {invoice.total:.2f}, {invoice.payment_terms} (due {invoice.due_date.strftime('%d %b %Y')}).\n\n"
+        f"Thanks,\n{company.business_name}"
+    )
+    msg.add_attachment(
+        pdf_buffer.read(), maintype="application", subtype="pdf", filename=f"{invoice.invoice_no}.pdf",
+    )
+
+    try:
+        with smtplib.SMTP(company.smtp_host, company.smtp_port, timeout=15) as server:
+            if company.smtp_use_tls:
+                server.starttls()
+            if company.smtp_username:
+                server.login(company.smtp_username, company.smtp_password or "")
+            server.send_message(msg)
+    except Exception as exc:  # broad: any SMTP/network error should reach the user, not the log
+        flash(f"Could not email invoice to {invoice.customer.name}: {exc}", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+    log_audit("send", "invoice", invoice.id, f"Emailed invoice {invoice.invoice_no} to {invoice.customer.email}", invoice.invoice_no)
+    flash(f"Invoice {invoice.invoice_no} emailed to {invoice.customer.name} ({invoice.customer.email}).", "success")
+    return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
 
 
 @sales_bp.route("/invoices/<int:invoice_id>/quick-pay", methods=["POST"])
@@ -576,6 +1084,9 @@ def invoice_pdf(invoice_id):
 @login_required
 def invoice_void(invoice_id):
     invoice = scoped_or_404(Invoice, invoice_id)
+    if invoice.status == "pending_approval":
+        flash("This invoice is still awaiting approval — reject it instead of voiding (it was never posted).", "error")
+        return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
     if invoice.amount_paid > 0:
         flash("Cannot void an invoice that already has payments applied. Unapply payments first.", "error")
         return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
@@ -583,6 +1094,13 @@ def invoice_void(invoice_id):
     for line in invoice.lines:
         if line.item_id and line.item.is_tracked:
             item = line.item
+            if item.costing_method in ("fifo", "lifo"):
+                # Restores at the item's current average cost rather than the original
+                # sale's exact layer cost — this app doesn't track which layer(s) a
+                # specific sale consumed, the same simplification a weighted-average
+                # item already accepts here (below).
+                item.add_stock_layer(float(line.quantity), float(item.cost_price))
+                item.refresh_average_cost()
             item.quantity_on_hand = float(item.quantity_on_hand) + float(line.quantity)  # cost_price left as-is
             db.session.add(StockMovement(
                 item_id=item.id, movement_date=date.today(), movement_type="sale",
@@ -895,6 +1413,10 @@ def credit_memo_new():
     default_income = scoped_query(Account).filter_by(code=DEFAULT_INCOME_CODE).first()
     items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
     preselected_customer_id = request.args.get("customer_id", type=int)
+    # "Create Credit Memo" from an invoice's own page — preselects that customer and related
+    # invoice, and copies its lines over as a starting point (e.g. to credit it back in full,
+    # or edit quantities/lines down for a partial credit) instead of starting from a blank form.
+    source_invoice = scoped_get(Invoice, request.args.get("invoice_id", type=int))
 
     # Which invoice, per customer, this credit memo relates to — populated client-side
     # so the "Related Invoice" dropdown updates the moment a customer is picked, no
@@ -913,6 +1435,22 @@ def credit_memo_new():
             default_income=default_income, items=items, form=form, today=date.today().isoformat(),
             invoices_by_customer=invoices_by_customer,
         )
+
+    if request.method == "GET" and source_invoice:
+        return render_form({
+            "customer_id": source_invoice.customer_id,
+            "related_invoice_id": source_invoice.id,
+            "vat_rate": float(source_invoice.vat_rate),
+            "memo": f"Credit for {source_invoice.invoice_no}",
+            "lines": [
+                {
+                    "item_id": line.item_id, "description": line.description, "quantity": float(line.quantity),
+                    "unit_price": float(line.unit_price), "income_account_id": line.income_account_id,
+                    "taxable": line.taxable,
+                }
+                for line in source_invoice.lines
+            ],
+        })
 
     if request.method == "POST":
         customer_id = request.form.get("customer_id")
@@ -1171,6 +1709,7 @@ def payment_new():
     base_currency = current_company().base_currency
 
     customer_id = request.values.get("customer_id", type=int)
+    is_advance = bool(request.values.get("advance"))
     outstanding_invoices = []
     if customer_id:
         customer = scoped_get(Customer, customer_id)
@@ -1202,6 +1741,7 @@ def payment_new():
                 "sales/payment_form.html", customers=customers, deposit_accounts=deposit_accounts,
                 selected_customer_id=customer_id, outstanding_invoices=outstanding_invoices,
                 form=request.form, today=date.today().isoformat(), currencies=CURRENCIES, base_currency=base_currency,
+                is_advance=is_advance,
             )
 
         if exchange_rate <= 0:
@@ -1253,6 +1793,10 @@ def payment_new():
 
         log_audit("create", "payment", payment.id, f"Recorded payment of {amount:.2f} from customer #{customer_id}")
         db.session.commit()
+        fire_webhook(current_company_id(), "payment.received", {
+            "id": payment.id, "customer": payment.customer.name, "amount": float(payment.amount),
+            "currency": payment.currency, "payment_date": payment.payment_date.isoformat(),
+        })
         flash(f"Payment of {amount:.2f} recorded.", "success")
         return redirect(url_for("sales.payment_detail", payment_id=payment.id))
 
@@ -1260,6 +1804,7 @@ def payment_new():
         "sales/payment_form.html", customers=customers, deposit_accounts=deposit_accounts,
         selected_customer_id=customer_id, outstanding_invoices=outstanding_invoices,
         form={}, today=date.today().isoformat(), currencies=CURRENCIES, base_currency=base_currency,
+        is_advance=is_advance,
     )
 
 
@@ -1290,7 +1835,7 @@ def post_payment(payment):
 
     ar_relief_total = 0.0
     for app in payment.applications:
-        ar_relief_base = round(float(app.amount_applied) * float(app.invoice.exchange_rate), 2)
+        ar_relief_base = round(float(app.amount_applied) * app.invoice.carrying_exchange_rate, 2)
         ar_relief_total += ar_relief_base
     # Whatever wasn't applied to a specific invoice is still a real cash receipt against
     # this customer's AR (an unapplied credit balance) — relieved at the payment's own
@@ -1323,9 +1868,10 @@ def payment_detail(payment_id):
 
 # ── Reports ─────────────────────────────────────────────────────────
 
-@sales_bp.route("/aging")
-@login_required
-def aging_report():
+AGING_BUCKET_LABELS = [("current", "Current"), ("1_30", "1-30 Days"), ("31_60", "31-60 Days"), ("61_90", "61-90 Days"), ("90_plus", "90+ Days")]
+
+
+def _ar_aging_buckets():
     today = date.today()
     invoices = scoped_query(Invoice).filter(Invoice.status.in_(["open", "partial"])).all()
 
@@ -1347,5 +1893,46 @@ def aging_report():
 
     totals = {key: sum((inv.balance_due for inv in invs), start=0) for key, invs in buckets.items()}
     grand_total = sum(totals.values(), start=0)
+    return today, buckets, totals, grand_total
 
+
+@sales_bp.route("/aging")
+@login_required
+def aging_report():
+    today, buckets, totals, grand_total = _ar_aging_buckets()
     return render_template("sales/aging.html", buckets=buckets, totals=totals, grand_total=grand_total, today=today)
+
+
+def _ar_aging_rows():
+    today, buckets, _, _ = _ar_aging_buckets()
+    rows = []
+    for key, label in AGING_BUCKET_LABELS:
+        for inv in buckets[key]:
+            rows.append((label, inv.invoice_no, inv.customer.name, inv.due_date.isoformat(), inv.days_overdue, round(inv.balance_due, 2)))
+    return today, rows
+
+
+@sales_bp.route("/aging/export.xlsx")
+@login_required
+def aging_export_xlsx():
+    today, rows = _ar_aging_rows()
+    headers = ["Bucket", "Invoice #", "Customer", "Due Date", "Days Overdue", "Balance Due"]
+    buffer = rows_to_xlsx(headers, rows, sheet_title="AR Aging")
+    return send_file(
+        buffer, as_attachment=True, download_name=f"AR-Aging-{today.isoformat()}.xlsx",
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+
+
+@sales_bp.route("/aging/export.pdf")
+@login_required
+def aging_export_pdf():
+    today, rows = _ar_aging_rows()
+    headers = ["Bucket", "Invoice #", "Customer", "Due Date", "Days Overdue", "Balance Due"]
+    buffer = rows_to_pdf(
+        "Accounts Receivable Aging", f"As of {today.isoformat()}", headers, rows,
+        company=current_company(), numeric_cols={4, 5},
+    )
+    return send_file(
+        buffer, as_attachment=True, download_name=f"AR-Aging-{today.isoformat()}.pdf", mimetype="application/pdf",
+    )

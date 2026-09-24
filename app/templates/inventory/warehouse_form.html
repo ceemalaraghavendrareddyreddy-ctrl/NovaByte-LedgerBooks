@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>{{ 'Edit Warehouse' if editing else 'New Warehouse' }}</h1>
+<div class="card" style="max-width:600px;">
+  <form method="post">
+    <div class="form-row"><label>Code</label><input type="text" name="code" required value="{{ form.code or '' }}" placeholder="e.g. MAIN, PL-01"></div>
+    <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ form.name or '' }}" placeholder="e.g. Main Warehouse, Port Louis Depot"></div>
+    <div class="form-row"><label>Address</label><textarea name="address" rows="2">{{ form.address or '' }}</textarea></div>
+    <button class="btn" type="submit">{{ 'Save Changes' if editing else 'Save Warehouse' }}</button>
+    <a class="btn secondary" href="{{ url_for('inventory.warehouse_list') }}">Cancel</a>
+  </form>
+</div>
+{% endblock %}

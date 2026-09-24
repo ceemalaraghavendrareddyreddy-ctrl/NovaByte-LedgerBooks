@@ -108,11 +108,17 @@ def balance_sheet():
     total_liabilities = sum((r["balance"] for r in liability_rows), start=0.0)
     total_equity = sum((r["balance"] for r in equity_rows), start=0.0) + net_income
 
+    # Net Income here is cumulative since inception (Account.balance() has no fiscal-year
+    # reset, unlike period_movement()) — so its P&L drill-down has to start from the
+    # earliest activity on record, not "the 1st of this month" like the P&L page's own default.
+    earliest_entry = scoped_query(JournalEntry).order_by(JournalEntry.entry_date).first()
+    net_income_start = earliest_entry.entry_date if earliest_entry else as_of
+
     return render_template(
         "reports/balance_sheet.html",
         asset_rows=asset_rows, liability_rows=liability_rows, equity_rows=equity_rows,
         net_income=net_income, total_assets=total_assets, total_liabilities=total_liabilities,
-        total_equity=total_equity, as_of=as_of.isoformat(),
+        total_equity=total_equity, as_of=as_of.isoformat(), net_income_start=net_income_start.isoformat(),
     )
 
 

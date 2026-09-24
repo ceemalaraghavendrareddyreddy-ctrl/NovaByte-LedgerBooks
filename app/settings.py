@@ -64,6 +64,26 @@ def company():
             settings.smtp_password = new_smtp_password
         settings.smtp_from = request.form.get("smtp_from", "").strip() or None
         settings.smtp_use_tls = request.form.get("smtp_use_tls") == "on"
+        new_ocr_key = request.form.get("ocr_api_key", "")
+        if new_ocr_key.strip():
+            settings.ocr_api_key = new_ocr_key
+        settings.bank_feed_provider = request.form.get("bank_feed_provider", "").strip() or None
+        settings.bank_feed_client_id = request.form.get("bank_feed_client_id", "").strip() or None
+        new_bank_feed_key = request.form.get("bank_feed_api_key", "")
+        if new_bank_feed_key.strip():
+            settings.bank_feed_api_key = new_bank_feed_key
+        settings.auto_reminders_enabled = request.form.get("auto_reminders_enabled") == "on"
+        settings.scheduled_report_enabled = request.form.get("scheduled_report_enabled") == "on"
+        report_frequency = request.form.get("scheduled_report_frequency", "weekly").strip()
+        if report_frequency in ("daily", "weekly", "monthly"):
+            settings.scheduled_report_frequency = report_frequency
+        settings.scheduled_report_recipient = request.form.get("scheduled_report_recipient", "").strip() or None
+        settings.bill_approval_enabled = request.form.get("bill_approval_enabled") == "on"
+        threshold_raw = request.form.get("bill_approval_threshold", "").strip()
+        settings.bill_approval_threshold = float(threshold_raw) if threshold_raw else None
+        settings.invoice_approval_enabled = request.form.get("invoice_approval_enabled") == "on"
+        invoice_threshold_raw = request.form.get("invoice_approval_threshold", "").strip()
+        settings.invoice_approval_threshold = float(invoice_threshold_raw) if invoice_threshold_raw else None
         # Invoice PDF theme.
         tpl = request.form.get("invoice_template", "classic").strip()
         if tpl in ("classic", "minimal", "coral"):
@@ -84,7 +104,10 @@ def company():
         db.session.commit()
         flash("Company settings updated.", "success")
         return redirect(url_for("settings.company"))
-    return render_template("settings/company.html", settings=settings, currencies=CURRENCIES)
+    from app.bank_feeds import PROVIDERS
+    return render_template(
+        "settings/company.html", settings=settings, currencies=CURRENCIES, bank_feed_providers=PROVIDERS,
+    )
 
 
 @settings_bp.route("/lock-period", methods=["POST"])
@@ -113,6 +136,19 @@ def lock_period():
         if settings.locked_through_date else "Period lock cleared — all dates are editable again.",
         "success",
     )
+    return redirect(url_for("settings.company"))
+
+
+@settings_bp.route("/api-key/regenerate", methods=["POST"])
+@login_required
+@owner_required
+def regenerate_api_key():
+    """Generates a new key for the read-only public API (GET /api/v1/customers etc,
+    see app/api_v1.py). Regenerating immediately invalidates the old key."""
+    settings = current_company()
+    settings.api_key = secrets.token_hex(32)
+    db.session.commit()
+    flash("API key regenerated — update it wherever it was in use; the old key stopped working immediately.", "success")
     return redirect(url_for("settings.company"))
 
 

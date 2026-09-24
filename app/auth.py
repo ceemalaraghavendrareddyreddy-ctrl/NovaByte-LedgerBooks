@@ -7,6 +7,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app import db
 from app.company import create_company_and_owner
 from app.models import CompanySettings, User
+from app import two_factor
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -48,11 +49,49 @@ def login():
         password = request.form["password"]
         user = User.query.filter_by(username=username, is_active_user=True).first()
         if user and check_password_hash(user.password_hash, password):
+            if user.totp_enabled:
+                # Password is right, but the login isn't complete yet — park the
+                # user id in the session (not flask-login's session, just a plain
+                # key) until they clear the second factor in verify_2fa below.
+                session["pending_2fa_user_id"] = user.id
+                return redirect(url_for("auth.verify_2fa"))
             login_user(user)
             _set_active_company(user, user.company_id)
             return redirect(url_for("dashboard.index"))
         flash("Invalid username or password", "error")
     return render_template("login.html")
+
+
+@auth_bp.route("/login/2fa", methods=["GET", "POST"])
+def verify_2fa():
+    user_id = session.get("pending_2fa_user_id")
+    if not user_id:
+        return redirect(url_for("auth.login"))
+    user = User.query.get(user_id)
+    if not user or not user.totp_enabled:
+        session.pop("pending_2fa_user_id", None)
+        return redirect(url_for("auth.login"))
+
+    if request.method == "POST":
+        code = request.form.get("code", "")
+        recovery_code = request.form.get("recovery_code", "")
+        ok = two_factor.verify_code(user.totp_secret, code) if code else False
+        used_recovery = False
+        if not ok and recovery_code:
+            ok = user.redeem_recovery_code(recovery_code)
+            used_recovery = ok
+
+        if ok:
+            session.pop("pending_2fa_user_id", None)
+            if used_recovery:
+                db.session.commit()
+                flash("Signed in with a recovery code. Generate new codes from Settings → Security when you can.", "success")
+            login_user(user)
+            _set_active_company(user, user.company_id)
+            return redirect(url_for("dashboard.index"))
+        flash("Invalid authentication code.", "error")
+
+    return render_template("verify_2fa.html")
 
 
 @auth_bp.route("/register", methods=["GET", "POST"])
@@ -129,3 +168,60 @@ def change_password():
         return redirect(url_for("dashboard.index"))
 
     return render_template("change_password.html")
+
+
+@auth_bp.route("/security")
+@login_required
+def security():
+    return render_template("security.html")
+
+
+@auth_bp.route("/security/2fa/setup", methods=["GET", "POST"])
+@login_required
+def setup_2fa():
+    if current_user.totp_enabled:
+        flash("Two-factor authentication is already enabled.", "error")
+        return redirect(url_for("auth.security"))
+
+    if request.method == "POST":
+        secret = session.get("pending_totp_secret")
+        code = request.form.get("code", "")
+        if not secret or not two_factor.verify_code(secret, code):
+            flash("That code didn't match. Scan the QR code again and try the current 6-digit code.", "error")
+            return redirect(url_for("auth.setup_2fa"))
+
+        plain_codes, stored_value = two_factor.generate_recovery_codes()
+        current_user.totp_secret = secret
+        current_user.totp_enabled = True
+        current_user.totp_recovery_codes = stored_value
+        db.session.commit()
+        session.pop("pending_totp_secret", None)
+        flash("Two-factor authentication is now enabled.", "success")
+        return render_template("2fa_recovery_codes.html", codes=plain_codes)
+
+    secret = session.get("pending_totp_secret") or two_factor.generate_secret()
+    session["pending_totp_secret"] = secret
+    uri = two_factor.provisioning_uri(current_user, secret)
+    qr_data_uri = two_factor.qr_code_data_uri(uri)
+    return render_template("2fa_setup.html", secret=secret, qr_data_uri=qr_data_uri)
+
+
+@auth_bp.route("/security/2fa/disable", methods=["GET", "POST"])
+@login_required
+def disable_2fa():
+    if not current_user.totp_enabled:
+        return redirect(url_for("auth.security"))
+
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        if not check_password_hash(current_user.password_hash, password):
+            flash("Incorrect password.", "error")
+            return render_template("2fa_disable.html")
+        current_user.totp_enabled = False
+        current_user.totp_secret = None
+        current_user.totp_recovery_codes = None
+        db.session.commit()
+        flash("Two-factor authentication has been disabled.", "success")
+        return redirect(url_for("auth.security"))
+
+    return render_template("2fa_disable.html")
