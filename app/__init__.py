@@ -231,6 +231,17 @@ def create_app():
     from app.scheduler import init_scheduler
     init_scheduler(app)
 
+    @app.route("/sw.js")
+    def service_worker():
+        # Served at the root (not /static/sw.js) so its default scope covers the
+        # whole app, not just /static/ — a service worker's scope is capped to
+        # the directory it's served from unless it's at the site root.
+        from flask import send_from_directory
+        response = send_from_directory(app.static_folder, "sw.js", mimetype="application/javascript")
+        response.headers["Service-Worker-Allowed"] = "/"
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
     return app
 
 
