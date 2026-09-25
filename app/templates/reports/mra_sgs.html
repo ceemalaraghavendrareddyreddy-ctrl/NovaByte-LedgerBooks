@@ -17,14 +17,14 @@
 
 {% if missing_brn %}
 <div class="flash flash-warning" style="margin-top:1rem;">
-  {{ missing_brn|length }} bill{{ '' if missing_brn|length == 1 else 's' }} in this range
+  {{ missing_brn|length }} record{{ '' if missing_brn|length == 1 else 's' }} in this range
   {{ 'has' if missing_brn|length == 1 else 'have' }} a vendor with no BRN on file — those rows
   will export with a blank SUPPLIER BRN column. Add it on the vendor's own page before filing.
 </div>
 {% endif %}
 
 <div class="card" style="margin-top:1rem;">
-  {% if bills %}
+  {% if bills or vendor_credits %}
   <div style="overflow-x:auto;">
   <table>
     <thead><tr>{% for col in header %}<th>{{ col }}</th>{% endfor %}</tr></thead>
@@ -43,11 +43,25 @@
         <td>I</td>
       </tr>
       {% endfor %}
+      {% for credit in vendor_credits %}
+      <tr>
+        <td>{{ credit.credit_date.strftime('%Y%m%d') }}</td>
+        <td><a href="{{ url_for('purchases.vendor_credit_detail', vendor_credit_id=credit.id) }}">{{ credit.credit_no }}</a></td>
+        <td>{{ credit.vendor.name if credit.vendor else '' }}</td>
+        <td>{{ (credit.vendor.brn if credit.vendor else none) or '—' }}</td>
+        <td>{{ (credit.vendor.mra_supplier_id if credit.vendor else none) or '—' }}</td>
+        <td>{{ (credit.lines|map(attribute='description')|select|join('; ')) or credit.memo or '' }}</td>
+        <td class="num">{{ '%.2f'|format(credit.subtotal) }}</td>
+        <td class="num">{{ '%.2f'|format(credit.vat_amount) }}</td>
+        <td class="num">{{ '%.2f'|format(credit.amount_applied) }}</td>
+        <td>N</td>
+      </tr>
+      {% endfor %}
     </tbody>
   </table>
   </div>
   {% else %}
-  <p style="color:var(--text-muted);">No bills in this date range.</p>
+  <p style="color:var(--text-muted);">No bills or vendor credits in this date range.</p>
   {% endif %}
 </div>
 {% endblock %}

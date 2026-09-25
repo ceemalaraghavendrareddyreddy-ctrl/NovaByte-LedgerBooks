@@ -110,6 +110,14 @@
     <p class="text-muted" style="font-size:0.88rem;">Connects this business to MRA_TaxInvoice_System, so every invoice and credit memo is automatically fiscalised.</p>
     <div class="form-row"><label>API URL</label><input type="text" name="mra_api_url" placeholder="http://localhost:5059" value="{{ settings.mra_api_url or '' }}"></div>
     <div class="form-row"><label>API key</label><input type="text" name="mra_api_key" value="{{ settings.mra_api_key or '' }}"></div>
+    <div class="form-row">
+      <label>Default payment mode</label>
+      <select name="mra_default_payment_mode">
+        {% for mode in ["CASH", "CARD", "BANK TRANSFER", "CHEQUE"] %}
+        <option value="{{ mode }}" {{ "selected" if (settings.mra_default_payment_mode or "CASH") == mode }}>{{ mode.title() }}</option>
+        {% endfor %}
+      </select>
+    </div>
   </div>
 
   {# ── Receipt OCR (see app/ocr.py) ──────────────────────────── #}

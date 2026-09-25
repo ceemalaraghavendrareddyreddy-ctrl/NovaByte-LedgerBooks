@@ -29,6 +29,22 @@ def _connection(company_id):
     return url, key
 
 
+def _payment_mode(company_id):
+    """Company-configurable (Settings -> Company), was hardcoded to CASH. Falls back
+    to CASH if the company row is somehow missing rather than sending a blank value
+    MRA_TaxInvoice_System doesn't recognise."""
+    settings = CompanySettings.get_by_id(company_id)
+    return (settings.mra_default_payment_mode if settings else None) or "CASH"
+
+
+def _credit_memo_currency(company_id):
+    """CreditMemo (unlike Invoice/Bill) has no currency column of its own — it's
+    always posted in the company's base currency — so this is what fiscalisation
+    payloads for credit/debit notes send instead of the invoice-level currency."""
+    settings = CompanySettings.get_by_id(company_id)
+    return (settings.base_currency if settings else None) or "MUR"
+
+
 def is_configured(company_id):
     url, key = _connection(company_id)
     return bool(url and key)
@@ -71,8 +87,8 @@ def fiscalize_invoice_with_mra(invoice):
 
     ok, data = _post(invoice.company_id, {
         "document_type": "STD",
-        "currency": "MUR",
-        "payment_mode": "CASH",
+        "currency": invoice.currency,
+        "payment_mode": _payment_mode(invoice.company_id),
         "customer": _customer_payload(invoice.customer),
         "line_items": _line_items_payload(invoice.lines),
     })
@@ -116,8 +132,8 @@ def fiscalize_credit_memo_with_mra(credit_memo):
 
     ok, data = _post(credit_memo.company_id, {
         "document_type": "CRN",
-        "currency": "MUR",
-        "payment_mode": "CASH",
+        "currency": _credit_memo_currency(credit_memo.company_id),
+        "payment_mode": _payment_mode(credit_memo.company_id),
         "reference_invoice_number": reference_invoice.mra_invoice_number,
         "reason": credit_memo.memo or f"Credit memo {credit_memo.credit_no}",
         "customer": _customer_payload(credit_memo.customer),
@@ -144,8 +160,8 @@ def void_invoice_via_credit_note(invoice):
 
     ok, data = _post(invoice.company_id, {
         "document_type": "CRN",
-        "currency": "MUR",
-        "payment_mode": "CASH",
+        "currency": invoice.currency,
+        "payment_mode": _payment_mode(invoice.company_id),
         "reference_invoice_number": invoice.mra_invoice_number,
         "reason": f"Invoice {invoice.invoice_no} voided in LedgerBooks",
         "customer": _customer_payload(invoice.customer),
@@ -166,8 +182,8 @@ def void_credit_memo_via_debit_note(credit_memo):
 
     ok, data = _post(credit_memo.company_id, {
         "document_type": "DRN",
-        "currency": "MUR",
-        "payment_mode": "CASH",
+        "currency": _credit_memo_currency(credit_memo.company_id),
+        "payment_mode": _payment_mode(credit_memo.company_id),
         "reference_invoice_number": credit_memo.mra_invoice_number,
         "reason": f"Credit memo {credit_memo.credit_no} voided in LedgerBooks",
         "customer": _customer_payload(credit_memo.customer),

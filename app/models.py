@@ -176,6 +176,11 @@ class CompanySettings(db.Model):
     # MRA_TaxInvoice_System company.
     mra_api_url = db.Column(db.String(255))
     mra_api_key = db.Column(db.String(64))
+    # Default payment_mode sent on every fiscalisation call (app/mra_bridge.py) — one of
+    # the values MRA_TaxInvoice_System's own invoice form offers: CASH / CARD /
+    # BANK TRANSFER / CHEQUE. Previously hardcoded to CASH; now a per-company setting
+    # since not every business collects cash at point of sale.
+    mra_default_payment_mode = db.Column(db.String(20), nullable=False, default="CASH")
     # Payroll bridge — the reverse direction from the MRA connection above: an
     # external payroll system (e.g. Sicorax/Payroll.py) is the CALLER here, and
     # this key is what it presents (X-Api-Key) to POST /api/v1/payroll/import.

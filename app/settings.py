@@ -52,6 +52,7 @@ def company():
         settings.invoice_footer_note = request.form.get("invoice_footer_note", "").strip() or None
         settings.mra_api_url = request.form.get("mra_api_url", "").strip() or None
         settings.mra_api_key = request.form.get("mra_api_key", "").strip() or None
+        settings.mra_default_payment_mode = request.form.get("mra_default_payment_mode", "CASH").strip() or "CASH"
         # SMTP settings for payment-reminder emails.
         settings.smtp_host = request.form.get("smtp_host", "").strip() or None
         smtp_port_raw = request.form.get("smtp_port", "").strip()
