@@ -53,6 +53,11 @@ def company():
         settings.mra_api_url = request.form.get("mra_api_url", "").strip() or None
         settings.mra_api_key = request.form.get("mra_api_key", "").strip() or None
         settings.mra_default_payment_mode = request.form.get("mra_default_payment_mode", "CASH").strip() or "CASH"
+        # Online payment gateway (app/payment_gateway.py — currently DPO Group only).
+        settings.gateway_provider = request.form.get("gateway_provider", "").strip() or None
+        settings.gateway_company_token = request.form.get("gateway_company_token", "").strip() or None
+        settings.gateway_service_type = request.form.get("gateway_service_type", "").strip() or None
+        settings.gateway_sandbox = request.form.get("gateway_sandbox") == "on"
         # SMTP settings for payment-reminder emails.
         settings.smtp_host = request.form.get("smtp_host", "").strip() or None
         smtp_port_raw = request.form.get("smtp_port", "").strip()

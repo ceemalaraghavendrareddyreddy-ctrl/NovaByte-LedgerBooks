@@ -11,7 +11,7 @@ and no "forgot password" email flow yet; resetting one still requires the owner.
 PDFs reuse the existing signed share-link routes (app/share.py) rather than
 duplicating PDF generation here.
 """
-from datetime import datetime
+from datetime import date, datetime
 from functools import wraps
 
 from flask import Blueprint, flash, redirect, render_template, request, session, url_for
@@ -21,8 +21,12 @@ from werkzeug.security import check_password_hash
 from app import db
 from app.audit import log_audit
 from app.mra_bridge import fiscalize_invoice_with_mra
-from app.models import Bill, CompanySettings, Customer, Estimate, Invoice, Vendor
+from app.models import Bill, CompanySettings, Customer, Estimate, Invoice, Payment, PaymentApplication, Vendor
 from app.share_links import share_url
+from app.payment_gateway import (
+    create_payment_token, verify_payment, is_configured as is_gateway_configured,
+)
+from app.sales import get_account_or_400, post_payment, UNDEPOSITED_FUNDS_CODE
 
 portal_bp = Blueprint("portal", __name__, url_prefix="/portal")
 
@@ -167,12 +171,109 @@ def customer_estimate_sign(estimate_id):
 def customer_invoice(invoice_id):
     customer = current_portal_customer()
     invoice = Invoice.query.filter_by(id=invoice_id, customer_id=customer.id).first_or_404()
+    # Safety net: if a payment attempt is still "pending" (e.g. the customer's
+    # portal session lapsed before they got back to invoice_pay_return below),
+    # simply reloading the invoice re-checks the real status. Idempotent and
+    # safe to call on every view — verify_payment never charges anything, only
+    # reads DPO's own record of what already happened.
+    if invoice.status not in ("paid", "void") and invoice.gateway_status == "pending":
+        _reverify_and_apply_payment(invoice)
     pdf_url = share_url("invoice", invoice.id, invoice.company_id, "share.invoice_pdf")
+    gateway_configured = is_gateway_configured(invoice.company_id)
     return render_template(
         "portal/customer_invoice.html", customer=customer, invoice=invoice, pdf_url=pdf_url,
         company_name=_company_name(customer.company_id), portal_kind="customer",
-        logout_url=url_for("portal.customer_logout"),
+        logout_url=url_for("portal.customer_logout"), gateway_configured=gateway_configured,
     )
+
+
+def _reverify_and_apply_payment(invoice):
+    """Shared by customer_invoice's safety-net check and invoice_pay_return
+    below: re-checks the real payment status with DPO and, if paid, records a
+    real Payment applied in full to this invoice — exactly the same ledger
+    posting a staff member entering it manually would produce (app/sales.py's
+    post_payment), just triggered by the gateway confirming payment instead of
+    a person typing it in. Never double-applies: if the invoice is already
+    paid/void, or there's nothing pending, this is a no-op."""
+    if invoice.status in ("paid", "void") or invoice.gateway_status != "pending":
+        return
+    status, _explanation = verify_payment(invoice)
+    if status != "paid":
+        db.session.commit()  # persist whatever gateway_status verify_payment set (pending/failed/error)
+        return
+
+    # post_payment()/get_account_or_400()/log_audit() are staff-session-scoped
+    # helpers (current_company_id() reads session["company_id"]) — a portal
+    # customer session has no such key (it keys off session["portal_customer_id"]
+    # instead), so set it for the duration of this one call and restore whatever
+    # was there before, rather than duplicating their lookup logic here.
+    previous_company_id = session.get("company_id")
+    session["company_id"] = invoice.company_id
+    try:
+        deposit_account = get_account_or_400(UNDEPOSITED_FUNDS_CODE, "Undeposited Funds")
+        payment = Payment(
+            company_id=invoice.company_id,
+            customer_id=invoice.customer_id,
+            payment_date=date.today(),
+            amount=invoice.balance_due,
+            currency=invoice.currency,
+            exchange_rate=float(invoice.exchange_rate),
+            method="online",
+            deposit_account_id=deposit_account.id,
+            reference_no=invoice.gateway_trans_token,
+            memo=f"Online payment via DPO for invoice {invoice.invoice_no}",
+        )
+        payment.applications.append(PaymentApplication(invoice=invoice, amount_applied=invoice.balance_due))
+        post_payment(payment)
+        db.session.add(payment)
+        db.session.flush()
+        invoice.status = "paid" if invoice.balance_due <= 0 else "partial"
+        log_audit("create", "payment", payment.id, f"Online payment received for invoice {invoice.invoice_no} via DPO")
+        db.session.commit()
+    finally:
+        if previous_company_id is None:
+            session.pop("company_id", None)
+        else:
+            session["company_id"] = previous_company_id
+
+
+@portal_bp.route("/invoices/<int:invoice_id>/pay", methods=["POST"])
+@portal_customer_required
+def invoice_pay(invoice_id):
+    customer = current_portal_customer()
+    invoice = Invoice.query.filter_by(id=invoice_id, customer_id=customer.id).first_or_404()
+    if invoice.status in ("paid", "void"):
+        flash("This invoice has nothing left to pay.", "error")
+        return redirect(url_for("portal.customer_invoice", invoice_id=invoice.id))
+
+    return_url = url_for("portal.invoice_pay_return", invoice_id=invoice.id, _external=True)
+    back_url = url_for("portal.customer_invoice", invoice_id=invoice.id, _external=True)
+    checkout_url, error = create_payment_token(invoice, return_url, back_url)
+    db.session.commit()
+    if error:
+        flash(error, "error")
+        return redirect(url_for("portal.customer_invoice", invoice_id=invoice.id))
+    return redirect(checkout_url)
+
+
+@portal_bp.route("/invoices/<int:invoice_id>/pay/return")
+@portal_customer_required
+def invoice_pay_return(invoice_id):
+    """Where DPO sends the customer back after they attempt payment (paid or
+    not) on the hosted checkout page. The redirect itself proves nothing —
+    _reverify_and_apply_payment() re-checks the real status via DPO's own API
+    before ever recording money as received."""
+    customer = current_portal_customer()
+    invoice = Invoice.query.filter_by(id=invoice_id, customer_id=customer.id).first_or_404()
+    _reverify_and_apply_payment(invoice)
+
+    if invoice.status == "paid":
+        flash("Payment received — thank you!", "success")
+    elif invoice.gateway_status == "failed":
+        flash("The payment wasn't completed. You can try again below.", "error")
+    else:
+        flash("We haven't received confirmation of payment yet — this can take a moment. Refresh to check again.", "info")
+    return redirect(url_for("portal.customer_invoice", invoice_id=invoice.id))
 
 
 @portal_bp.route("/statement")

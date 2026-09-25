@@ -120,6 +120,32 @@
     </div>
   </div>
 
+  {# ── Online payment gateway (see app/payment_gateway.py) ────── #}
+  <div class="card">
+    <h3 class="mt-0">Online payments</h3>
+    <p class="text-muted" style="font-size:0.88rem;">
+      Lets a customer pay an invoice online from their portal instead of only ever recording payment manually.
+      Currently supports DPO Group (real MUR settlement to a Mauritius bank).
+    </p>
+    <div class="form-row">
+      <label>Provider</label>
+      <select name="gateway_provider">
+        <option value="" {{ "selected" if not settings.gateway_provider }}>-- not configured --</option>
+        <option value="dpo" {{ "selected" if settings.gateway_provider == "dpo" }}>DPO Group</option>
+      </select>
+    </div>
+    <div class="form-row"><label>Company Token</label><input type="text" name="gateway_company_token" value="{{ settings.gateway_company_token or '' }}"></div>
+    <div class="form-row"><label>Service Type ID</label><input type="text" name="gateway_service_type" value="{{ settings.gateway_service_type or '' }}" placeholder="from your DPO merchant/sandbox account"></div>
+    <div class="form-row">
+      <label>Sandbox mode</label>
+      <input type="checkbox" name="gateway_sandbox" style="flex:0;width:auto;" {{ "checked" if settings.gateway_sandbox }}>
+    </div>
+    <p class="text-muted" style="font-size:0.8rem;">
+      Sandbox uses DPO's test environment — no real money moves. Untick this only once you have a real DPO merchant
+      account and have tested a full payment in sandbox first.
+    </p>
+  </div>
+
   {# ── Receipt OCR (see app/ocr.py) ──────────────────────────── #}
   <div class="card">
     <h3 class="mt-0">Receipt OCR</h3>

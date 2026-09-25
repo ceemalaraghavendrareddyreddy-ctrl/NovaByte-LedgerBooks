@@ -32,6 +32,13 @@
   </table>
 </div>
 
-<a class="btn" href="{{ pdf_url }}" target="_blank">📄 View / Download PDF</a>
+{% if gateway_configured and invoice.status not in ('paid', 'void') and invoice.balance_due > 0 %}
+<form method="post" action="{{ url_for('portal.invoice_pay', invoice_id=invoice.id) }}" style="display:inline;">
+  <button class="btn" type="submit" style="background:var(--success, #1a7f4e);">
+    💳 Pay {{ invoice.currency }} {{ '%.2f'|format(invoice.balance_due) }} Now
+  </button>
+</form>
+{% endif %}
+<a class="btn secondary" href="{{ pdf_url }}" target="_blank">📄 View / Download PDF</a>
 <a class="btn secondary" href="{{ url_for('portal.customer_dashboard') }}">Back to Invoices</a>
 {% endblock %}

@@ -2071,7 +2071,11 @@ def post_payment(payment):
         reference_no=payment.reference_no,
         memo=f"Payment received - {payment.memo or ''}".strip(" -"),
         source_type="payment",
-        created_by=current_user.id,
+        # None when there's no staff user in session — e.g. app/portal.py calling
+        # this for a gateway-confirmed online payment, where no one on staff
+        # actually entered it. Every staff-initiated caller is always authenticated,
+        # so this changes nothing for the existing flow.
+        created_by=current_user.id if current_user.is_authenticated else None,
     )
 
     cash_base = round(float(payment.amount) * payment_rate, 2)

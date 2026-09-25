@@ -181,6 +181,17 @@ class CompanySettings(db.Model):
     # BANK TRANSFER / CHEQUE. Previously hardcoded to CASH; now a per-company setting
     # since not every business collects cash at point of sale.
     mra_default_payment_mode = db.Column(db.String(20), nullable=False, default="CASH")
+    # Online payment gateway (app/payment_gateway.py) — lets a customer pay an
+    # invoice from the portal instead of only ever being recorded manually.
+    # DPO Group (Direct Pay Online) is the only provider wired up so far — chosen
+    # for real MUR settlement to a Mauritius bank, unlike Stripe (no full Mauritius
+    # support) or PayPal (settles in USD/EUR, not MUR). gateway_sandbox defaults
+    # True so a freshly-configured company can't accidentally take a live charge
+    # before deliberately switching over.
+    gateway_provider = db.Column(db.String(20))  # "dpo" — a plain string, not an enum, room to add more later
+    gateway_company_token = db.Column(db.String(64))
+    gateway_service_type = db.Column(db.String(20))
+    gateway_sandbox = db.Column(db.Boolean, nullable=False, default=True)
     # Payroll bridge — the reverse direction from the MRA connection above: an
     # external payroll system (e.g. Sicorax/Payroll.py) is the CALLER here, and
     # this key is what it presents (X-Api-Key) to POST /api/v1/payroll/import.
@@ -537,6 +548,14 @@ class Invoice(db.Model):
     # credit note number issued to legally cancel it out (a fiscalised invoice is never
     # deleted or altered on the MRA side, only offset).
     mra_void_reference = db.Column(db.String(100))
+    # Online payment gateway (app/payment_gateway.py). gateway_trans_token is the
+    # DPO TransToken for the most recent payment attempt — needed to verify it
+    # after the customer returns from the hosted checkout page. gateway_status is
+    # one of pending/paid/failed, purely informational (the actual money-received
+    # event is still a real Payment row, same as a manually recorded one — this
+    # just tracks the gateway side of that one attempt).
+    gateway_trans_token = db.Column(db.String(64))
+    gateway_status = db.Column(db.String(20))
     # Set by app/fx_revaluation.py the first time this invoice's open balance is
     # revalued at a period-end rate — from then on this (not the original exchange_rate)
     # is the rate AR is actually carried at, so a later revaluation or final payment
