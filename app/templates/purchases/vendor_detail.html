@@ -23,6 +23,8 @@
   </form>
 </div>
 
+{% with fields=custom_fields, values=custom_values %}{% include "settings/_custom_fields_display.html" %}{% endwith %}
+
 <div class="card">
   <h3>Bills</h3>
   {% if bills %}

@@ -1,0 +1,23 @@
+{# Include with `fields` (list of CustomFieldDefinition) and `values` (dict field_key -> value string) in context.
+   Renders nothing if there are no active fields, or every value is blank. #}
+{% set has_any_value = fields and (values.values() | select | list | length > 0) %}
+{% if has_any_value %}
+<div class="card">
+  <h3>Custom fields</h3>
+  <table>
+    <tbody>
+      {% for f in fields %}
+      {% set v = values.get(f.field_key, '') %}
+      {% if v %}
+      <tr>
+        <td style="color:var(--text-muted);width:40%;">{{ f.label }}</td>
+        <td>
+          {% if f.field_type == 'checkbox' %}{{ 'Yes' if v == '1' else 'No' }}{% else %}{{ v }}{% endif %}
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}

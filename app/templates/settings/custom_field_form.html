@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>New custom field</h1>
+<div class="card">
+  <form method="post">
+    <div class="form-row">
+      <label>Record type</label>
+      <select name="entity_type" required>
+        <option value="">-- select --</option>
+        {% for key, label in entity_types.items() %}
+        <option value="{{ key }}" {% if form.entity_type == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label>Label</label>
+      <input type="text" name="label" required value="{{ form.label or '' }}" placeholder="e.g. Region, Reorder Threshold">
+    </div>
+    <div class="form-row">
+      <label>Field type</label>
+      <select name="field_type" id="field_type" required>
+        {% for key, label in field_types.items() %}
+        <option value="{{ key }}" {% if form.field_type == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row" id="options-row" style="display:none;">
+      <label>Options</label>
+      <input type="text" name="options" value="{{ form.options or '' }}" placeholder="comma-separated, e.g. North, South, East, West">
+    </div>
+    <div class="form-row">
+      <label>Required</label>
+      <input type="checkbox" name="is_required" style="flex:0;width:auto;" {% if form.get('is_required') %}checked{% endif %}>
+    </div>
+
+    <div style="margin-top:1rem;">
+      <button class="btn" type="submit">Save field</button>
+      <a class="btn secondary" href="{{ url_for('custom_fields.list_fields') }}">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<script>
+const typeSelect = document.getElementById('field_type');
+const optionsRow = document.getElementById('options-row');
+function toggleOptionsRow() {
+  optionsRow.style.display = typeSelect.value === 'dropdown' ? 'flex' : 'none';
+}
+typeSelect.addEventListener('change', toggleOptionsRow);
+toggleOptionsRow();
+</script>
+{% endblock %}

@@ -32,6 +32,12 @@
       </p>
     </div>
     <div class="form-row"><label>Opening Balance</label><input type="number" step="0.01" name="opening_balance" value="{{ form.opening_balance or 0 }}"></div>
+
+    {% if custom_fields %}
+    <h3 style="margin-top:1.25rem;">Custom fields</h3>
+    {% with fields=custom_fields, values=custom_values %}{% include "settings/_custom_fields_inputs.html" %}{% endwith %}
+    {% endif %}
+
     <button class="btn" type="submit">{{ 'Save Changes' if editing else 'Save Vendor' }}</button>
     <a class="btn secondary" href="{{ url_for('purchases.vendor_list') }}">Cancel</a>
   </form>

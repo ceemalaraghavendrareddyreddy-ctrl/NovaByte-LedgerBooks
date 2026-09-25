@@ -17,6 +17,12 @@ from app.pdf import generate_bill_pdf
 from app.report_export import rows_to_pdf, rows_to_xlsx
 from app.scoping import scoped_get, scoped_or_404, scoped_query
 from app.share_links import share_url, whatsapp_link
+from app.custom_fields import (
+    get_field_definitions as get_custom_field_definitions,
+    get_field_values as get_custom_field_values,
+    save_field_values as save_custom_field_values,
+    missing_required_fields as missing_required_custom_fields,
+)
 
 purchases_bp = Blueprint("purchases", __name__, url_prefix="/purchases")
 
@@ -63,7 +69,15 @@ def vendor_list():
 @purchases_bp.route("/vendors/new", methods=["GET", "POST"])
 @login_required
 def vendor_new():
+    custom_defs = get_custom_field_definitions("vendor", current_company_id())
     if request.method == "POST":
+        missing = missing_required_custom_fields(custom_defs, request.form)
+        if missing:
+            flash(f"Required field(s) missing: {', '.join(missing)}.", "error")
+            return render_template(
+                "purchases/vendor_form.html", form=request.form, action_url=url_for("purchases.vendor_new"),
+                currencies=CURRENCIES, custom_fields=custom_defs, custom_values=request.form,
+            )
         vendor_type = request.form.get("vendor_type") if request.form.get("vendor_type") in ("individual", "company") else "company"
         vendor = Vendor(
             company_id=current_company_id(),
@@ -80,11 +94,14 @@ def vendor_new():
             opening_balance=request.form.get("opening_balance") or 0,
         )
         db.session.add(vendor)
+        db.session.flush()
+        save_custom_field_values(vendor.id, custom_defs, request.form)
         db.session.commit()
         flash(f"Vendor '{vendor.name}' created.", "success")
         return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
     return render_template(
         "purchases/vendor_form.html", form={}, action_url=url_for("purchases.vendor_new"), currencies=CURRENCIES,
+        custom_fields=custom_defs, custom_values={},
     )
 
 
@@ -92,7 +109,15 @@ def vendor_new():
 @login_required
 def vendor_edit(vendor_id):
     vendor = scoped_or_404(Vendor, vendor_id)
+    custom_defs = get_custom_field_definitions("vendor", current_company_id())
     if request.method == "POST":
+        missing = missing_required_custom_fields(custom_defs, request.form)
+        if missing:
+            flash(f"Required field(s) missing: {', '.join(missing)}.", "error")
+            return render_template(
+                "purchases/vendor_form.html", form=request.form, action_url=url_for("purchases.vendor_edit", vendor_id=vendor.id),
+                editing=True, currencies=CURRENCIES, custom_fields=custom_defs, custom_values=request.form,
+            )
         vendor_type = request.form.get("vendor_type") if request.form.get("vendor_type") in ("individual", "company") else "company"
         vendor.name = request.form["name"].strip()
         vendor.vendor_type = vendor_type
@@ -105,12 +130,14 @@ def vendor_edit(vendor_id):
         vendor.mra_supplier_id = request.form.get("mra_supplier_id", "").strip() or None
         vendor.billing_currency = request.form.get("billing_currency") or "MUR"
         vendor.opening_balance = request.form.get("opening_balance") or 0
+        save_custom_field_values(vendor.id, custom_defs, request.form)
         db.session.commit()
         flash(f"Vendor '{vendor.name}' updated.", "success")
         return redirect(url_for("purchases.vendor_detail", vendor_id=vendor.id))
+    custom_values = get_custom_field_values(vendor.id, custom_defs)
     return render_template(
         "purchases/vendor_form.html", form=vendor, action_url=url_for("purchases.vendor_edit", vendor_id=vendor.id),
-        editing=True, currencies=CURRENCIES,
+        editing=True, currencies=CURRENCIES, custom_fields=custom_defs, custom_values=custom_values,
     )
 
 
@@ -156,7 +183,12 @@ def vendor_detail(vendor_id):
     vendor = scoped_or_404(Vendor, vendor_id)
     bills = sorted([b for b in vendor.bills if b.status != "void"], key=lambda b: b.bill_date, reverse=True)
     payments = sorted(vendor.payments, key=lambda p: p.payment_date, reverse=True)
-    return render_template("purchases/vendor_detail.html", vendor=vendor, bills=bills, payments=payments)
+    custom_defs = get_custom_field_definitions("vendor", current_company_id())
+    custom_values = get_custom_field_values(vendor.id, custom_defs)
+    return render_template(
+        "purchases/vendor_detail.html", vendor=vendor, bills=bills, payments=payments,
+        custom_fields=custom_defs, custom_values=custom_values,
+    )
 
 
 def _vendor_statement_data(vendor, start_date, end_date):

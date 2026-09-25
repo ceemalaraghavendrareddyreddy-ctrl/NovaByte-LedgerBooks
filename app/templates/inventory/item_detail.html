@@ -24,6 +24,8 @@
   {% endif %}
 </div>
 
+{% with fields=custom_fields, values=custom_values %}{% include "settings/_custom_fields_display.html" %}{% endwith %}
+
 {% if item.is_tracked %}
 
 {% if remaining_layers %}

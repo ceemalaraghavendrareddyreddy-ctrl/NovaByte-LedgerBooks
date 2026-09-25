@@ -11,6 +11,12 @@ from app.models import (
     TRACKING_TYPES, Warehouse,
 )
 from app.scoping import scoped_or_404, scoped_query
+from app.custom_fields import (
+    get_field_definitions as get_custom_field_definitions,
+    get_field_values as get_custom_field_values,
+    save_field_values as save_custom_field_values,
+    missing_required_fields as missing_required_custom_fields,
+)
 
 inventory_bp = Blueprint("inventory", __name__, url_prefix="/inventory")
 
@@ -50,15 +56,26 @@ def item_new():
         "inventory_account_id": scoped_query(Account).filter_by(code=DEFAULT_INVENTORY_CODE).first(),
         "cogs_account_id": scoped_query(Account).filter_by(code=DEFAULT_COGS_CODE).first(),
     }
+    custom_defs = get_custom_field_definitions("item", current_company_id())
 
     if request.method == "POST":
         sku = request.form["sku"].strip()
+        missing = missing_required_custom_fields(custom_defs, request.form)
         if scoped_query(Item).filter_by(sku=sku).first():
             flash(f"SKU {sku} already exists.", "error")
             return render_template(
                 "inventory/item_form.html", income_accounts=income_accounts, inventory_accounts=inventory_accounts,
                 expense_accounts=expense_accounts, warehouses=warehouses, defaults=defaults,
                 item_types=ITEM_TYPES, tracking_types=TRACKING_TYPES, costing_methods=COSTING_METHODS, form=request.form,
+                custom_fields=custom_defs, custom_values=request.form,
+            )
+        if missing:
+            flash(f"Required field(s) missing: {', '.join(missing)}.", "error")
+            return render_template(
+                "inventory/item_form.html", income_accounts=income_accounts, inventory_accounts=inventory_accounts,
+                expense_accounts=expense_accounts, warehouses=warehouses, defaults=defaults,
+                item_types=ITEM_TYPES, tracking_types=TRACKING_TYPES, costing_methods=COSTING_METHODS, form=request.form,
+                custom_fields=custom_defs, custom_values=request.form,
             )
 
         item_type = request.form["item_type"]
@@ -114,6 +131,7 @@ def item_new():
                 db.session.flush()
                 item.opening_journal_entry_id = entry.id
 
+        save_custom_field_values(item.id, custom_defs, request.form)
         db.session.commit()
         flash(f"Item '{item.name}' created.", "success")
         return redirect(url_for("inventory.item_list"))
@@ -122,6 +140,7 @@ def item_new():
         "inventory/item_form.html", income_accounts=income_accounts, inventory_accounts=inventory_accounts,
         expense_accounts=expense_accounts, warehouses=warehouses, defaults=defaults,
         item_types=ITEM_TYPES, tracking_types=TRACKING_TYPES, costing_methods=COSTING_METHODS, form={},
+        custom_fields=custom_defs, custom_values={},
     )
 
 
@@ -130,12 +149,24 @@ def item_new():
 def item_edit(item_id):
     item = scoped_or_404(Item, item_id)
     income_accounts = scoped_query(Account).filter_by(account_type="Income", is_active=True).order_by(Account.code).all()
+    custom_defs = get_custom_field_definitions("item", current_company_id())
 
     if request.method == "POST":
         new_sku = request.form["sku"].strip()
+        missing = missing_required_custom_fields(custom_defs, request.form)
         if new_sku != item.sku and scoped_query(Item).filter_by(sku=new_sku).first():
             flash(f"SKU {new_sku} already in use by another item.", "error")
-            return render_template("inventory/item_edit.html", item=item, income_accounts=income_accounts, tracking_types=TRACKING_TYPES, costing_methods=COSTING_METHODS)
+            return render_template(
+                "inventory/item_edit.html", item=item, income_accounts=income_accounts, tracking_types=TRACKING_TYPES,
+                costing_methods=COSTING_METHODS, custom_fields=custom_defs,
+                custom_values=get_custom_field_values(item.id, custom_defs),
+            )
+        if missing:
+            flash(f"Required field(s) missing: {', '.join(missing)}.", "error")
+            return render_template(
+                "inventory/item_edit.html", item=item, income_accounts=income_accounts, tracking_types=TRACKING_TYPES,
+                costing_methods=COSTING_METHODS, custom_fields=custom_defs, custom_values=request.form,
+            )
 
         item.sku = new_sku
         item.name = request.form["name"].strip()
@@ -160,11 +191,16 @@ def item_edit(item_id):
                     item.add_stock_layer(float(item.quantity_on_hand), float(item.cost_price))
                 item.costing_method = new_costing_method
 
+        save_custom_field_values(item.id, custom_defs, request.form)
         db.session.commit()
         flash(f"Item '{item.name}' updated.", "success")
         return redirect(url_for("inventory.item_detail", item_id=item.id))
 
-    return render_template("inventory/item_edit.html", item=item, income_accounts=income_accounts, tracking_types=TRACKING_TYPES, costing_methods=COSTING_METHODS)
+    return render_template(
+        "inventory/item_edit.html", item=item, income_accounts=income_accounts, tracking_types=TRACKING_TYPES,
+        costing_methods=COSTING_METHODS, custom_fields=custom_defs,
+        custom_values=get_custom_field_values(item.id, custom_defs),
+    )
 
 
 def warehouse_quantities(item):
@@ -203,11 +239,14 @@ def item_detail(item_id):
         remaining_layers = [l for l in item.stock_layers if float(l.quantity_remaining) > 0]
         remaining_layers.sort(key=lambda l: (l.received_date, l.id), reverse=(item.costing_method == "lifo"))
 
+    custom_defs = get_custom_field_definitions("item", current_company_id())
+    custom_values = get_custom_field_values(item.id, custom_defs)
     return render_template(
         "inventory/item_detail.html", item=item,
         quantity_by_warehouse=by_warehouse,
         quantity_by_lot={k: v for k, v in by_lot.items() if v != 0},
         remaining_layers=remaining_layers,
+        custom_fields=custom_defs, custom_values=custom_values,
     )
 
 

@@ -207,10 +207,11 @@
 
       {% if current_user.role == 'owner' %}
       <div class="sidebar-section-heading">Admin</div>
-      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('users.') or request.endpoint.startswith('settings.') or request.endpoint.startswith('audit.') or request.endpoint.startswith('backup.') or request.endpoint.startswith('mra_sync.')) %}open{% endif %}>
+      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('users.') or request.endpoint.startswith('settings.') or request.endpoint.startswith('audit.') or request.endpoint.startswith('backup.') or request.endpoint.startswith('mra_sync.') or request.endpoint.startswith('custom_fields.')) %}open{% endif %}>
         <summary>{{ icon('settings') }} <span>Settings</span></summary>
         <a href="{{ url_for('users.user_list') }}">Users</a>
         <a href="{{ url_for('settings.company') }}">Company</a>
+        <a href="{{ url_for('custom_fields.list_fields') }}">Custom fields</a>
         <a href="{{ url_for('imports.csv_import') }}">Import CSV</a>
         <a href="{{ url_for('audit.audit_log') }}">Audit log</a>
         <a href="{{ url_for('backup.backup_home') }}">Backup</a>

@@ -1,0 +1,25 @@
+{# Include with `fields` (list of CustomFieldDefinition) and `values` (dict field_key -> value string) in context.
+   Each input is named cf_<field_key> — matches app/custom_fields.py's save_field_values(). #}
+{% if fields %}
+{% for f in fields %}
+<div class="form-row">
+  <label>{{ f.label }}{% if f.is_required %} *{% endif %}</label>
+  {% if f.field_type == 'text' %}
+    <input type="text" name="cf_{{ f.field_key }}" value="{{ values.get(f.field_key, '') }}" {% if f.is_required %}required{% endif %}>
+  {% elif f.field_type == 'number' %}
+    <input type="number" step="any" name="cf_{{ f.field_key }}" value="{{ values.get(f.field_key, '') }}" {% if f.is_required %}required{% endif %}>
+  {% elif f.field_type == 'date' %}
+    <input type="date" name="cf_{{ f.field_key }}" value="{{ values.get(f.field_key, '') }}" {% if f.is_required %}required{% endif %}>
+  {% elif f.field_type == 'checkbox' %}
+    <input type="checkbox" name="cf_{{ f.field_key }}" style="flex:0;width:auto;" {% if values.get(f.field_key) == '1' %}checked{% endif %}>
+  {% elif f.field_type == 'dropdown' %}
+    <select name="cf_{{ f.field_key }}" {% if f.is_required %}required{% endif %}>
+      <option value="">-- select --</option>
+      {% for opt in f.option_list() %}
+      <option value="{{ opt }}" {% if values.get(f.field_key) == opt %}selected{% endif %}>{{ opt }}</option>
+      {% endfor %}
+    </select>
+  {% endif %}
+</div>
+{% endfor %}
+{% endif %}

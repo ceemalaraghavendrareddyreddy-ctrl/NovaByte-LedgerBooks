@@ -2236,3 +2236,59 @@ class AssetDepreciationEntry(db.Model):
 
     asset = db.relationship("Asset", back_populates="depreciation_entries")
     journal_entry = db.relationship("JournalEntry")
+
+
+# ── Custom Fields (generic, company-defined extra fields) ──────────────
+# Lets a company add its own fields to Customers/Vendors/Items without a
+# schema migration — Settings -> Custom fields defines them, app/custom_fields.py
+# has the shared get/save helpers, entity forms/detail pages render them.
+
+class CustomFieldDefinition(db.Model):
+    """One company-defined extra field on one record type, e.g. "Region" on
+    Customer. entity_type is a plain string key ("customer"/"vendor"/"item"),
+    not a foreign key — this table doesn't care what tables exist, only
+    app/custom_fields.py's ENTITY_TYPES maps a type to where it's used."""
+
+    __tablename__ = "custom_field_definitions"
+    __table_args__ = (
+        db.UniqueConstraint("company_id", "entity_type", "field_key", name="uq_custom_field_company_entity_key"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company_settings.id"), nullable=False)
+    entity_type = db.Column(db.String(30), nullable=False)
+    field_key = db.Column(db.String(50), nullable=False)  # stable machine key, derived from label at creation
+    label = db.Column(db.String(100), nullable=False)
+    field_type = db.Column(db.String(20), nullable=False, default="text")  # text/number/date/checkbox/dropdown
+    options = db.Column(db.String(500))  # comma-separated choices — only meaningful for "dropdown"
+    is_required = db.Column(db.Boolean, nullable=False, default=False)
+    sort_order = db.Column(db.Integer, nullable=False, default=0)
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def option_list(self):
+        return [o.strip() for o in (self.options or "").split(",") if o.strip()]
+
+    def __repr__(self):
+        return f"<CustomFieldDefinition {self.entity_type}.{self.field_key}>"
+
+
+class CustomFieldValue(db.Model):
+    """One field's value on one specific record. record_id is the target row's
+    own id (e.g. a Customer.id) — no FK, since it can point into any of several
+    tables depending on the definition's entity_type; app/custom_fields.py is
+    what keeps that association meaningful. Always stored as text and parsed
+    per field_type on display, same convention as everywhere else user-entered
+    data of mixed type needs one flexible column."""
+
+    __tablename__ = "custom_field_values"
+    __table_args__ = (
+        db.UniqueConstraint("definition_id", "record_id", name="uq_custom_field_value_def_record"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    definition_id = db.Column(db.Integer, db.ForeignKey("custom_field_definitions.id"), nullable=False)
+    record_id = db.Column(db.Integer, nullable=False)
+    value = db.Column(db.String(500))
+
+    definition = db.relationship("CustomFieldDefinition")

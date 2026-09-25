@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Custom fields</h1>
+<p style="color:var(--text-muted);">
+  Add your own fields to Customers, Vendors and Items — no code changes needed.
+  Deleting a field also deletes every value ever saved for it, on every record.
+</p>
+<a class="btn" href="{{ url_for('custom_fields.new_field') }}">+ New custom field</a>
+
+{% for entity_type, label in entity_types.items() %}
+<div class="card" style="margin-top:1rem;">
+  <h3 class="mt-0">{{ label }}</h3>
+  {% set defs = by_entity.get(entity_type) %}
+  {% if defs %}
+  <table>
+    <thead><tr><th>Label</th><th>Type</th><th>Required</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for d in defs %}
+      <tr>
+        <td>{{ d.label }}</td>
+        <td>{{ field_types.get(d.field_type, d.field_type) }}{% if d.field_type == 'dropdown' %} ({{ d.option_list()|join(', ') }}){% endif %}</td>
+        <td>{{ 'Yes' if d.is_required else 'No' }}</td>
+        <td><span class="badge {{ 'debit' if d.is_active else '' }}">{{ 'active' if d.is_active else 'disabled' }}</span></td>
+        <td style="white-space:nowrap;">
+          <form method="post" action="{{ url_for('custom_fields.toggle_field', field_id=d.id) }}" style="display:inline;">
+            <button class="btn small secondary" type="submit">{{ 'Disable' if d.is_active else 'Enable' }}</button>
+          </form>
+          <form method="post" action="{{ url_for('custom_fields.delete_field', field_id=d.id) }}" style="display:inline;"
+                onsubmit="return confirm('Delete field &quot;' + {{ d.label|tojson }} + '&quot; and every saved value for it, on every record? This can\'t be undone.');">
+            <button class="btn small secondary" type="submit" style="color:var(--error);">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--text-muted);">No custom fields on {{ label|lower }} yet.</p>
+  {% endif %}
+</div>
+{% endfor %}
+{% endblock %}

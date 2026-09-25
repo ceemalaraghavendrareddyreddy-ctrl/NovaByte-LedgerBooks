@@ -88,6 +88,7 @@ def create_app():
     from app.api_v1 import api_v1_bp
     from app.webhooks import webhooks_bp
     from app.consolidation import consolidation_bp
+    from app.custom_fields import custom_fields_bp
 
     from app.permissions import register_module_guards
 
@@ -145,6 +146,7 @@ def create_app():
     app.register_blueprint(api_v1_bp)
     app.register_blueprint(webhooks_bp)
     app.register_blueprint(consolidation_bp)
+    app.register_blueprint(custom_fields_bp)
 
     from app import period_lock  # noqa: F401 — registers the JournalEntry lock events on import (avoid `import app.x`, which rebinds the local `app` Flask instance to the package)
     from app.period_lock import PeriodLockedError

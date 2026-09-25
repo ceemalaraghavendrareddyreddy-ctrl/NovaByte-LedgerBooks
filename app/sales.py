@@ -24,6 +24,12 @@ from app.mra_bridge import (
     void_invoice_via_credit_note, void_credit_memo_via_debit_note,
 )
 from app.webhooks import fire_webhook
+from app.custom_fields import (
+    get_field_definitions as get_custom_field_definitions,
+    get_field_values as get_custom_field_values,
+    save_field_values as save_custom_field_values,
+    missing_required_fields as missing_required_custom_fields,
+)
 
 sales_bp = Blueprint("sales", __name__, url_prefix="/sales")
 
@@ -73,7 +79,15 @@ def customer_list():
 @sales_bp.route("/customers/new", methods=["GET", "POST"])
 @login_required
 def customer_new():
+    custom_defs = get_custom_field_definitions("customer", current_company_id())
     if request.method == "POST":
+        missing = missing_required_custom_fields(custom_defs, request.form)
+        if missing:
+            flash(f"Required field(s) missing: {', '.join(missing)}.", "error")
+            return render_template(
+                "sales/customer_form.html", form=request.form, action_url=url_for("sales.customer_new"),
+                currencies=CURRENCIES, custom_fields=custom_defs, custom_values=request.form,
+            )
         customer_type = request.form.get("customer_type") if request.form.get("customer_type") in ("individual", "company") else "company"
         customer = Customer(
             company_id=current_company_id(),
@@ -89,11 +103,14 @@ def customer_new():
             opening_balance=request.form.get("opening_balance") or 0,
         )
         db.session.add(customer)
+        db.session.flush()
+        save_custom_field_values(customer.id, custom_defs, request.form)
         db.session.commit()
         flash(f"Customer '{customer.name}' created.", "success")
         return redirect(url_for("sales.customer_detail", customer_id=customer.id))
     return render_template(
         "sales/customer_form.html", form={}, action_url=url_for("sales.customer_new"), currencies=CURRENCIES,
+        custom_fields=custom_defs, custom_values={},
     )
 
 
@@ -101,7 +118,15 @@ def customer_new():
 @login_required
 def customer_edit(customer_id):
     customer = scoped_or_404(Customer, customer_id)
+    custom_defs = get_custom_field_definitions("customer", current_company_id())
     if request.method == "POST":
+        missing = missing_required_custom_fields(custom_defs, request.form)
+        if missing:
+            flash(f"Required field(s) missing: {', '.join(missing)}.", "error")
+            return render_template(
+                "sales/customer_form.html", form=request.form, action_url=url_for("sales.customer_edit", customer_id=customer.id),
+                editing=True, currencies=CURRENCIES, custom_fields=custom_defs, custom_values=request.form,
+            )
         customer_type = request.form.get("customer_type") if request.form.get("customer_type") in ("individual", "company") else "company"
         customer.name = request.form["name"].strip()
         customer.customer_type = customer_type
@@ -113,12 +138,14 @@ def customer_edit(customer_id):
         customer.brn = request.form.get("brn", "").strip() or None if customer_type == "company" else None
         customer.billing_currency = request.form.get("billing_currency") or "MUR"
         customer.opening_balance = request.form.get("opening_balance") or 0
+        save_custom_field_values(customer.id, custom_defs, request.form)
         db.session.commit()
         flash(f"Customer '{customer.name}' updated.", "success")
         return redirect(url_for("sales.customer_detail", customer_id=customer.id))
+    custom_values = get_custom_field_values(customer.id, custom_defs)
     return render_template(
         "sales/customer_form.html", form=customer, action_url=url_for("sales.customer_edit", customer_id=customer.id),
-        editing=True, currencies=CURRENCIES,
+        editing=True, currencies=CURRENCIES, custom_fields=custom_defs, custom_values=custom_values,
     )
 
 
@@ -166,7 +193,12 @@ def customer_detail(customer_id):
         [inv for inv in customer.invoices if inv.status != "void"], key=lambda i: i.invoice_date, reverse=True
     )
     payments = sorted(customer.payments, key=lambda p: p.payment_date, reverse=True)
-    return render_template("sales/customer_detail.html", customer=customer, invoices=invoices, payments=payments)
+    custom_defs = get_custom_field_definitions("customer", current_company_id())
+    custom_values = get_custom_field_values(customer.id, custom_defs)
+    return render_template(
+        "sales/customer_detail.html", customer=customer, invoices=invoices, payments=payments,
+        custom_fields=custom_defs, custom_values=custom_values,
+    )
 
 
 def _customer_statement_data(customer, start_date, end_date):

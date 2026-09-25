@@ -72,6 +72,11 @@
       <div class="form-row"><label>Opening Lot/Serial #</label><input type="text" name="opening_lot_number" value="{{ form.opening_lot_number or '' }}" placeholder="optional"></div>
     </div>
 
+    {% if custom_fields %}
+    <h3 style="margin-top:1.25rem;">Custom fields</h3>
+    {% with fields=custom_fields, values=custom_values %}{% include "settings/_custom_fields_inputs.html" %}{% endwith %}
+    {% endif %}
+
     <button class="btn" type="submit">Save Item</button>
     <a class="btn secondary" href="{{ url_for('inventory.item_list') }}">Cancel</a>
   </form>
