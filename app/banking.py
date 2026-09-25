@@ -369,15 +369,15 @@ def import_review(import_id):
     batch = scoped_or_404(BankStatementImport, import_id)
     accounts = scoped_query(Account).filter_by(is_active=True).order_by(Account.code).all()
 
-    # Smart category suggestion (currently a mock — see app/ai_suggest.py) for
-    # every still-unmatched line, so the category dropdown can default to a
-    # sensible guess instead of always starting blank.
+    # Smart category suggestion (see app/ai_suggest.py — learns from this
+    # company's own past resolved transactions) for every still-unmatched line,
+    # so the category dropdown can default to a sensible guess instead of blank.
     suggestions = {}
     for line in batch.lines:
         if line.status == "unmatched":
-            account, reason = suggest_category_account(line.description, batch.account_id, current_company_id())
+            account, reason, detail = suggest_category_account(line.description, batch.account_id, current_company_id())
             if account:
-                suggestions[line.id] = {"account": account, "reason": reason}
+                suggestions[line.id] = {"account": account, "reason": reason, "detail": detail}
 
     return render_template("banking/import_review.html", batch=batch, accounts=accounts, suggestions=suggestions)
 

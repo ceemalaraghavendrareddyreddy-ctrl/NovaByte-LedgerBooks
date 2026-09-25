@@ -2049,9 +2049,9 @@ class Webhook(db.Model):
 
 class BankRule(db.Model):
     """A user-defined "if the statement description contains this text, categorize it
-    to this account" rule — the persistent, editable alternative to app/ai_suggest.py's
-    keyword/history mock. Checked first in suggest_category_account, so a rule always
-    wins over the built-in guesses once one exists for a description.
+    to this account" rule — the explicit, persistent alternative to app/ai_suggest.py's
+    keyword/history suggestions. Checked first in suggest_category_account, so a rule
+    always wins over the learned guesses once one exists for a description.
     """
 
     __tablename__ = "bank_rules"

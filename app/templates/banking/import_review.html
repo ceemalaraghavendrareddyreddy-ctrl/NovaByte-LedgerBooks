@@ -38,7 +38,7 @@
               </select>
               {% if suggestion %}
               <div style="font-size:0.75rem; color:var(--brass-deep, var(--accent, #a97a2b)); margin-top:0.25rem;">
-                ✨ Suggested{% if suggestion.reason == 'rule' %} — matches a bank rule you set up{% elif suggestion.reason == 'history' %} — you categorized a similar transaction this way before{% else %} — based on the description{% endif %}. Change it if it's wrong.
+                ✨ Suggested{% if suggestion.reason == 'rule' %} — matches a bank rule you set up{% elif suggestion.reason == 'history' %} — matches how you categorized {{ suggestion.detail or 'a similar transaction' }}{% else %} — based on the description{% endif %}. Change it if it's wrong.
               </div>
               {% endif %}
               {% if line.description %}
