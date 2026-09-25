@@ -1489,6 +1489,75 @@ class EstimateLine(db.Model):
         return float(self.quantity) * float(self.unit_price)
 
 
+# ── Sales Orders (confirmed orders, not yet invoiced) ──────────────────
+
+class SalesOrder(db.Model):
+    """A confirmed customer order that is committed but not yet invoiced — the
+    stage between an accepted Estimate and an Invoice, for businesses that fulfil
+    before they bill (wholesale/distribution). Like an Estimate, it never touches
+    the ledger; only the Invoice it converts to does."""
+
+    __tablename__ = "sales_orders"
+    __table_args__ = (db.UniqueConstraint("company_id", "order_no", name="uq_sales_order_company_no"),)
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company_settings.id"), nullable=False)
+    order_no = db.Column(db.String(20), nullable=False)
+    customer_id = db.Column(db.Integer, db.ForeignKey("customers.id"), nullable=False)
+    order_date = db.Column(db.Date, nullable=False, default=date.today)
+    expected_date = db.Column(db.Date)  # expected fulfilment/delivery date
+    customer_po_ref = db.Column(db.String(50))  # the customer's own PO number, if any
+    memo = db.Column(db.String(255))
+    vat_rate = db.Column(db.Numeric(5, 2), nullable=False, default=15.00)
+    status = db.Column(db.String(20), nullable=False, default="open")  # open/invoiced/cancelled
+    # If this order came from converting an accepted estimate, remember which one.
+    source_estimate_id = db.Column(db.Integer, db.ForeignKey("estimates.id"))
+    converted_invoice_id = db.Column(db.Integer, db.ForeignKey("invoices.id"))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    customer = db.relationship("Customer")
+    source_estimate = db.relationship("Estimate", foreign_keys=[source_estimate_id])
+    converted_invoice = db.relationship("Invoice", foreign_keys=[converted_invoice_id])
+    lines = db.relationship("SalesOrderLine", back_populates="sales_order", cascade="all, delete-orphan")
+
+    @property
+    def subtotal(self):
+        return sum((float(line.amount) for line in self.lines), start=0.0)
+
+    @property
+    def vat_amount(self):
+        taxable = sum((float(line.amount) for line in self.lines if line.taxable), start=0.0)
+        return round(taxable * float(self.vat_rate) / 100, 2)
+
+    @property
+    def total(self):
+        return round(self.subtotal + self.vat_amount, 2)
+
+    def __repr__(self):
+        return f"<SalesOrder {self.order_no}>"
+
+
+class SalesOrderLine(db.Model):
+    __tablename__ = "sales_order_lines"
+
+    id = db.Column(db.Integer, primary_key=True)
+    sales_order_id = db.Column(db.Integer, db.ForeignKey("sales_orders.id"), nullable=False)
+    item_id = db.Column(db.Integer, db.ForeignKey("items.id"))
+    description = db.Column(db.String(255), nullable=False)
+    quantity = db.Column(db.Numeric(12, 3), nullable=False, default=1)
+    unit_price = db.Column(db.Numeric(14, 2), nullable=False, default=0)
+    taxable = db.Column(db.Boolean, nullable=False, default=True)
+    income_account_id = db.Column(db.Integer, db.ForeignKey("accounts.id"), nullable=False)
+
+    sales_order = db.relationship("SalesOrder", back_populates="lines")
+    item = db.relationship("Item")
+    income_account = db.relationship("Account")
+
+    @property
+    def amount(self):
+        return float(self.quantity) * float(self.unit_price)
+
+
 # ── Credit Memos (customer returns/refunds) ────────────────────────────
 
 class CreditMemo(db.Model):

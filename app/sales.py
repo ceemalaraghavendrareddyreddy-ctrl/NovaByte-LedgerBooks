@@ -12,7 +12,8 @@ from app.auth import current_company, current_company_id, owner_required
 from app.models import (
     Account, CURRENCIES, CreditMemo, CreditMemoApplication, CreditMemoLine, Customer, Estimate,
     EstimateLine, Invoice, InvoiceLine, Item, JournalEntry, JournalLine, Payment, PaymentApplication,
-    Project, RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, StockMovement, TimeEntry, Warehouse,
+    Project, RECURRING_FREQUENCIES, RecurringInvoice, RecurringInvoiceLine, SalesOrder, SalesOrderLine,
+    StockMovement, TimeEntry, Warehouse,
 )
 from app.pdf import generate_credit_memo_pdf, generate_invoice_pdf
 from app.report_export import rows_to_pdf, rows_to_xlsx
@@ -52,6 +53,12 @@ def next_estimate_no():
     last = scoped_query(Estimate).order_by(Estimate.id.desc()).first()
     next_num = (last.id + 1) if last else 1
     return f"EST-{next_num:04d}"
+
+
+def next_order_no():
+    last = scoped_query(SalesOrder).order_by(SalesOrder.id.desc()).first()
+    next_num = (last.id + 1) if last else 1
+    return f"SO-{next_num:04d}"
 
 
 # ── Customers ────────────────────────────────────────────────────────
@@ -442,6 +449,211 @@ def estimate_convert(estimate_id):
     db.session.commit()
 
     flash(f"Estimate {estimate.estimate_no} converted to invoice {invoice.invoice_no}.", "success")
+    return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
+
+
+@sales_bp.route("/estimates/<int:estimate_id>/to-order", methods=["POST"])
+@login_required
+def estimate_to_order(estimate_id):
+    """Turn an accepted quote into a confirmed Sales Order (not yet an invoice)."""
+    estimate = scoped_or_404(Estimate, estimate_id)
+    if estimate.status in ("converted", "declined"):
+        flash(f"Can't create an order from a {estimate.status} estimate.", "error")
+        return redirect(url_for("sales.estimate_detail", estimate_id=estimate.id))
+
+    order = SalesOrder(
+        company_id=estimate.company_id,
+        order_no=next_order_no(),
+        customer_id=estimate.customer_id,
+        order_date=date.today(),
+        memo=f"From {estimate.estimate_no}" + (f" - {estimate.memo}" if estimate.memo else ""),
+        vat_rate=estimate.vat_rate,
+        source_estimate_id=estimate.id,
+    )
+    for line in estimate.lines:
+        order.lines.append(
+            SalesOrderLine(
+                item_id=line.item_id, description=line.description, quantity=line.quantity,
+                unit_price=line.unit_price, taxable=line.taxable, income_account_id=line.income_account_id,
+            )
+        )
+    if estimate.status != "accepted":
+        estimate.status = "accepted"
+    db.session.add(order)
+    db.session.flush()
+    log_audit("convert", "estimate", estimate.id, f"Created sales order {order.order_no} from {estimate.estimate_no}", estimate.estimate_no)
+    db.session.commit()
+    flash(f"Sales order {order.order_no} created from {estimate.estimate_no}.", "success")
+    return redirect(url_for("sales.order_detail", order_id=order.id))
+
+
+# ── Sales Orders (confirmed orders, not yet invoiced) ─────────────────
+
+@sales_bp.route("/orders")
+@login_required
+def order_list():
+    orders = scoped_query(SalesOrder).order_by(SalesOrder.order_date.desc(), SalesOrder.id.desc()).all()
+    return render_template("sales/sales_orders.html", orders=orders)
+
+
+@sales_bp.route("/orders/new", methods=["GET", "POST"])
+@login_required
+def order_new():
+    customers = scoped_query(Customer).filter_by(is_active=True).order_by(Customer.name).all()
+    income_accounts = scoped_query(Account).filter_by(account_type="Income", is_active=True).order_by(Account.code).all()
+    default_income = scoped_query(Account).filter_by(code=DEFAULT_INCOME_CODE).first()
+    items = scoped_query(Item).filter_by(is_active=True).order_by(Item.sku).all()
+    preselected_customer_id = request.args.get("customer_id", type=int)
+
+    def render_form(form):
+        return render_template(
+            "sales/sales_order_form.html", customers=customers, income_accounts=income_accounts,
+            default_income=default_income, items=items, form=form, today=date.today().isoformat(),
+        )
+
+    if request.method == "POST":
+        customer_id = request.form.get("customer_id")
+        if not customer_id:
+            flash("Select a customer.", "error")
+            return render_form(request.form)
+
+        order_date = datetime.strptime(request.form["order_date"], "%Y-%m-%d").date()
+        expected_raw = request.form.get("expected_date", "").strip()
+        expected_date = datetime.strptime(expected_raw, "%Y-%m-%d").date() if expected_raw else None
+
+        descriptions = request.form.getlist("description")
+        quantities = request.form.getlist("quantity")
+        unit_prices = request.form.getlist("unit_price")
+        taxables = request.form.getlist("taxable")
+        income_account_ids = request.form.getlist("income_account_id")
+        item_ids = request.form.getlist("item_id")
+        item_ids += [""] * (len(descriptions) - len(item_ids))
+
+        order = SalesOrder(
+            company_id=current_company_id(),
+            order_no=next_order_no(),
+            customer_id=int(customer_id),
+            order_date=order_date,
+            expected_date=expected_date,
+            customer_po_ref=request.form.get("customer_po_ref", "").strip() or None,
+            memo=request.form.get("memo", "").strip() or None,
+            vat_rate=float(request.form.get("vat_rate") or 15.00),
+        )
+
+        for i, (desc, qty, price, acc_id, item_id_raw) in enumerate(
+            zip(descriptions, quantities, unit_prices, income_account_ids, item_ids)
+        ):
+            if not desc.strip() or not qty or not price:
+                continue
+            item = scoped_get(Item, int(item_id_raw)) if item_id_raw else None
+            order.lines.append(
+                SalesOrderLine(
+                    item=item,
+                    description=desc.strip(),
+                    quantity=float(qty),
+                    unit_price=float(price),
+                    taxable=str(i) in taxables,
+                    income_account_id=item.income_account_id if item else int(acc_id),
+                )
+            )
+
+        if not order.lines:
+            flash("Add at least one line.", "error")
+            return render_form(request.form)
+
+        db.session.add(order)
+        db.session.flush()
+        log_audit("create", "sales_order", order.id, f"Created sales order {order.order_no}", order.order_no)
+        db.session.commit()
+        flash(f"Sales order {order.order_no} created.", "success")
+        return redirect(url_for("sales.order_detail", order_id=order.id))
+
+    return render_form({"customer_id": preselected_customer_id} if preselected_customer_id else {})
+
+
+@sales_bp.route("/orders/<int:order_id>")
+@login_required
+def order_detail(order_id):
+    order = scoped_or_404(SalesOrder, order_id)
+    return render_template("sales/sales_order_detail.html", order=order)
+
+
+@sales_bp.route("/orders/<int:order_id>/status", methods=["POST"])
+@login_required
+def order_status(order_id):
+    order = scoped_or_404(SalesOrder, order_id)
+    new_status = request.form["status"]
+    if order.status == "invoiced":
+        flash("This order was already converted to an invoice.", "error")
+    elif new_status not in ("open", "cancelled"):
+        flash("Invalid status.", "error")
+    else:
+        order.status = new_status
+        db.session.commit()
+        flash(f"Sales order marked as {new_status}.", "success")
+    return redirect(url_for("sales.order_detail", order_id=order.id))
+
+
+@sales_bp.route("/orders/<int:order_id>/convert", methods=["POST"])
+@login_required
+def order_convert(order_id):
+    order = scoped_or_404(SalesOrder, order_id)
+    if order.status == "invoiced":
+        flash("This order was already converted to an invoice.", "error")
+        return redirect(url_for("sales.order_detail", order_id=order.id))
+    if order.status == "cancelled":
+        flash("Can't convert a cancelled order. Reopen it first if this was a mistake.", "error")
+        return redirect(url_for("sales.order_detail", order_id=order.id))
+
+    due_date_raw = request.form.get("due_date", "").strip()
+    due_date = datetime.strptime(due_date_raw, "%Y-%m-%d").date() if due_date_raw else None
+
+    invoice_date = date.today()
+    invoice = Invoice(
+        company_id=order.company_id,
+        invoice_no=next_invoice_no(),
+        customer_id=order.customer_id,
+        invoice_date=invoice_date,
+        due_date=due_date or invoice_date,
+        memo=f"From order {order.order_no}" + (f" - {order.memo}" if order.memo else ""),
+        vat_rate=order.vat_rate,
+    )
+    for line in order.lines:
+        invoice.lines.append(
+            InvoiceLine(
+                item_id=line.item_id, description=line.description, quantity=line.quantity,
+                unit_price=line.unit_price, taxable=line.taxable, income_account_id=line.income_account_id,
+            )
+        )
+
+    # Same stock guard a normal invoice uses — the order may have sat long enough
+    # that tracked stock was sold to someone else in the meantime.
+    required_qty = {}
+    for line in invoice.lines:
+        if line.item_id:
+            item = Item.query.get(line.item_id)
+            if item.is_tracked:
+                required_qty[item] = required_qty.get(item, 0) + float(line.quantity)
+    for item, needed in required_qty.items():
+        if needed > float(item.quantity_on_hand):
+            flash(
+                f"Can't convert: not enough stock for {item.name} ({item.sku}) — "
+                f"have {item.quantity_on_hand} {item.unit}, need {needed}.", "error",
+            )
+            return redirect(url_for("sales.order_detail", order_id=order.id))
+
+    db.session.add(invoice)
+    db.session.flush()
+    post_invoice(invoice)
+    order.status = "invoiced"
+    order.converted_invoice_id = invoice.id
+    log_audit("convert", "sales_order", order.id, f"Converted order {order.order_no} to invoice {invoice.invoice_no}", order.order_no)
+    db.session.commit()
+
+    fiscalize_invoice_with_mra(invoice)
+    db.session.commit()
+
+    flash(f"Sales order {order.order_no} converted to invoice {invoice.invoice_no}.", "success")
     return redirect(url_for("sales.invoice_detail", invoice_id=invoice.id))
 
 

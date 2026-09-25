@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Sales Order {{ order.order_no }}</h1>
+<p style="color:var(--muted);">
+  <a href="{{ url_for('sales.customer_detail', customer_id=order.customer.id) }}">{{ order.customer.name }}</a>
+  &middot; Date: {{ order.order_date }}
+  {% if order.expected_date %} &middot; Expected: {{ order.expected_date }}{% endif %}
+  {% if order.customer_po_ref %} &middot; Customer PO: {{ order.customer_po_ref }}{% endif %}
+  &middot; <span class="badge {{ 'debit' if order.status == 'invoiced' else '' }}">{{ order.status }}</span>
+  {% if order.source_estimate %} &middot; from <a href="{{ url_for('sales.estimate_detail', estimate_id=order.source_estimate_id) }}">{{ order.source_estimate.estimate_no }}</a>{% endif %}
+</p>
+{% if order.memo %}<p>{{ order.memo }}</p>{% endif %}
+
+<div class="card">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Account</th><th>Taxable</th><th class="num">Amount</th></tr></thead>
+    <tbody>
+      {% for line in order.lines %}
+      <tr>
+        <td>{{ line.description }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ '%.2f'|format(line.unit_price) }}</td>
+        <td>{{ line.income_account.code }} - {{ line.income_account.name }}</td>
+        <td>{{ 'Yes' if line.taxable else 'No' }}</td>
+        <td class="num">{{ '%.2f'|format(line.amount) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(order.subtotal) }}</td></tr>
+      <tr><td colspan="5" style="text-align:right;">VAT ({{ order.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(order.vat_amount) }}</td></tr>
+      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(order.total) }}</th></tr>
+    </tfoot>
+  </table>
+</div>
+
+{% if order.status == 'invoiced' %}
+<p>Converted to invoice: <a href="{{ url_for('sales.invoice_detail', invoice_id=order.converted_invoice_id) }}">{{ order.converted_invoice.invoice_no }}</a></p>
+{% else %}
+<div class="card">
+  <h3>Status</h3>
+  <form class="inline" method="post" action="{{ url_for('sales.order_status', order_id=order.id) }}">
+    <select name="status" onchange="this.form.submit()">
+      <option value="open" {% if order.status == 'open' %}selected{% endif %}>Open</option>
+      <option value="cancelled" {% if order.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+    </select>
+  </form>
+
+  {% if order.status != 'cancelled' %}
+  <h3>Convert to Invoice</h3>
+  <form method="post" action="{{ url_for('sales.order_convert', order_id=order.id) }}">
+    <div class="form-row">
+      <label>Invoice Due Date</label>
+      <input type="date" name="due_date">
+    </div>
+    <button class="btn" type="submit" onclick="return confirm('Convert this order to a real invoice? This will post to the ledger.');">Convert to Invoice</button>
+  </form>
+  {% endif %}
+</div>
+{% endif %}
+
+<a class="btn secondary" href="{{ url_for('sales.order_list') }}">Back to Sales Orders</a>
+{% endblock %}

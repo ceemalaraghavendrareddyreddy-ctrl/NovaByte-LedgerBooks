@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Sales Orders</h1>
+<a class="btn" href="{{ url_for('sales.order_new') }}">+ New Sales Order</a>
+
+<div class="card">
+  {% if orders %}
+  <table>
+    <thead><tr><th>Order #</th><th>Customer</th><th>Date</th><th>Expected</th><th>Customer PO</th><th>Status</th><th class="num">Total</th></tr></thead>
+    <tbody>
+      {% for o in orders %}
+      <tr>
+        <td><a href="{{ url_for('sales.order_detail', order_id=o.id) }}">{{ o.order_no }}</a></td>
+        <td><a href="{{ url_for('sales.customer_detail', customer_id=o.customer.id) }}">{{ o.customer.name }}</a></td>
+        <td>{{ o.order_date }}</td>
+        <td>{{ o.expected_date or '-' }}</td>
+        <td>{{ o.customer_po_ref or '-' }}</td>
+        <td><span class="badge {{ 'debit' if o.status == 'invoiced' else '' }}">{{ o.status }}</span></td>
+        <td class="num">{{ '%.2f'|format(o.total) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No sales orders yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

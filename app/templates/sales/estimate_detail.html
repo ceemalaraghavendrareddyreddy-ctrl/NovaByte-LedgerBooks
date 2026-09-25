@@ -48,6 +48,12 @@
   </form>
 
   {% if estimate.status != 'declined' %}
+  <h3>Create Sales Order</h3>
+  <p style="color:var(--muted);font-size:0.9rem;">Confirm this quote as an order to fulfil before invoicing.</p>
+  <form method="post" action="{{ url_for('sales.estimate_to_order', estimate_id=estimate.id) }}">
+    <button class="btn secondary" type="submit">Create Sales Order</button>
+  </form>
+
   <h3>Convert to Invoice</h3>
   <form method="post" action="{{ url_for('sales.estimate_convert', estimate_id=estimate.id) }}">
     <div class="form-row">
