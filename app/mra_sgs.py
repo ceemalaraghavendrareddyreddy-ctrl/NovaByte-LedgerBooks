@@ -7,9 +7,13 @@ CSV template exactly, so the file this produces can be uploaded as-is:
   DESCRIPTION OF GOODS AND SERVICES, INVOICED AMOUNT EXCLUSIVE OF VAT (MUR),
   INVOICED AMOUNT OF VAT (MUR), PAID AMOUNT (MUR), INVOICE TYPE
 
-Covers Bills (purchase invoices from vendors) — the "I" invoice type in MRA's
-template — and Vendor Credits (returns/corrections against a vendor) as "N"
-(note), MRA's type for a credit/debit note in the same listing.
+Covers Bills (purchase invoices from vendors) — MRA's "I" (Invoice) type —
+and Vendor Credits (returns/corrections against a vendor) as "C" (Credit
+Note), per MRA's own published spec (Specificationsfor100M.pdf, downloaded
+from mra.mu's Goods & Services Statement page): "Invoice Type: C : Credit
+Note, I : Invoice". That spec also requires the exclusive-of-VAT, VAT and
+paid amounts to be <= 0 for a "C" row, so vendor credit amounts are negated
+below rather than reported positive.
 """
 import csv
 import io
@@ -48,7 +52,7 @@ def _vendor_credits_for_range(start, end):
     )
 
 
-def _sgs_row(doc, *, date_field, ref, invoice_type, paid_amount):
+def _sgs_row(doc, *, date_field, ref, invoice_type, paid_amount, sign=1):
     description = "; ".join(line.description for line in doc.lines if line.description) or doc.memo or ""
     return [
         date_field.strftime("%Y%m%d"),
@@ -57,9 +61,9 @@ def _sgs_row(doc, *, date_field, ref, invoice_type, paid_amount):
         doc.vendor.brn if doc.vendor else "",
         doc.vendor.mra_supplier_id if doc.vendor else "",
         description,
-        f"{doc.subtotal:.2f}",
-        f"{doc.vat_amount:.2f}",
-        f"{paid_amount:.2f}",
+        f"{sign * doc.subtotal:.2f}",
+        f"{sign * doc.vat_amount:.2f}",
+        f"{sign * paid_amount:.2f}",
         invoice_type,
     ]
 
@@ -73,10 +77,11 @@ def _bill_row(bill):
 
 def _vendor_credit_row(credit):
     # A vendor credit has no "paid" concept of its own — amount_applied (how much of
-    # it has actually offset a vendor's bills) is the closest equivalent.
+    # it has actually offset a vendor's bills) is the closest equivalent. MRA's spec
+    # requires all three amount columns <= 0 for invoice type "C", hence sign=-1.
     return _sgs_row(
         credit, date_field=credit.credit_date, ref=credit.credit_no,
-        invoice_type="N", paid_amount=credit.amount_applied,
+        invoice_type="C", paid_amount=credit.amount_applied, sign=-1,
     )
 
 

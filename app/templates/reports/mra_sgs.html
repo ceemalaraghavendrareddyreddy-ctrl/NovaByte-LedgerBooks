@@ -51,10 +51,10 @@
         <td>{{ (credit.vendor.brn if credit.vendor else none) or '—' }}</td>
         <td>{{ (credit.vendor.mra_supplier_id if credit.vendor else none) or '—' }}</td>
         <td>{{ (credit.lines|map(attribute='description')|select|join('; ')) or credit.memo or '' }}</td>
-        <td class="num">{{ '%.2f'|format(credit.subtotal) }}</td>
-        <td class="num">{{ '%.2f'|format(credit.vat_amount) }}</td>
-        <td class="num">{{ '%.2f'|format(credit.amount_applied) }}</td>
-        <td>N</td>
+        <td class="num">{{ '%.2f'|format(-credit.subtotal) }}</td>
+        <td class="num">{{ '%.2f'|format(-credit.vat_amount) }}</td>
+        <td class="num">{{ '%.2f'|format(-credit.amount_applied) }}</td>
+        <td>C</td>
       </tr>
       {% endfor %}
     </tbody>
