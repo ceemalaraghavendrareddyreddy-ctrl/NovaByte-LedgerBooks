@@ -257,9 +257,13 @@ class CompanySettings(db.Model):
     # own submitted_by/approved_by/approved_at/approval_note fields.
     invoice_approval_enabled = db.Column(db.Boolean, nullable=False, default=False)
     invoice_approval_threshold = db.Column(db.Numeric(14, 2))
-    # Read-only public API key (X-Api-Key header) for GET /api/v1/* resource endpoints —
-    # see app/api_v1.py. Separate from payroll_api_key above, which is a different,
-    # write-only bridge for a different caller.
+    # Legacy single API key — superseded by the ApiKey model below (Settings ->
+    # API Keys), which supports multiple named keys with a read-only/read-write
+    # scope each. Kept working (as an implicit read-only key) rather than dropped,
+    # so a key already issued from here doesn't silently stop working — see
+    # app/api_v1.py's _authenticate, which checks the ApiKey table first, this
+    # column second. The Settings UI only ever shows/manages the new table now;
+    # this column can no longer be regenerated from there.
     api_key = db.Column(db.String(64))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -279,6 +283,38 @@ class CompanySettings(db.Model):
         if not key:
             return None
         return CompanySettings.query.filter_by(payroll_api_key=key).first()
+
+
+class ApiKey(db.Model):
+    """A named, scoped API key for app/api_v1.py — replaces CompanySettings'
+    single all-or-nothing api_key. A company can issue several of these (e.g.
+    one read-only key for a reporting tool, one read-write key for an
+    integration that also needs to create invoices) and revoke any one of them
+    independently without breaking the others."""
+
+    __tablename__ = "api_keys"
+
+    id = db.Column(db.Integer, primary_key=True)
+    company_id = db.Column(db.Integer, db.ForeignKey("company_settings.id"), nullable=False)
+    label = db.Column(db.String(100), nullable=False)
+    key = db.Column(db.String(64), nullable=False, unique=True)
+    scope = db.Column(db.String(20), nullable=False, default="read")  # "read" or "read_write"
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    last_used_at = db.Column(db.DateTime)
+
+    @property
+    def can_write(self):
+        return self.scope == "read_write"
+
+    @staticmethod
+    def get_by_key(key):
+        if not key:
+            return None
+        return ApiKey.query.filter_by(key=key, is_active=True).first()
+
+    def __repr__(self):
+        return f"<ApiKey {self.label} ({self.scope})>"
 
 
 class Project(db.Model):

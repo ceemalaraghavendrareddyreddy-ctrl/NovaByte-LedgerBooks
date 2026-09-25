@@ -34,6 +34,38 @@ def current_company():
     return CompanySettings.get_by_id(company_id) if company_id else None
 
 
+class staff_session_scope:
+    """Context manager: temporarily sets session["company_id"] for the duration
+    of the block, restoring whatever was there before on exit (even on error).
+
+    A chunk of business logic across this app (get_account_or_400, post_invoice,
+    post_payment, log_audit, ...) is written assuming a staff Flask-Login session,
+    reading company_id via current_company_id() -> session["company_id"] rather
+    than taking it as a parameter. That's fine for every staff-initiated route,
+    but breaks for any caller that has a real company_id in hand without a staff
+    session to go with it — a portal customer session (app/portal.py) or an
+    X-Api-Key-authenticated API call (app/api_v1.py). Wrap those calls in this
+    instead of duplicating the save/restore dance at every such call site, or
+    threading company_id through every one of those shared functions' signatures.
+    """
+
+    def __init__(self, company_id):
+        self.company_id = company_id
+        self._previous = None
+
+    def __enter__(self):
+        self._previous = session.get("company_id")
+        session["company_id"] = self.company_id
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        if self._previous is None:
+            session.pop("company_id", None)
+        else:
+            session["company_id"] = self._previous
+        return False
+
+
 def _set_active_company(user, company_id):
     """Only ever park the session on a company the logged-in user can actually access."""
     if user.can_access_company(company_id):

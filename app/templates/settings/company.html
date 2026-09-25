@@ -323,25 +323,15 @@
   </form>
 </div>
 
-{# ── Public read API + outgoing webhooks (see app/api_v1.py, app/webhooks.py) ── #}
+{# ── Public API + outgoing webhooks (see app/api_v1.py, app/webhooks.py) ──── #}
 <div class="card">
   <h3 class="mt-0">API &amp; Webhooks</h3>
   <p class="text-muted" style="font-size:0.88rem;">
-    A read-only API for pulling customers, vendors, items, invoices and bills out of LedgerBooks
-    (<code>X-Api-Key</code> header), plus outgoing webhooks that notify a URL of your choosing when
-    an invoice or bill is created, or a payment is received.
+    A REST API for reading and creating customers/invoices/payments in LedgerBooks (<code>X-Api-Key</code>
+    header, read or read-write scoped per key), plus outgoing webhooks that notify a URL of your choosing
+    when an invoice or bill is created, or a payment is received.
   </p>
-  {% if settings.api_key %}
-  <div class="form-row">
-    <label>Current API key</label>
-    <input type="text" readonly value="{{ settings.api_key }}" style="font-family:monospace;" onclick="this.select();">
-  </div>
-  {% else %}
-  <p class="text-muted"><em>No key generated yet — GET /api/v1/* requests will be rejected until one exists.</em></p>
-  {% endif %}
-  <form method="post" action="{{ url_for('settings.regenerate_api_key') }}" onsubmit="return confirm('Regenerate the API key? The old key stops working immediately.');">
-    <button class="btn secondary" type="submit">{{ 'Regenerate' if settings.api_key else 'Generate' }} API key</button>
-  </form>
+  <a class="btn secondary" href="{{ url_for('api_v1.list_keys') }}">Manage API Keys</a>
   <a class="btn secondary" style="margin-top:0.5rem;" href="{{ url_for('webhooks.webhook_list') }}">Manage Webhooks</a>
 </div>
 

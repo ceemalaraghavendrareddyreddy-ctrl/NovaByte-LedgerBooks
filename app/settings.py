@@ -145,19 +145,6 @@ def lock_period():
     return redirect(url_for("settings.company"))
 
 
-@settings_bp.route("/api-key/regenerate", methods=["POST"])
-@login_required
-@owner_required
-def regenerate_api_key():
-    """Generates a new key for the read-only public API (GET /api/v1/customers etc,
-    see app/api_v1.py). Regenerating immediately invalidates the old key."""
-    settings = current_company()
-    settings.api_key = secrets.token_hex(32)
-    db.session.commit()
-    flash("API key regenerated — update it wherever it was in use; the old key stopped working immediately.", "success")
-    return redirect(url_for("settings.company"))
-
-
 @settings_bp.route("/payroll-api-key/regenerate", methods=["POST"])
 @login_required
 @owner_required

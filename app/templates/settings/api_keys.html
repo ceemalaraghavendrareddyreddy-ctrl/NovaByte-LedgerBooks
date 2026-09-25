@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>API Keys</h1>
+<p style="color:var(--text-muted);">
+  A key with <strong>Read-write</strong> scope can create customers, invoices and payments via the API
+  (<code>POST /api/v1/...</code>) — same validation and ledger posting as the staff UI. <strong>Read-only</strong>
+  can only fetch data (<code>GET</code>). Give an integration the narrowest scope it actually needs.
+</p>
+
+<div class="card">
+  <h3 class="mt-0">New API key</h3>
+  <form method="post" action="{{ url_for('api_v1.new_key') }}">
+    <div class="form-row">
+      <label>Label</label>
+      <input type="text" name="label" required placeholder="e.g. Zapier, Reporting tool">
+    </div>
+    <div class="form-row">
+      <label>Scope</label>
+      <select name="scope">
+        <option value="read">Read-only</option>
+        <option value="read_write">Read-write</option>
+      </select>
+    </div>
+    <button class="btn" type="submit">Create key</button>
+  </form>
+</div>
+
+<div class="card">
+  {% if keys %}
+  <table>
+    <thead><tr><th>Label</th><th>Key</th><th>Scope</th><th>Status</th><th>Last used</th><th></th></tr></thead>
+    <tbody>
+      {% for k in keys %}
+      <tr>
+        <td>{{ k.label }}</td>
+        <td><code style="font-size:0.8rem;">{{ k.key }}</code></td>
+        <td><span class="badge {{ 'debit' if k.scope == 'read_write' else '' }}">{{ 'Read-write' if k.scope == 'read_write' else 'Read-only' }}</span></td>
+        <td><span class="badge {{ 'debit' if k.is_active else '' }}">{{ 'active' if k.is_active else 'revoked' }}</span></td>
+        <td>{{ k.last_used_at.strftime('%d %b %Y %H:%M') if k.last_used_at else 'never' }}</td>
+        <td>
+          {% if k.is_active %}
+          <form method="post" action="{{ url_for('api_v1.revoke_key', key_id=k.id) }}" onsubmit="return confirm('Revoke &quot;' + {{ k.label|tojson }} + '&quot;? Anything using it stops working immediately.');">
+            <button class="btn small secondary" type="submit" style="color:var(--error);">Revoke</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--text-muted);">No API keys yet.</p>
+  {% endif %}
+</div>
+
+<a class="btn secondary" href="{{ url_for('settings.company') }}">Back to Company Settings</a>
+{% endblock %}

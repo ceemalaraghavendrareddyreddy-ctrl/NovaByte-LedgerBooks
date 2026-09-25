@@ -20,6 +20,7 @@ from werkzeug.security import check_password_hash
 
 from app import db
 from app.audit import log_audit
+from app.auth import staff_session_scope
 from app.mra_bridge import fiscalize_invoice_with_mra
 from app.models import Bill, CompanySettings, Customer, Estimate, Invoice, Payment, PaymentApplication, Vendor
 from app.share_links import share_url
@@ -205,11 +206,9 @@ def _reverify_and_apply_payment(invoice):
     # post_payment()/get_account_or_400()/log_audit() are staff-session-scoped
     # helpers (current_company_id() reads session["company_id"]) — a portal
     # customer session has no such key (it keys off session["portal_customer_id"]
-    # instead), so set it for the duration of this one call and restore whatever
-    # was there before, rather than duplicating their lookup logic here.
-    previous_company_id = session.get("company_id")
-    session["company_id"] = invoice.company_id
-    try:
+    # instead). See app.auth.staff_session_scope's docstring for why this exists
+    # rather than threading company_id through those functions' signatures.
+    with staff_session_scope(invoice.company_id):
         deposit_account = get_account_or_400(UNDEPOSITED_FUNDS_CODE, "Undeposited Funds")
         payment = Payment(
             company_id=invoice.company_id,
@@ -230,11 +229,6 @@ def _reverify_and_apply_payment(invoice):
         invoice.status = "paid" if invoice.balance_due <= 0 else "partial"
         log_audit("create", "payment", payment.id, f"Online payment received for invoice {invoice.invoice_no} via DPO")
         db.session.commit()
-    finally:
-        if previous_company_id is None:
-            session.pop("company_id", None)
-        else:
-            session["company_id"] = previous_company_id
 
 
 @portal_bp.route("/invoices/<int:invoice_id>/pay", methods=["POST"])
