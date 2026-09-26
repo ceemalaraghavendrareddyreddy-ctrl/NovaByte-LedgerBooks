@@ -270,20 +270,68 @@
     <h1 style="font-size:2.1rem;">Everything the books need, nothing they don't</h1>
     <p class="lede" style="margin-top:.9rem;">Every module below is part of the same ledger — a sale, a payroll run, and a depreciation entry all land in the same chart of accounts, in the same currency of record.</p>
 
-    <div class="section-head"><h2>Modules</h2></div>
+    <div class="section-head"><h2>Core Ledger</h2></div>
     <div class="feature-grid">
       <div class="feature-card"><div class="fnum">01</div><h3>Multi-Company Ledger</h3><p>Separate books for every registered entity, each with its own chart of accounts, users, and settings — one login.</p></div>
       <div class="feature-card"><div class="fnum">02</div><h3>Double-Entry Core</h3><p>Every transaction posts as a balanced journal entry. Debits and credits must match to the cent before it saves.</p></div>
-      <div class="feature-card"><div class="fnum">03</div><h3>Multi-Currency &amp; FX</h3><p>MUR, USD, EUR, GBP, ZAR, or INR on any invoice or bill, with realized gain/loss posted automatically on settlement.</p></div>
-      <div class="feature-card"><div class="fnum">04</div><h3>Sales &amp; Purchases</h3><p>Invoices, credit memos, vendor bills, and payments — plus recurring invoices for retainer-style customers.</p></div>
-      <div class="feature-card"><div class="fnum">05</div><h3>Fixed Assets</h3><p>Straight-line depreciation scheduled and posted automatically each month, through to disposal.</p></div>
-      <div class="feature-card"><div class="fnum">06</div><h3>Payroll Bridge</h3><p>A signed API endpoint your payroll system pushes finalized runs to — one balanced entry per run, no re-entry.</p></div>
-      <div class="feature-card"><div class="fnum">07</div><h3>MRA E-Invoicing</h3><p>Invoices and credit memos fiscalize automatically, with a retry queue for anything that fails the first time.</p></div>
-      <div class="feature-card"><div class="fnum">08</div><h3>Share via WhatsApp</h3><p>Every invoice, bill, and credit memo gets a signed, time-limited link a customer can open without logging in.</p></div>
-      <div class="feature-card"><div class="fnum">09</div><h3>Bank Reconciliation</h3><p>Match statement lines to ledger entries and see exactly what's still outstanding before month-end.</p></div>
-      <div class="feature-card"><div class="fnum">10</div><h3>Reports</h3><p>Balance Sheet, Profit &amp; Loss, Trial Balance, and budget-vs-actual — always current, never a month-end scramble.</p></div>
-      <div class="feature-card"><div class="fnum">11</div><h3>Role-Based Access &amp; Audit Trail</h3><p>Owners, accountants, and staff see only what their role allows. Every change is logged, with who and when.</p></div>
-      <div class="feature-card"><div class="fnum">12</div><h3>Backup &amp; Restore</h3><p>A full snapshot of the company's books, downloadable on demand and restorable to the exact row.</p></div>
+      <div class="feature-card"><div class="fnum">03</div><h3>Multi-Currency &amp; FX</h3><p>MUR, USD, EUR, GBP, ZAR, or INR on any invoice or bill, with realized gain/loss posted on settlement and period-end revaluation of open balances.</p></div>
+      <div class="feature-card"><div class="fnum">04</div><h3>Multi-Company Consolidation</h3><p>A rolled-up Profit &amp; Loss and Balance Sheet across every company a user has access to, without exporting to a spreadsheet first.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Sales, Purchases &amp; Payments</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">05</div><h3>Sales &amp; Purchases</h3><p>Invoices, credit memos, vendor bills, and vendor credits — the full cycle, not just one side of it.</p></div>
+      <div class="feature-card"><div class="fnum">06</div><h3>Sales Orders</h3><p>Confirm an order before you bill it — for businesses that fulfil first and invoice after, with the same stock checks an invoice gets.</p></div>
+      <div class="feature-card"><div class="fnum">07</div><h3>Purchase Orders &amp; Matching</h3><p>Raise a PO, receive against it, and match it to the vendor's bill — so what you agreed to pay and what actually arrived stay reconciled.</p></div>
+      <div class="feature-card"><div class="fnum">08</div><h3>Recurring Billing</h3><p>Retainer invoices and repeat vendor bills generate themselves on schedule, through the same posting and fiscalization path as one entered by hand.</p></div>
+      <div class="feature-card"><div class="fnum">09</div><h3>Online Payments</h3><p>A customer pays an invoice straight from their portal — card details never touch our servers, and payment is confirmed before it's ever recorded as received.</p></div>
+      <div class="feature-card"><div class="fnum">10</div><h3>Customer &amp; Vendor Portal</h3><p>A no-staff-login view of "your own invoices" or "your own bills" — plus e-signature for accepting a quote.</p></div>
+      <div class="feature-card"><div class="fnum">11</div><h3>Share via WhatsApp</h3><p>Every invoice, bill, and credit memo gets a signed, time-limited link a customer can open without logging in.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Inventory &amp; Assets</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">12</div><h3>Inventory Costing</h3><p>Weighted-average, FIFO, or LIFO — set per item, with warehouses and stock transfers tracked at the true landed cost.</p></div>
+      <div class="feature-card"><div class="fnum">13</div><h3>Fixed Assets</h3><p>Straight-line or reducing-balance depreciation scheduled and posted automatically each month, through to disposal.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Mauritius Compliance</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">14</div><h3>MRA E-Invoicing</h3><p>Invoices and credit memos fiscalize automatically as they post, with a retry queue for anything that didn't get through the first time.</p></div>
+      <div class="feature-card"><div class="fnum">15</div><h3>Statement of Goods &amp; Services</h3><p>The monthly SGS export MRA requires alongside a VAT return, matching their published CSV format column-for-column.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Banking</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">16</div><h3>Bank Reconciliation</h3><p>Match statement lines to ledger entries and see exactly what's still outstanding before month-end.</p></div>
+      <div class="feature-card"><div class="fnum">17</div><h3>Smart Categorization</h3><p>Learns from a company's own past reconciliations to suggest an account for each new transaction — never a black box, every suggestion shows its own evidence.</p></div>
+      <div class="feature-card"><div class="fnum">18</div><h3>Bank Feeds</h3><p>Automatic transaction import via Plaid (Sandbox today), with CSV import as the reliable fallback everywhere a live feed isn't available yet.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Reports &amp; Insights</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">19</div><h3>Financial Reports</h3><p>Balance Sheet, Profit &amp; Loss, Trial Balance, VAT return, and budget-vs-actual — always current, never a month-end scramble.</p></div>
+      <div class="feature-card"><div class="fnum">20</div><h3>Cash Flow Forecast</h3><p>A weekly projection from open invoices, bills, and scheduled recurring items — every figure expandable to show exactly what's behind it.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Security &amp; Controls</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">21</div><h3>Role-Based Access &amp; Audit Trail</h3><p>Owners, accountants, and staff see only what their role allows. Every change is logged, with who and when.</p></div>
+      <div class="feature-card"><div class="fnum">22</div><h3>Two-Factor Authentication</h3><p>TOTP-based 2FA on any account, alongside granular view-only permissions scoped per module.</p></div>
+      <div class="feature-card"><div class="fnum">23</div><h3>Approval Workflows</h3><p>Invoices or bills above a threshold route for approval before they post — a second set of eyes on the numbers that matter most.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Extensibility</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">24</div><h3>Custom Fields</h3><p>Add your own fields to customers, vendors, and items — text, number, date, checkbox, or dropdown — no code changes needed.</p></div>
+      <div class="feature-card"><div class="fnum">25</div><h3>API &amp; Webhooks</h3><p>A scoped, key-based API to read or create records, plus outgoing webhooks when an invoice, bill, or payment happens.</p></div>
+      <div class="feature-card"><div class="fnum">26</div><h3>Payroll Bridge</h3><p>A signed API endpoint your payroll system pushes finalized runs to — one balanced entry per run, no re-entry.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Platform</h2></div>
+    <div class="feature-grid">
+      <div class="feature-card"><div class="fnum">27</div><h3>Installable App</h3><p>Add it to a phone's home screen like a native app, with the interface cached for a fast, offline-aware launch — figures are always live, never stale.</p></div>
+      <div class="feature-card"><div class="fnum">28</div><h3>Backup &amp; Restore</h3><p>A full snapshot of the company's books, downloadable on demand and restorable to the exact row.</p></div>
     </div>
 
     <div class="band">
@@ -310,22 +358,27 @@
         <ul class="tier-features">
           <li>1 company file</li>
           <li>Chart of accounts &amp; journal entries</li>
-          <li>Sales &amp; purchase invoicing</li>
-          <li>Bank reconciliation</li>
+          <li>Sales &amp; purchase invoicing, sales orders</li>
+          <li>Bank reconciliation &amp; CSV import</li>
+          <li>Customer/vendor portal</li>
           <li>P&amp;L, Balance Sheet, Trial Balance</li>
+          <li>Installable app, backup &amp; restore</li>
         </ul>
         <a class="tier-cta" href="#contact" data-route="contact">Get Started</a>
       </div>
       <div class="tier featured">
         <div class="tier-flag">Most Popular</div>
         <div class="tier-name">Growth</div>
-        <div class="tier-desc">For SMEs trading across currencies and running payroll.</div>
+        <div class="tier-desc">For SMEs trading across currencies, taking online payments, and running payroll.</div>
         <div class="tier-price"><span class="cur num">MUR</span><span contenteditable="true"></span><span class="per">/mo</span></div>
         <ul class="tier-features">
           <li>Everything in Starter</li>
           <li>Up to 3 company files</li>
-          <li>Multi-currency invoicing &amp; FX gain/loss</li>
-          <li>Recurring invoices &amp; asset depreciation</li>
+          <li>Multi-currency invoicing, FX gain/loss &amp; revaluation</li>
+          <li>Recurring invoices/bills &amp; asset depreciation</li>
+          <li>Online invoice payments</li>
+          <li>Purchase orders &amp; PO-to-bill matching</li>
+          <li>Custom fields, cash flow forecast</li>
           <li>Payroll system bridge</li>
           <li>Share invoices/bills via WhatsApp</li>
         </ul>
@@ -333,14 +386,17 @@
       </div>
       <div class="tier">
         <div class="tier-name">Enterprise</div>
-        <div class="tier-desc">For groups needing statutory compliance and audit-ready controls.</div>
+        <div class="tier-desc">For groups needing statutory compliance, audit-ready controls, and integrations.</div>
         <div class="tier-price"><span class="cur num">MUR</span><span contenteditable="true"></span><span class="per">/mo</span></div>
         <ul class="tier-features">
           <li>Everything in Growth</li>
-          <li>Unlimited companies &amp; users</li>
-          <li>MRA e-invoice fiscalization</li>
-          <li>Role-based access &amp; full audit trail</li>
-          <li>Automated backup &amp; restore</li>
+          <li>Unlimited companies &amp; users, consolidation</li>
+          <li>MRA e-invoice fiscalization &amp; SGS export</li>
+          <li>FIFO/LIFO inventory costing, warehouses</li>
+          <li>Two-factor auth &amp; granular permissions</li>
+          <li>Approval workflows</li>
+          <li>Full audit trail</li>
+          <li>API access &amp; outgoing webhooks</li>
           <li>Priority onboarding &amp; support</li>
         </ul>
         <a class="tier-cta" href="#contact" data-route="contact">Get Started</a>
@@ -354,13 +410,20 @@
         <thead><tr><th>Feature</th><th class="tcol">Starter</th><th class="tcol">Growth</th><th class="tcol">Enterprise</th></tr></thead>
         <tbody>
           <tr><td>Chart of accounts &amp; journal entries</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
-          <tr><td>Bank reconciliation</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
-          <tr><td>Multi-currency &amp; FX gain/loss</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
-          <tr><td>Recurring invoices &amp; fixed assets</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Sales orders &amp; customer/vendor portal</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Bank reconciliation &amp; smart categorization</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Multi-currency, FX gain/loss &amp; revaluation</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Recurring billing &amp; fixed assets</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Online invoice payments</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Purchase orders &amp; PO matching</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Custom fields &amp; cash flow forecast</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
           <tr><td>Payroll system bridge</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
           <tr><td>WhatsApp document sharing</td><td class="tcol no">—</td><td class="tcol yes">✓</td><td class="tcol yes">✓</td></tr>
-          <tr><td>MRA e-invoice fiscalization</td><td class="tcol no">—</td><td class="tcol no">—</td><td class="tcol yes">✓</td></tr>
-          <tr><td>Multiple companies</td><td class="tcol no">1</td><td class="tcol">Up to 3</td><td class="tcol yes">Unlimited</td></tr>
+          <tr><td>MRA e-invoice fiscalization &amp; SGS export</td><td class="tcol no">—</td><td class="tcol no">—</td><td class="tcol yes">✓</td></tr>
+          <tr><td>FIFO/LIFO inventory costing</td><td class="tcol no">—</td><td class="tcol no">—</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Two-factor auth &amp; approval workflows</td><td class="tcol no">—</td><td class="tcol no">—</td><td class="tcol yes">✓</td></tr>
+          <tr><td>API access &amp; webhooks</td><td class="tcol no">—</td><td class="tcol no">—</td><td class="tcol yes">✓</td></tr>
+          <tr><td>Multiple companies</td><td class="tcol no">1</td><td class="tcol">Up to 3</td><td class="tcol yes">Unlimited + consolidation</td></tr>
           <tr><td>Audit trail &amp; role-based access</td><td class="tcol no">—</td><td class="tcol no">Basic</td><td class="tcol yes">Full</td></tr>
         </tbody>
       </table>
@@ -387,6 +450,7 @@
       <div class="principle"><div class="pmark">02</div><div><h3>Built portable</h3><p>The same code runs on MySQL locally and Postgres in production, so a company's books are never tied to one host or one server.</p></div></div>
       <div class="principle"><div class="pmark">03</div><div><h3>No lock-in</h3><p>A full backup is one click away, in an open format, restorable to the exact row — your data leaves as easily as it arrived.</p></div></div>
       <div class="principle"><div class="pmark">04</div><div><h3>Compliance by design</h3><p>MRA fiscalization and audit trails aren't bolted on afterward — they're part of how an invoice or a change gets recorded in the first place.</p></div></div>
+      <div class="principle"><div class="pmark">05</div><div><h3>Extensible, not walled off</h3><p>Custom fields and a real API mean a business's own data model and its own integrations aren't limited to what we thought of first.</p></div></div>
     </div>
 
     <div class="band">
