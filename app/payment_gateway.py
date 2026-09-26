@@ -34,11 +34,13 @@ it — test with the pre-provisioned sandbox Company Token from
 docs.dpopay.com/dpo-pay-by-network/reference/sandbox-test-credentials before
 switching gateway_sandbox off.
 """
+import uuid
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from decimal import Decimal
 
 import requests
+from flask import url_for
 
 from app.models import CompanySettings
 
@@ -63,7 +65,11 @@ FAILED_CODES = {"901", "902", "903", "904"}
 
 def is_configured(company_id):
     settings = CompanySettings.query.get(company_id)
-    return bool(settings and settings.gateway_provider == "dpo" and settings.gateway_company_token)
+    if not settings:
+        return False
+    if settings.gateway_provider == "demo":
+        return True
+    return bool(settings.gateway_provider == "dpo" and settings.gateway_company_token)
 
 
 def _company(company_id):
@@ -103,6 +109,15 @@ def create_payment_token(invoice, return_url, back_url):
     amount = invoice.balance_due
     if amount <= 0:
         return None, "This invoice has nothing left to pay."
+
+    if settings.gateway_provider == "demo":
+        # No real gateway involved — just a locally-hosted fake checkout page
+        # (app/portal.py's demo_checkout route) so the portal flow can be seen
+        # end-to-end without a DPO merchant account. Outcome is decided there,
+        # not here; verify_payment() below reads it back off the trans_token.
+        invoice.gateway_trans_token = f"DEMO-PENDING-{uuid.uuid4().hex[:12]}"
+        invoice.gateway_status = "pending"
+        return url_for("portal.demo_checkout", invoice_id=invoice.id, _external=True), None
 
     service_type = settings.gateway_service_type or ""
     now = datetime.utcnow().strftime("%Y/%m/%d %H:%M")
@@ -153,6 +168,19 @@ def verify_payment(invoice):
     settings = _company(invoice.company_id)
     if not invoice.gateway_trans_token or not is_configured(invoice.company_id):
         return "error", "No payment attempt on file for this invoice."
+
+    if settings.gateway_provider == "demo":
+        # The demo checkout page (app/portal.py) already decided the outcome
+        # and encoded it into the trans_token — nothing to call out to.
+        token = invoice.gateway_trans_token
+        if token.startswith("DEMO-SUCCESS"):
+            invoice.gateway_status = "paid"
+            return "paid", "Demo payment simulated as successful."
+        if token.startswith("DEMO-FAIL"):
+            invoice.gateway_status = "failed"
+            return "failed", "Demo payment simulated as failed."
+        invoice.gateway_status = "pending"
+        return "pending", "Waiting for the demo checkout page to be completed."
 
     root = ET.Element("API3G")
     ET.SubElement(root, "CompanyToken").text = settings.gateway_company_token

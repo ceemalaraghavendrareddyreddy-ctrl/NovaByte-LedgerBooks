@@ -1,0 +1,24 @@
+{% extends "portal/_layout.html" %}
+{% block title %}Demo Checkout — Invoice {{ invoice.invoice_no }}{% endblock %}
+{% block content %}
+<h1>Demo Checkout</h1>
+<div class="card" style="border:2px dashed var(--muted); background:transparent;">
+  <p style="margin-top:0;"><strong>⚠ This is a fake payment page — no real gateway, no real money.</strong></p>
+  <p style="color:var(--muted); font-size:0.9rem;">
+    This business hasn't connected a real payment gateway (DPO Group) yet. This screen exists only so the
+    "pay online" flow can be tried end-to-end. Pick an outcome below to see what happens on each side.
+  </p>
+</div>
+
+<div class="card">
+  <p>Invoice <strong>{{ invoice.invoice_no }}</strong> &middot; Amount due: <strong>{{ invoice.currency }} {{ '%.2f'|format(invoice.balance_due) }}</strong></p>
+  <form method="post" style="display:inline;">
+    <input type="hidden" name="outcome" value="success">
+    <button class="btn" type="submit" style="background:var(--success, #1a7f4e);">✅ Simulate Successful Payment</button>
+  </form>
+  <form method="post" style="display:inline;">
+    <input type="hidden" name="outcome" value="fail">
+    <button class="btn secondary" type="submit">❌ Simulate Failed Payment</button>
+  </form>
+</div>
+{% endblock %}

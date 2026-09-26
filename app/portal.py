@@ -11,6 +11,7 @@ and no "forgot password" email flow yet; resetting one still requires the owner.
 PDFs reuse the existing signed share-link routes (app/share.py) rather than
 duplicating PDF generation here.
 """
+import uuid
 from datetime import date, datetime
 from functools import wraps
 
@@ -208,6 +209,9 @@ def _reverify_and_apply_payment(invoice):
     # customer session has no such key (it keys off session["portal_customer_id"]
     # instead). See app.auth.staff_session_scope's docstring for why this exists
     # rather than threading company_id through those functions' signatures.
+    settings = CompanySettings.query.get(invoice.company_id)
+    provider_label = "DEMO gateway (fake, no real payment)" if settings and settings.gateway_provider == "demo" else "DPO"
+
     with staff_session_scope(invoice.company_id):
         deposit_account = get_account_or_400(UNDEPOSITED_FUNDS_CODE, "Undeposited Funds")
         payment = Payment(
@@ -220,14 +224,14 @@ def _reverify_and_apply_payment(invoice):
             method="online",
             deposit_account_id=deposit_account.id,
             reference_no=invoice.gateway_trans_token,
-            memo=f"Online payment via DPO for invoice {invoice.invoice_no}",
+            memo=f"Online payment via {provider_label} for invoice {invoice.invoice_no}",
         )
         payment.applications.append(PaymentApplication(invoice=invoice, amount_applied=invoice.balance_due))
         post_payment(payment)
         db.session.add(payment)
         db.session.flush()
         invoice.status = "paid" if invoice.balance_due <= 0 else "partial"
-        log_audit("create", "payment", payment.id, f"Online payment received for invoice {invoice.invoice_no} via DPO")
+        log_audit("create", "payment", payment.id, f"Online payment received for invoice {invoice.invoice_no} via {provider_label}")
         db.session.commit()
 
 
@@ -248,6 +252,34 @@ def invoice_pay(invoice_id):
         flash(error, "error")
         return redirect(url_for("portal.customer_invoice", invoice_id=invoice.id))
     return redirect(checkout_url)
+
+
+@portal_bp.route("/invoices/<int:invoice_id>/pay/demo", methods=["GET", "POST"])
+@portal_customer_required
+def demo_checkout(invoice_id):
+    """Stand-in for DPO's hosted checkout page when gateway_provider == 'demo'
+    (see app/payment_gateway.py). Lets the customer pick an outcome so the
+    rest of the pipeline — verify_payment, then _reverify_and_apply_payment's
+    real ledger posting — can be exercised without a DPO merchant account.
+    Clearly labeled as a fake page in its template; never reachable unless the
+    company explicitly chose "Demo / Fake" as its gateway provider."""
+    customer = current_portal_customer()
+    invoice = Invoice.query.filter_by(id=invoice_id, customer_id=customer.id).first_or_404()
+    settings = CompanySettings.query.get(invoice.company_id)
+    if not settings or settings.gateway_provider != "demo":
+        flash("Demo checkout isn't enabled for this business.", "error")
+        return redirect(url_for("portal.customer_invoice", invoice_id=invoice.id))
+
+    if request.method == "POST":
+        outcome = request.form.get("outcome")
+        if outcome == "success":
+            invoice.gateway_trans_token = f"DEMO-SUCCESS-{uuid.uuid4().hex[:8]}"
+        else:
+            invoice.gateway_trans_token = f"DEMO-FAIL-{uuid.uuid4().hex[:8]}"
+        db.session.commit()
+        return redirect(url_for("portal.invoice_pay_return", invoice_id=invoice.id))
+
+    return render_template("portal/demo_checkout.html", customer=customer, invoice=invoice)
 
 
 @portal_bp.route("/invoices/<int:invoice_id>/pay/return")

@@ -6,3 +6,4 @@ instance/
 node_modules/
 *.db
 *.log
+docs/

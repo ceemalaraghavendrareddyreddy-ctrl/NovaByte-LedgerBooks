@@ -132,6 +132,7 @@
       <select name="gateway_provider">
         <option value="" {{ "selected" if not settings.gateway_provider }}>-- not configured --</option>
         <option value="dpo" {{ "selected" if settings.gateway_provider == "dpo" }}>DPO Group</option>
+        <option value="demo" {{ "selected" if settings.gateway_provider == "demo" }}>Demo / Fake (testing only — no real gateway or money)</option>
       </select>
     </div>
     <div class="form-row"><label>Company Token</label><input type="text" name="gateway_company_token" value="{{ settings.gateway_company_token or '' }}"></div>
@@ -143,6 +144,10 @@
     <p class="text-muted" style="font-size:0.8rem;">
       Sandbox uses DPO's test environment — no real money moves. Untick this only once you have a real DPO merchant
       account and have tested a full payment in sandbox first.
+    </p>
+    <p class="text-muted" style="font-size:0.8rem;">
+      Choosing "Demo / Fake" ignores the two fields above entirely — no DPO account needed. It shows a local
+      page where you pick success or failure yourself, so you can see the "Pay Now" flow work end-to-end.
     </p>
   </div>
 
