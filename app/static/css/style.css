@@ -878,7 +878,21 @@ input:focus, select:focus, textarea:focus {
 }
 .form-row input, .form-row select, .form-row textarea { flex: 1; min-width: 160px; }
 
-.journal-lines-table input, .journal-lines-table select { width: 100%; padding: 0.4rem; }
+/* Line-item tables (invoice/bill/estimate/credit memo/sales order forms) pack
+   8-9 columns into one row — cramped at any normal card width if every column
+   just shares whatever space is left. Give the table itself room to be wide
+   and let the card scroll horizontally (at any viewport, not just mobile —
+   this table is tight even on a laptop screen), instead of squeezing every
+   input down to fit. */
+.card:has(.journal-lines-table) { overflow-x: auto; }
+.journal-lines-table { min-width: 920px; }
+.journal-lines-table input, .journal-lines-table select {
+  width: 100%; padding: 0.6rem 0.65rem; font-size: 0.92rem; min-height: 2.4rem;
+}
+.journal-lines-table th, .journal-lines-table td { padding: 0.6rem 0.55rem; }
+.journal-lines-table td:nth-child(2) input { min-width: 160px; }  /* Description */
+.journal-lines-table td:has(select[name=income_account_id]) select,
+.journal-lines-table td:has(input[name*=lot_number]) input { min-width: 130px; }
 .journal-lines-table td { vertical-align: middle; }
 
 .section-title {
