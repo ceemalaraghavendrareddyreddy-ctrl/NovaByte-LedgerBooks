@@ -1,5 +1,13 @@
 Flask==3.0.3
 Flask-SQLAlchemy==3.1.1
+# Pinned explicitly: Flask-SQLAlchemy only requires sqlalchemy>=2.0.16, so an
+# unpinned install can resolve to whatever's newest at build time. A production
+# build cache-clear on 2026-09-26 resolved to SQLAlchemy 2.1.1 and broke with
+# "ModuleNotFoundError: No module named 'psycopg2'" inside SQLAlchemy's own
+# postgresql dialect loader, despite psycopg2-binary installing successfully —
+# a SQLAlchemy 2.1.x issue, not a psycopg2 one. Pinned to 2.0.51, the exact
+# version this whole app has been developed and tested against.
+SQLAlchemy==2.0.51
 Flask-Login==0.6.3
 Werkzeug==3.0.3
 PyMySQL==1.1.1
