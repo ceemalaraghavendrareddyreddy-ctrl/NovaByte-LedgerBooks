@@ -8,7 +8,8 @@ from flask_login import current_user, login_required
 from app import db
 from app.auth import current_company_id
 from app.models import (
-    ACCOUNT_TYPES, Account, Bill, BillLine, Invoice, InvoiceLine, JournalEntry, JournalLine, Project, SavedReport,
+    ACCOUNT_TYPES, Account, Bill, BillLine, Invoice, InvoiceLine, JournalEntry, JournalLine, Project,
+    RecurringBill, RecurringInvoice, SavedReport, add_months,
 )
 from app.scoping import scoped_or_404, scoped_query
 
@@ -241,6 +242,116 @@ def cash_flow():
         financing_rows=financing_rows, operating_total=operating_total, investing_total=investing_total,
         financing_total=financing_total, net_change=net_change, cash_begin=cash_begin, cash_end=cash_end,
         reconciliation_gap=reconciliation_gap, start_date=start_date.isoformat(), end_date=end_date.isoformat(),
+    )
+
+
+# ── Cash Flow Forecast (forward-looking, distinct from the historical Cash Flow
+# Statement above) ──────────────────────────────────────────────────────
+
+def _recurring_occurrences_in_window(template, window_end):
+    """Every future occurrence date of a recurring invoice/bill template, from
+    its own next_run_date up to (and including) window_end — without mutating
+    the real template (advance_next_run_date() does that; this just replays the
+    same stepping logic on a local variable). A template already past its
+    end_date or inactive contributes nothing."""
+    if not template.is_active or template.is_ended:
+        return []
+    dates = []
+    current = template.next_run_date
+    while current <= window_end and (not template.end_date or current <= template.end_date):
+        dates.append(current)
+        if template.frequency == "weekly":
+            current = date.fromordinal(current.toordinal() + 7)
+        elif template.frequency == "quarterly":
+            current = add_months(current, 3)
+        elif template.frequency == "yearly":
+            current = add_months(current, 12)
+        else:
+            current = add_months(current, 1)
+    return dates
+
+
+@reports_bp.route("/cash-flow-forecast")
+@login_required
+def cash_flow_forecast():
+    """Forward-looking weekly cash projection: starting cash position, plus
+    expected inflows (open/partial invoices by due date, plus scheduled
+    recurring-invoice occurrences) and expected outflows (same for bills),
+    bucketed into weeks. A best-effort projection, not a guarantee — a customer
+    paying late or a recurring template being paused shifts the real numbers;
+    this is why every bucket also lists what actually makes it up, not just a
+    single projected total to take on faith.
+    """
+    weeks = request.args.get("weeks", 13, type=int)
+    weeks = max(1, min(weeks, 26))
+    today = date.today()
+    window_end = today + timedelta(weeks=weeks)
+
+    cash_accounts = scoped_query(Account).filter_by(account_type="Asset", is_active=True, subtype=CASH_SUBTYPE).all()
+    starting_cash = sum((float(a.balance(as_of=today)) for a in cash_accounts), start=0.0)
+
+    # Bucket boundaries: [today, today+7), [today+7, today+14), ... — the last
+    # bucket also absorbs anything already overdue, since that money is still
+    # realistically expected "soon", not excluded from the forecast entirely.
+    bucket_starts = [today + timedelta(weeks=i) for i in range(weeks)]
+    buckets = [{"start": b, "end": b + timedelta(days=6), "inflows": [], "outflows": []} for b in bucket_starts]
+
+    def bucket_for(due_date):
+        if due_date < today:
+            return buckets[0]  # overdue — expected in the very first bucket
+        for b in buckets:
+            if b["start"] <= due_date <= b["end"]:
+                return b
+        return None  # past the forecast window entirely
+
+    for inv in scoped_query(Invoice).filter(Invoice.status.in_(["open", "partial"])).all():
+        if inv.balance_due <= 0:
+            continue
+        b = bucket_for(inv.due_date)
+        if b:
+            b["inflows"].append({"label": f"Invoice {inv.invoice_no} — {inv.customer.name}", "amount": inv.balance_due, "date": inv.due_date})
+
+    for bill in scoped_query(Bill).filter(Bill.status.in_(["open", "partial"])).all():
+        if bill.balance_due <= 0:
+            continue
+        b = bucket_for(bill.due_date)
+        if b:
+            b["outflows"].append({"label": f"Bill {bill.bill_no} — {bill.vendor.name}", "amount": bill.balance_due, "date": bill.due_date})
+
+    for template in scoped_query(RecurringInvoice).filter_by(is_active=True).all():
+        for occurrence_date in _recurring_occurrences_in_window(template, window_end):
+            due = occurrence_date + timedelta(days=template.due_days)
+            b = bucket_for(due)
+            if b:
+                b["inflows"].append({"label": f"{template.name} (recurring)", "amount": template.total, "date": due})
+
+    for template in scoped_query(RecurringBill).filter_by(is_active=True).all():
+        for occurrence_date in _recurring_occurrences_in_window(template, window_end):
+            due = occurrence_date + timedelta(days=template.due_days)
+            b = bucket_for(due)
+            if b:
+                b["outflows"].append({"label": f"{template.name} (recurring)", "amount": template.total, "date": due})
+
+    running_balance = starting_cash
+    chart_labels, chart_balances = [], []
+    for b in buckets:
+        b["inflow_total"] = round(sum(i["amount"] for i in b["inflows"]), 2)
+        b["outflow_total"] = round(sum(o["amount"] for o in b["outflows"]), 2)
+        b["net"] = round(b["inflow_total"] - b["outflow_total"], 2)
+        running_balance = round(running_balance + b["net"], 2)
+        b["projected_balance"] = running_balance
+        b["inflows"].sort(key=lambda r: r["date"])
+        b["outflows"].sort(key=lambda r: r["date"])
+        chart_labels.append(b["start"].strftime("%d %b"))
+        chart_balances.append(b["projected_balance"])
+
+    lowest_point = min((b["projected_balance"] for b in buckets), default=starting_cash)
+
+    return render_template(
+        "reports/cash_flow_forecast.html",
+        buckets=buckets, starting_cash=starting_cash, weeks=weeks, today=today,
+        lowest_point=lowest_point, final_balance=running_balance,
+        chart_labels=chart_labels, chart_balances=chart_balances,
     )
 
 

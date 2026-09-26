@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Cash Flow Forecast</h1>
+<p style="color:var(--muted);">
+  Weekly projection from today &middot; based on open invoices/bills by due date and scheduled recurring items.
+  A best-effort projection, not a guarantee — every figure below lists what actually makes it up.
+</p>
+
+<form method="get" class="form-row">
+  <label>Weeks ahead</label>
+  <select name="weeks" onchange="this.form.submit()">
+    {% for w in [4, 8, 13, 26] %}
+    <option value="{{ w }}" {% if weeks == w %}selected{% endif %}>{{ w }} weeks</option>
+    {% endfor %}
+  </select>
+</form>
+
+<div class="stat-row">
+  <div class="stat"><div class="label">Cash on hand today</div><div class="value">{{ '%.2f'|format(starting_cash) }}</div></div>
+  <div class="stat"><div class="label">Projected in {{ weeks }} weeks</div><div class="value" style="{{ 'color:var(--error);' if final_balance < 0 }}">{{ '%.2f'|format(final_balance) }}</div></div>
+  <div class="stat"><div class="label">Lowest projected point</div><div class="value" style="{{ 'color:var(--error);' if lowest_point < 0 }}">{{ '%.2f'|format(lowest_point) }}</div></div>
+</div>
+
+{% if lowest_point < 0 %}
+<div class="flash flash-warning">
+  Projected cash goes negative within this window — review the weeks below for what's driving it before it happens, not after.
+</div>
+{% endif %}
+
+<div class="card">
+  <h3 style="margin-top:0;">Projected balance</h3>
+  <div style="height:280px;"><canvas id="forecast-chart"></canvas></div>
+</div>
+
+<div class="card">
+  <table>
+    <thead>
+      <tr>
+        <th>Week of</th>
+        <th class="num">Inflows</th>
+        <th class="num">Outflows</th>
+        <th class="num">Net</th>
+        <th class="num">Projected balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for b in buckets %}
+      <tr>
+        <td>
+          {{ b.start.strftime('%d %b') }}{% if loop.first %} <span class="badge">this week{% if b.inflows|selectattr('date', 'lt', today)|list or b.outflows|selectattr('date', 'lt', today)|list %} + overdue{% endif %}</span>{% endif %}
+        </td>
+        <td class="num">{{ '%.2f'|format(b.inflow_total) }}</td>
+        <td class="num">{{ '%.2f'|format(b.outflow_total) }}</td>
+        <td class="num" style="{{ 'color:var(--error);' if b.net < 0 }}">{{ '%.2f'|format(b.net) }}</td>
+        <td class="num" style="{{ 'color:var(--error);font-weight:600;' if b.projected_balance < 0 }}">{{ '%.2f'|format(b.projected_balance) }}</td>
+      </tr>
+      {% if b.inflows or b.outflows %}
+      <tr>
+        <td colspan="5" style="padding:0;">
+          <details style="margin:0.25rem 0 0.75rem 1rem;">
+            <summary style="cursor:pointer;color:var(--text-muted);font-size:0.85rem;">{{ (b.inflows|length) + (b.outflows|length) }} item(s)</summary>
+            <table style="margin-top:0.5rem;">
+              <tbody>
+                {% for i in b.inflows %}
+                <tr><td style="color:var(--success,#1a7f4e);">↓ {{ i.label }}</td><td>{{ i.date.strftime('%d %b') }}</td><td class="num">{{ '%.2f'|format(i.amount) }}</td></tr>
+                {% endfor %}
+                {% for o in b.outflows %}
+                <tr><td style="color:var(--error);">↑ {{ o.label }}</td><td>{{ o.date.strftime('%d %b') }}</td><td class="num">{{ '%.2f'|format(o.amount) }}</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </details>
+        </td>
+      </tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+(function() {
+  const style = getComputedStyle(document.documentElement);
+  const primary = style.getPropertyValue('--primary').trim() || '#0F766E';
+  const gridColor = style.getPropertyValue('--border').trim() || '#E5E9F0';
+  const textColor = style.getPropertyValue('--text-muted').trim() || '#6B7280';
+
+  const labels = {{ chart_labels | tojson }};
+  const balances = {{ chart_balances | tojson }};
+
+  new Chart(document.getElementById('forecast-chart'), {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Projected cash balance',
+        data: balances,
+        borderColor: primary,
+        backgroundColor: primary + '22',
+        fill: true,
+        tension: 0.2,
+        pointRadius: 3,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `MUR ${ctx.parsed.y.toLocaleString(undefined, {minimumFractionDigits:2})}` } },
+      },
+      scales: {
+        x: { ticks: { color: textColor }, grid: { display: false } },
+        y: { ticks: { color: textColor, callback: (v) => v.toLocaleString() }, grid: { color: gridColor } },
+      },
+    },
+  });
+})();
+</script>
+{% endblock %}
