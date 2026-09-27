@@ -6,7 +6,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from app import db
 from app.company import create_company_and_owner
-from app.models import CompanySettings, User
+from app.models import CompanySettings, User, UserCompany
 from app import two_factor
 
 auth_bp = Blueprint("auth", __name__)
@@ -158,6 +158,48 @@ def register():
         return redirect(url_for("dashboard.index"))
 
     return render_template("register.html")
+
+
+@auth_bp.route("/companies/new", methods=["GET", "POST"])
+@login_required
+def new_company():
+    """Add another company without leaving your current login — unlike /register
+    (a brand-new person signing up), this grants the *already logged-in* user
+    instant access to the company it creates too, via UserCompany, and simply
+    switches the session over to it. The new company still gets its own owner
+    User row (create_company_and_owner's normal shape), since Settings -> Users
+    and other company-scoped screens assume every company has at least one.
+    """
+    if request.method == "POST":
+        business_name = request.form["business_name"].strip()
+        name = request.form["name"].strip()
+        username = request.form["username"].strip()
+        password = request.form["password"]
+        confirm_password = request.form["confirm_password"]
+
+        if not business_name or not name or not username:
+            flash("All fields are required.", "error")
+            return render_template("new_company.html")
+        if len(password) < 6:
+            flash("Password must be at least 6 characters.", "error")
+            return render_template("new_company.html")
+        if password != confirm_password:
+            flash("Password and confirmation don't match.", "error")
+            return render_template("new_company.html")
+        if User.query.filter_by(username=username).first():
+            flash("That username is already taken.", "error")
+            return render_template("new_company.html")
+
+        company, owner = create_company_and_owner(business_name, username, password, name)
+        if not current_user.can_access_company(company.id):
+            db.session.add(UserCompany(user_id=current_user.id, company_id=company.id))
+            db.session.commit()
+
+        session["company_id"] = company.id
+        flash(f"{business_name} created — you're now viewing it.", "success")
+        return redirect(url_for("dashboard.index"))
+
+    return render_template("new_company.html")
 
 
 @auth_bp.route("/switch-company/<int:company_id>", methods=["POST"])

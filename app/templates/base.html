@@ -85,12 +85,19 @@
             </button>
           </form>
         {% endfor %}
+        <a href="{{ url_for('auth.new_company') }}"
+           style="display:block;padding:0.45rem 1.1rem 0.45rem 2.6rem;border-top:1px solid rgba(255,255,255,0.08);margin-top:0.2rem;">
+          {{ icon('plus', 'nav-ico') }} + New company
+        </a>
       </details>
       {% elif current_company() %}
       <div class="company-pill">
         <span class="company-dot"></span>
         <span><strong>{{ current_company().business_name }}</strong></span>
       </div>
+      <a href="{{ url_for('auth.new_company') }}" class="company-pill" style="cursor:pointer;">
+        {{ icon('plus', 'nav-ico') }} <span>New company</span>
+      </a>
       {% endif %}
 
       <div class="sidebar-nav">
