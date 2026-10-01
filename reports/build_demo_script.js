@@ -87,6 +87,7 @@ const doc = new Document({
           [2600, 3400, 3400],
         ),
         body("Both are started the same way you've been running them all along — the Browser pane, or by hand if you're rehearsing outside this session. Nothing below needs internet access; it all runs on your own machine."),
+        warn("MRA fiscalisation needs a reachable bridge URL. http://localhost:5059 only works when LedgerBooks and the bridge run on the same machine — it will not work from the Render production site; for that, deploy the bridge to a public URL and use that in Settings instead."),
         warn("A one-time registration named 'demo_reference' on MRA_TaxInvoice_System (company 'LoomStack Demo Reference Ltd') already exists from an earlier verification pass — reuse it, or register your own; either works. Check Settings → External Integration on that login before re-registering, to avoid creating a duplicate reference company."),
 
         h1("One-Time Prep (do this once, before your first rehearsal)"),

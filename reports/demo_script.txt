@@ -11,6 +11,7 @@ Before You Practice: Quick Reference
 <w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">http://localhost:5059
 <w:tcPr><w:tcW w:type="dxa" w:w="3400"/></w:tcPr><w:p><w:r><w:rPr><w:b w:val="false"/><w:bCs w:val="false"/><w:sz w:val="20"/><w:szCs w:val="20"/></w:rPr><w:t xml:space="preserve">(create your own demo login — see One-Time Prep)
 Both are started the same way you&apos;ve been running them all along — the Browser pane, or by hand if you&apos;re rehearsing outside this session. Nothing below needs internet access; it all runs on your own machine.
+⚠ MRA fiscalisation needs a reachable bridge URL. http://localhost:5059 only works when LedgerBooks and the bridge run on the same machine — it will not work from the Render production site; for that, deploy the bridge to a public URL and use that in Settings instead.
 ⚠ A one-time registration named &apos;demo_reference&apos; on MRA_TaxInvoice_System (company &apos;LoomStack Demo Reference Ltd&apos;) already exists from an earlier verification pass — reuse it, or register your own; either works. Check Settings → External Integration on that login before re-registering, to avoid creating a duplicate reference company.
 One-Time Prep (do this once, before your first rehearsal)
 This is the part that must NOT happen live in front of a prospect — it&apos;s slow and fiddly the first time. Do it once, now, and you&apos;ll never need to repeat it.
