@@ -101,7 +101,7 @@ def _company_logo_flowable(company, max_height_mm=14):
 
 
 def _build_document_pdf(company, title, doc_no, meta_lines, party_label, party,
-                        line_rows, totals_rows, memo, theme=None):
+                        line_rows, totals_rows, memo, theme=None, qr_png=None):
     theme = theme or THEMES["classic"]
     buffer = BytesIO()
     doc = SimpleDocTemplate(
@@ -195,6 +195,12 @@ def _build_document_pdf(company, title, doc_no, meta_lines, party_label, party,
     totals_table.setStyle(TableStyle(totals_style))
     elements.append(totals_table)
 
+    if qr_png:
+        # MRA's own QR image, 2 cm x 2 cm, as in the bridge's PDFs. The IRN is deliberately
+        # not printed: MRA says it must not appear on the invoice issued to the customer.
+        elements.append(Spacer(1, 8 * mm))
+        elements.append(Image(BytesIO(qr_png), width=20 * mm, height=20 * mm, hAlign="CENTER"))
+
     if memo:
         elements.append(Spacer(1, 8 * mm))
         elements.append(Paragraph(f"<b>Memo:</b> {memo}", styles["Normal"]))
@@ -219,6 +225,23 @@ def _resolve_theme(name):
     return THEMES.get((name or "classic").lower(), THEMES["classic"])
 
 
+def _qr_for(invoice):
+    """The MRA QR image for a fiscalised invoice, fetching and saving it first if the
+    bridge was unreachable at fiscalisation time. Never raises — a PDF without the QR
+    is better than no PDF."""
+    try:
+        from app import db
+        from app.mra_bridge import ensure_invoice_qr
+
+        had_qr = bool(invoice.mra_qr_png)
+        ensure_invoice_qr(invoice)
+        if invoice.mra_qr_png and not had_qr:
+            db.session.commit()
+        return invoice.mra_qr_png
+    except Exception:
+        return None
+
+
 def generate_invoice_pdf(invoice, company, template=None):
     theme = _resolve_theme(template or getattr(company, "invoice_template", None) or "classic")
     meta_lines = [
@@ -229,6 +252,11 @@ def generate_invoice_pdf(invoice, company, template=None):
     ]
     if invoice.customer_po_number:
         meta_lines.insert(2, f"Customer PO #: {invoice.customer_po_number}")
+    qr_png = None
+    if invoice.mra_status == "FISCALIZED":
+        if invoice.mra_invoice_number:
+            meta_lines.append(f"MRA Invoice No: {invoice.mra_invoice_number}")
+        qr_png = _qr_for(invoice)
     totals_rows = [
         ["Subtotal", f"{invoice.currency} {float(invoice.subtotal):,.2f}", False],
         [f"VAT ({float(invoice.vat_rate):g}%)", f"{invoice.currency} {float(invoice.vat_amount):,.2f}", False],
@@ -239,7 +267,7 @@ def generate_invoice_pdf(invoice, company, template=None):
     return _build_document_pdf(
         company, "INVOICE", invoice.invoice_no, meta_lines, "Bill To", invoice.customer,
         _line_rows(invoice.lines), totals_rows, invoice.memo,
-        theme=theme,
+        theme=theme, qr_png=qr_png,
     )
 
 

@@ -79,6 +79,36 @@ def _line_items_payload(lines):
     ]
 
 
+def _fetch_qr_png(company_id, bridge_invoice_id):
+    """Asks the bridge for the QR image MRA issued for one invoice. Returns the PNG bytes,
+    or None on any failure — a missing QR must never break fiscalisation or PDF output."""
+    url, key = _connection(company_id)
+    if not (url and key and bridge_invoice_id):
+        return None
+    try:
+        resp = requests.get(
+            f"{url}/api/v1/invoices/{int(bridge_invoice_id)}/qr", headers={"X-Api-Key": key}, timeout=15,
+        )
+    except requests.exceptions.RequestException:
+        return None
+    if resp.status_code == 200 and resp.headers.get("Content-Type", "").startswith("image/"):
+        return resp.content
+    return None
+
+
+def ensure_invoice_qr(invoice):
+    """Fills invoice.mra_qr_png from the bridge when the invoice is FISCALIZED and has none
+    yet. Mutates only (caller commits). Returns True if a QR image is now present."""
+    if invoice.mra_qr_png:
+        return True
+    if invoice.mra_status != "FISCALIZED" or not invoice.mra_bridge_invoice_id:
+        return False
+    png = _fetch_qr_png(invoice.company_id, invoice.mra_bridge_invoice_id)
+    if png:
+        invoice.mra_qr_png = png
+    return bool(png)
+
+
 def fiscalize_invoice_with_mra(invoice):
     """Mutates invoice.mra_invoice_number / mra_irn / mra_status in place.
     Caller is responsible for committing afterward. Never raises."""
@@ -96,6 +126,8 @@ def fiscalize_invoice_with_mra(invoice):
         invoice.mra_invoice_number = data.get("invoice_number")
         invoice.mra_irn = data.get("irn")
         invoice.mra_status = data.get("status")
+        invoice.mra_bridge_invoice_id = data.get("invoice_id")
+        ensure_invoice_qr(invoice)
     else:
         invoice.mra_status = "ERROR"
 
