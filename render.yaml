@@ -18,10 +18,14 @@ services:
         value: 3.12.10
       - key: SECRET_KEY
         generateValue: true
+      # DATABASE_URL is set by hand in the Render dashboard (Environment tab), NOT taken
+      # from the Render database below. The free Render Postgres expires after 30 days
+      # and is then deleted, so production now points at an external Postgres (Neon).
+      # `sync: false` tells Render to prompt for the value once and never overwrite it
+      # on a later Blueprint sync — without it, a sync would reset DATABASE_URL back to
+      # the (expired) ledgerbooks-db below and take the site down.
       - key: DATABASE_URL
-        fromDatabase:
-          name: ledgerbooks-db
-          property: connectionString
+        sync: false
       # MRA_TaxInvoice_System and the payroll bridge are both configured per-company
       # from inside the app (Settings), not via env vars — nothing else needed here.
 
