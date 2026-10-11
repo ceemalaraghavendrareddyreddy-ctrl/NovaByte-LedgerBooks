@@ -127,6 +127,7 @@ def fiscalize_invoice_with_mra(invoice):
         invoice.mra_irn = data.get("irn")
         invoice.mra_status = data.get("status")
         invoice.mra_bridge_invoice_id = data.get("invoice_id")
+        invoice.mra_mode = data.get("mra_environment")
         ensure_invoice_qr(invoice)
     else:
         invoice.mra_status = "ERROR"

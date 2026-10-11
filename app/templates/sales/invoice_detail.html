@@ -14,6 +14,8 @@
 {% if invoice.mra_status %}
 <p style="color:var(--muted); font-size:.9em;">
   MRA: <span class="badge">{{ invoice.mra_status }}</span>
+  {% if invoice.mra_mode == 'TEST' %}<span class="badge" style="background:#fef3c7;color:#92400e;" title="MRA treated this invoice as a test record">TEST</span>
+  {% elif invoice.mra_mode == 'LIVE' %}<span class="badge" style="background:#dbeafe;color:#1e40af;" title="MRA treated this invoice as a live record">LIVE</span>{% endif %}
   {% if invoice.mra_invoice_number %} &middot; {{ invoice.mra_invoice_number }}{% endif %}
   {% if invoice.mra_irn %} &middot; IRN {{ invoice.mra_irn }}{% endif %}
   {% if invoice.mra_status == 'ERROR' %} — could not reach the MRA fiscalisation service{% endif %}

@@ -583,6 +583,8 @@ class Invoice(db.Model):
     # The invoice's id on MRA_TaxInvoice_System, and the QR image MRA issued for it
     # (fetched once fiscalised) — printed on the customer PDF; the IRN itself is never printed.
     mra_bridge_invoice_id = db.Column(db.Integer)
+    # 'TEST' or 'LIVE', exactly as MRA reported it for this invoice (via the bridge); None if unknown.
+    mra_mode = db.Column(db.String(10))
     mra_qr_png = db.Column(db.LargeBinary)
     # Set when this invoice is voided after having been fiscalised — records the MRA
     # credit note number issued to legally cancel it out (a fiscalised invoice is never
