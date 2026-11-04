@@ -1,38 +1,101 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Ask Your Books</h1>
-<p style="color:var(--text-muted); font-size:0.85rem; max-width:65ch;">
-  Type a question in plain English. This is an early, mocked version — it recognizes a fixed
-  set of question types by keyword rather than understanding free-form language, but every
-  number it gives back is computed live from your actual ledger, never invented.
-</p>
-
-<div class="card" style="max-width:700px;">
-  <form method="get">
-    <div class="form-row">
-      <input type="text" name="q" value="{{ question or '' }}" placeholder="e.g. What's our net profit this month?" style="flex:1;" autofocus>
-      <button class="btn" type="submit">Ask</button>
-    </div>
-  </form>
-
-  {% if answer %}
-  <div style="margin-top:1rem; padding:1rem; background:var(--bg, var(--paper)); border-left:3px solid var(--primary, var(--brass)); border-radius:6px;">
-    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.4rem;">Answer</div>
-    <div>{{ answer }}</div>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb">Reports / Ask your books</div>
+    <h1>Ask your books</h1>
   </div>
-  {% elif no_match %}
-  <div style="margin-top:1rem; padding:1rem; background:var(--bg, var(--paper)); border-left:3px solid var(--error, #DC2626); border-radius:6px;">
-    I don't recognize that question yet — try one of the examples below, or rephrase it closer to one of those shapes.
-  </div>
-  {% endif %}
-
-  <div style="margin-top:1.25rem;">
-    <div style="font-size:0.7rem; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-muted); margin-bottom:0.5rem;">Try asking</div>
-    <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-      {% for ex in examples %}
-      <a class="btn small secondary" href="{{ url_for('ai_qa.ask', q=ex) }}">{{ ex }}</a>
-      {% endfor %}
-    </div>
-  </div>
+  <span class="badge {{ 'debit' if ai_on else '' }}">{{ 'AI assistant on' if ai_on else 'Basic mode' }}</span>
 </div>
+
+{% if not ai_on %}
+<div class="flash flash-warning" style="max-width:860px;">
+  The AI assistant isn't switched on yet, so only a few fixed questions are understood (profit, sales, expenses, who owes us, who we owe, cash).
+  To switch it on, the administrator adds an <b>ANTHROPIC_API_KEY</b> to the server settings.
+</div>
+{% endif %}
+
+<div class="card chat-card">
+  <div id="chat-log" class="chat-log" aria-live="polite">
+    <div class="chat-msg bot">Hello! Ask me anything about your books in plain English &mdash; I look up your real figures, and I can't change anything.</div>
+  </div>
+  <div class="chat-examples" id="chat-examples">
+    {% for ex in examples %}<button type="button" class="btn small secondary" data-q="{{ ex }}">{{ ex }}</button>{% endfor %}
+  </div>
+  <form id="chat-form" class="chat-form" autocomplete="off">
+    <input type="text" id="chat-input" maxlength="1000" placeholder="Type your question and press Enter" value="{{ prefill or '' }}" autofocus>
+    <button class="btn primary" id="chat-send" type="submit">Ask</button>
+  </form>
+</div>
+
+<style>
+  .chat-card { max-width:860px; border-top:4px solid var(--action); }
+  .chat-log { display:flex; flex-direction:column; gap:.7rem; min-height:260px; max-height:55vh; overflow-y:auto; padding:.25rem .1rem 1rem; }
+  .chat-msg { max-width:85%; padding:.7rem .95rem; border-radius:12px; line-height:1.5; white-space:pre-wrap; word-wrap:break-word; font-size:.95rem; }
+  .chat-msg.bot { background:var(--primary-50); color:var(--text); border:2px solid var(--border); align-self:flex-start; }
+  .chat-msg.me { background:var(--action); color:#fff; align-self:flex-end; }
+  .chat-msg.err { background:var(--error-bg); color:var(--error); border:2px solid var(--error); align-self:flex-start; }
+  .chat-msg.wait { color:var(--text-muted); font-style:italic; }
+  .chat-examples { display:flex; flex-wrap:wrap; gap:.5rem; margin:.4rem 0 1rem; }
+  .chat-form { display:flex; gap:.6rem; }
+  .chat-form input { flex:1; }
+</style>
+
+<script>
+(function () {
+  var log = document.getElementById('chat-log');
+  var form = document.getElementById('chat-form');
+  var input = document.getElementById('chat-input');
+  var sendBtn = document.getElementById('chat-send');
+  var history = [];
+  var busy = false;
+
+  function add(cls, text) {
+    var d = document.createElement('div');
+    d.className = 'chat-msg ' + cls;
+    d.textContent = text;
+    log.appendChild(d);
+    log.scrollTop = log.scrollHeight;
+    return d;
+  }
+
+  function ask(question) {
+    if (busy || !question.trim()) return;
+    busy = true; sendBtn.disabled = true;
+    add('me', question);
+    var wait = add('bot wait', 'Looking that up…');
+    fetch('{{ url_for("ai_chat.send") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({question: question, history: history})
+    }).then(function (r) {
+      return r.json().catch(function () { return {error: 'Something went wrong (' + r.status + ').'}; });
+    }).then(function (data) {
+      wait.remove();
+      if (data.answer) {
+        add('bot', data.answer);
+        history.push({role: 'user', content: question}, {role: 'assistant', content: data.answer});
+      } else {
+        add('err', data.error || 'Something went wrong. Please try again.');
+      }
+    }).catch(function () {
+      wait.remove();
+      add('err', 'Could not reach the server. Please try again.');
+    }).then(function () {
+      busy = false; sendBtn.disabled = false; input.focus();
+    });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = input.value;
+    input.value = '';
+    ask(q);
+  });
+  document.getElementById('chat-examples').addEventListener('click', function (e) {
+    var q = e.target.getAttribute && e.target.getAttribute('data-q');
+    if (q) ask(q);
+  });
+})();
+</script>
 {% endblock %}

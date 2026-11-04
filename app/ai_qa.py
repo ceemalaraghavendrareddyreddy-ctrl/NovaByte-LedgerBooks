@@ -155,9 +155,6 @@ def answer_question(question, company_id):
 @ai_qa_bp.route("/ask")
 @login_required
 def ask():
-    question = request.args.get("q", "").strip()
-    answer = answer_question(question, current_company_id()) if question else None
-    return render_template(
-        "ai/ask.html", question=question, answer=answer,
-        examples=EXAMPLE_QUESTIONS, no_match=bool(question) and answer is None,
-    )
+    from app.ai_chat import render_chat_page
+
+    return render_chat_page(prefill=request.args.get("q", "").strip())

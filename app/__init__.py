@@ -79,6 +79,7 @@ def create_app():
     from app.fx_rates import fx_rates_bp
     from app.projects import projects_bp
     from app.ai_qa import ai_qa_bp
+    from app.ai_chat import ai_chat_bp
     from app.ai_anomalies import ai_anomalies_bp
     from app.portal import portal_bp
     from app.expenses import expenses_bp
@@ -137,6 +138,7 @@ def create_app():
     app.register_blueprint(fx_rates_bp)
     app.register_blueprint(projects_bp)
     app.register_blueprint(ai_qa_bp)
+    app.register_blueprint(ai_chat_bp)
     app.register_blueprint(ai_anomalies_bp)
     app.register_blueprint(portal_bp)
     app.register_blueprint(expenses_bp)

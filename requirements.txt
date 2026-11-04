@@ -20,3 +20,4 @@ requests
 APScheduler>=3.10,<4
 pyotp==2.10.0
 qrcode[pil]==8.2
+anthropic>=1.0,<2
