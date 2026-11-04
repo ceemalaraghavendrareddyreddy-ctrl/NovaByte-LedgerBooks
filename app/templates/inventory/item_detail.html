@@ -1,11 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ item.sku }} - {{ item.name }}</h1>
-<p style="color:var(--muted);">
-  {{ item.item_type.replace('_',' ')|title }} &middot; Unit: {{ item.unit }}
-  {% if item.is_tracked and item.tracking_type != 'none' %}&middot; Tracking: {{ item.tracking_type|capitalize }} numbers{% endif %}
-  {% if item.is_tracked %}&middot; Costing: {{ 'Weighted Average' if item.costing_method == 'weighted_average' else item.costing_method|upper }}{% endif %}
-</p>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('inventory.item_list') }}">Inventory</a> / Items / {{ item.sku }}</div>
+    <h1>{{ item.sku }} - {{ item.name }}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Type</span>{{ item.item_type.replace('_',' ')|title }}</div>
+    <div><span class="dl">Unit</span>{{ item.unit }}</div>
+    {% if item.is_tracked and item.tracking_type != 'none' %}<div><span class="dl">Tracking</span>{{ item.tracking_type|capitalize }} numbers</div>{% endif %}
+    {% if item.is_tracked %}<div><span class="dl">Costing</span>{{ 'Weighted Average' if item.costing_method == 'weighted_average' else item.costing_method|upper }}</div>{% endif %}
+  </div>
+</div>
 
 <div class="stat-row">
   {% if item.is_tracked %}
@@ -16,7 +25,7 @@
   <div class="stat"><div class="label">Sales Price</div><div class="value">{{ '%.2f'|format(item.sales_price) }}</div></div>
 </div>
 
-<div class="card">
+<div class="action-bar">
   <a class="btn secondary" href="{{ url_for('inventory.item_edit', item_id=item.id) }}">Edit</a>
   {% if item.is_tracked %}
   <a class="btn secondary" href="{{ url_for('inventory.item_adjust', item_id=item.id) }}">Adjust Stock</a>
@@ -108,5 +117,7 @@
 </div>
 {% endif %}
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('inventory.item_list') }}">Back to Items</a>
+</div>
 {% endblock %}

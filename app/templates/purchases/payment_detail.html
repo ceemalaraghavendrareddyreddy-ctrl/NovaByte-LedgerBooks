@@ -1,12 +1,22 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Vendor Payment #{{ payment.id }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('purchases.vendor_detail', vendor_id=payment.vendor.id) }}">{{ payment.vendor.name }}</a>
-  &middot; {{ payment.payment_date }} &middot; {{ payment.method }}
-  {% if payment.reference_no %} &middot; Ref: {{ payment.reference_no }}{% endif %}
-</p>
-{% if payment.memo %}<p>{{ payment.memo }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('purchases.payment_list') }}">Purchases</a> / Payments / #{{ payment.id }}</div>
+    <h1>Vendor Payment #{{ payment.id }}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Vendor</span><a href="{{ url_for('purchases.vendor_detail', vendor_id=payment.vendor.id) }}">{{ payment.vendor.name }}</a></div>
+    <div><span class="dl">Payment date</span>{{ payment.payment_date }}</div>
+    <div><span class="dl">Method</span>{{ payment.method }}</div>
+    {% if payment.reference_no %}<div><span class="dl">Reference</span>{{ payment.reference_no }}</div>{% endif %}
+    {% if payment.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ payment.memo }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="stat-row">
   <div class="stat"><div class="label">Amount</div><div class="value">{{ payment.currency }} {{ '%.2f'|format(payment.amount) }}</div></div>
@@ -38,5 +48,7 @@
 {% if payment.journal_entry_id %}
 <p><a href="{{ url_for('ledger.journal_detail', entry_id=payment.journal_entry_id) }}">View journal entry &rarr;</a></p>
 {% endif %}
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('purchases.payment_list') }}">Back to Payments</a>
+</div>
 {% endblock %}

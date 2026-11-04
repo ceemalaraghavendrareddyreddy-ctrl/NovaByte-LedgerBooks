@@ -1,19 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ customer.name }} <span class="badge">{{ 'Individual' if customer.customer_type == 'individual' else 'Company' }}</span> {% if not customer.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
-<p style="color:var(--muted);">
-  {{ customer.email or '' }}
-  {{ customer.phone or '' }}{% if customer.phone2 %} / {{ customer.phone2 }}{% endif %}
-  {% if customer.customer_type != 'individual' and customer.vat_number %} · VAT {{ customer.vat_number }}{% endif %}
-  {% if customer.customer_type != 'individual' and customer.brn %} · BRN {{ customer.brn }}{% endif %}
-  · Billed in {{ customer.billing_currency }}
-</p>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('sales.customer_list') }}">Sales</a> / Customers / {{ customer.name }}</div>
+    <h1>{{ customer.name }} <span class="badge">{{ 'Individual' if customer.customer_type == 'individual' else 'Company' }}</span> {% if not customer.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    {% if customer.email %}<div><span class="dl">Email</span>{{ customer.email }}</div>{% endif %}
+    {% if customer.phone %}<div><span class="dl">Phone</span>{{ customer.phone }}{% if customer.phone2 %} / {{ customer.phone2 }}{% endif %}</div>{% endif %}
+    {% if customer.customer_type != 'individual' and customer.vat_number %}<div><span class="dl">VAT number</span>{{ customer.vat_number }}</div>{% endif %}
+    {% if customer.customer_type != 'individual' and customer.brn %}<div><span class="dl">BRN</span>{{ customer.brn }}</div>{% endif %}
+    <div><span class="dl">Billing currency</span>{{ customer.billing_currency }}</div>
+  </div>
+</div>
 
 <div class="stat-row">
   <div class="stat"><div class="label">Balance Due</div><div class="value">{{ '%.2f'|format(customer.balance_due) }}</div></div>
 </div>
 
-<div class="card">
+<div class="action-bar">
   <a class="btn" href="{{ url_for('sales.invoice_new', customer_id=customer.id) }}">+ New Invoice</a>
   <a class="btn secondary" href="{{ url_for('sales.payment_new', customer_id=customer.id) }}">+ Record Payment</a>
   <a class="btn secondary" href="{{ url_for('sales.customer_edit', customer_id=customer.id) }}">Edit</a>
@@ -94,5 +102,7 @@
   </form>
 </div>
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('sales.customer_list') }}">Back to Customers</a>
+</div>
 {% endblock %}

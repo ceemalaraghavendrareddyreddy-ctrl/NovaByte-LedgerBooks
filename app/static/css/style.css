@@ -1098,3 +1098,5 @@ th, td { border-bottom-color: var(--border); }
 .more-list .disabled { opacity: 0.5; cursor: not-allowed; }
 .more-list .danger-link { color: var(--error); }
 .more-list form.inline { display: block; }
+
+.form-card { border-top: 4px solid var(--action); }

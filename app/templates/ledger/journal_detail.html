@@ -1,12 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Journal Entry #{{ entry.id }}</h1>
-<p style="color:var(--muted);">
-  {{ entry.entry_date }}
-  {% if entry.reference_no %} &middot; Ref: {{ entry.reference_no }}{% endif %}
-  &middot; Source: <span class="badge">{{ entry.source_type }}</span>
-</p>
-{% if entry.memo %}<p>{{ entry.memo }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('ledger.journal_list') }}">Accounts</a> / Journal / #{{ entry.id }}</div>
+    <h1>Journal Entry #{{ entry.id }}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Entry date</span>{{ entry.entry_date }}</div>
+    {% if entry.reference_no %}<div><span class="dl">Reference</span>{{ entry.reference_no }}</div>{% endif %}
+    <div><span class="dl">Source</span><span class="badge">{{ entry.source_type }}</span></div>
+    {% if entry.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ entry.memo }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="card">
   <table>
@@ -27,6 +36,7 @@
   </table>
 </div>
 
+<div class="action-bar">
 {% if entry.source_type in ('manual', 'transfer') %}
 <a class="btn secondary" href="{{ url_for('ledger.journal_edit', entry_id=entry.id) }}">Edit</a>
 <form class="inline" method="post" action="{{ url_for('ledger.journal_delete', entry_id=entry.id) }}" onsubmit="return confirm('Delete this journal entry? This cannot be undone.');">
@@ -36,6 +46,7 @@
 <p style="color:var(--muted);">This entry was auto-posted by a {{ entry.source_type }} — edit or void that document instead.</p>
 {% endif %}
 <a class="btn secondary" href="{{ url_for('ledger.journal_list') }}">Back to Journal</a>
+</div>
 
 {% with entity_type='journal_entry', entity_id=entry.id %}{% include "attachments/_widget.html" %}{% endwith %}
 {% endblock %}

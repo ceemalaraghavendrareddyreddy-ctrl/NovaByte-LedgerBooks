@@ -1,19 +1,27 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ vendor.name }} <span class="badge">{{ 'Individual' if vendor.vendor_type == 'individual' else 'Company' }}</span> {% if not vendor.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
-<p style="color:var(--muted);">
-  {{ vendor.email or '' }}
-  {{ vendor.phone or '' }}{% if vendor.phone2 %} / {{ vendor.phone2 }}{% endif %}
-  {% if vendor.vendor_type != 'individual' and vendor.vat_number %} · VAT {{ vendor.vat_number }}{% endif %}
-  {% if vendor.vendor_type != 'individual' and vendor.brn %} · BRN {{ vendor.brn }}{% endif %}
-  · Billed in {{ vendor.billing_currency }}
-</p>
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('purchases.vendor_list') }}">Purchases</a> / Vendors / {{ vendor.name }}</div>
+    <h1>{{ vendor.name }} <span class="badge">{{ 'Individual' if vendor.vendor_type == 'individual' else 'Company' }}</span> {% if not vendor.is_active %}<span class="badge">Inactive</span>{% endif %}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    {% if vendor.email %}<div><span class="dl">Email</span>{{ vendor.email }}</div>{% endif %}
+    {% if vendor.phone %}<div><span class="dl">Phone</span>{{ vendor.phone }}{% if vendor.phone2 %} / {{ vendor.phone2 }}{% endif %}</div>{% endif %}
+    {% if vendor.vendor_type != 'individual' and vendor.vat_number %}<div><span class="dl">VAT number</span>{{ vendor.vat_number }}</div>{% endif %}
+    {% if vendor.vendor_type != 'individual' and vendor.brn %}<div><span class="dl">BRN</span>{{ vendor.brn }}</div>{% endif %}
+    <div><span class="dl">Billing currency</span>{{ vendor.billing_currency }}</div>
+  </div>
+</div>
 
 <div class="stat-row">
   <div class="stat"><div class="label">Balance Due</div><div class="value">{{ '%.2f'|format(vendor.balance_due) }}</div></div>
 </div>
 
-<div class="card">
+<div class="action-bar">
   <a class="btn" href="{{ url_for('purchases.bill_new', vendor_id=vendor.id) }}">+ New Bill</a>
   <a class="btn secondary" href="{{ url_for('purchases.payment_new', vendor_id=vendor.id) }}">+ Pay Vendor</a>
   <a class="btn secondary" href="{{ url_for('purchases.vendor_edit', vendor_id=vendor.id) }}">Edit</a>
@@ -95,5 +103,7 @@
   </form>
 </div>
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('purchases.vendor_list') }}">Back to Vendors</a>
+</div>
 {% endblock %}

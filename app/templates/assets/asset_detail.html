@@ -1,16 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>{{ asset.name }}</h1>
-<p style="color:var(--muted);">
-  {{ asset.asset_account.code }} - {{ asset.asset_account.name }}
-  &middot; Purchased {{ asset.purchase_date }}
-  &middot;
-  {% if asset.status == 'disposed' %}<span class="badge">disposed {{ asset.disposal_date }}</span>
-  {% elif asset.status == 'fully_depreciated' %}<span class="badge">fully depreciated</span>
-  {% else %}<span class="badge debit">active</span>{% endif %}
-  {% if asset.is_due %}<span class="badge" style="background:#fbe6e4;color:var(--error);">depreciation due</span>{% endif %}
-</p>
-{% if asset.description %}<p>{{ asset.description }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('assets.asset_list') }}">Fixed assets</a> / Asset register / {{ asset.name }}</div>
+    <h1>{{ asset.name }}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Asset account</span>{{ asset.asset_account.code }} - {{ asset.asset_account.name }}</div>
+    <div><span class="dl">Purchased</span>{{ asset.purchase_date }}</div>
+    <div><span class="dl">Status</span>{% if asset.status == 'disposed' %}<span class="badge">disposed {{ asset.disposal_date }}</span>{% elif asset.status == 'fully_depreciated' %}<span class="badge">fully depreciated</span>{% else %}<span class="badge debit">active</span>{% endif %}{% if asset.is_due %} <span class="badge error">depreciation due</span>{% endif %}</div>
+    {% if asset.description %}<div class="detail-wide"><span class="dl">Description</span>{{ asset.description }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="stat-row">
   <div class="stat"><div class="label">Purchase Cost</div><div class="value">{{ '%.2f'|format(asset.purchase_cost) }}</div></div>
@@ -76,5 +81,7 @@
 </div>
 {% endif %}
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('assets.asset_list') }}">Back to Asset Register</a>
+</div>
 {% endblock %}
