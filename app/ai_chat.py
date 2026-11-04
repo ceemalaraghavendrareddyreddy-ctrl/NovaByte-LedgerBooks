@@ -28,7 +28,9 @@ MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-opus-5-5")
 MAX_TOOL_ROUNDS = 6
 MAX_HISTORY_TURNS = 10
 MAX_QUESTION_CHARS = 1000
-HOURLY_LIMIT = 40  # questions per user per hour — a cost guard, not a security boundary
+# Questions per user per hour: a cost guard, not a security boundary. 20 while testing; raise it
+# with the AI_HOURLY_LIMIT setting (env var) when clients start using it.
+HOURLY_LIMIT = int(os.environ.get("AI_HOURLY_LIMIT", "20"))
 
 _recent = defaultdict(deque)
 
