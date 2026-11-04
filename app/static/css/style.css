@@ -1047,3 +1047,16 @@ html[data-theme="dark"] thead th { background: #26344A; color: #E3E9F3; }
 .card { border-radius: 6px; }
 .table-wrap { border-radius: 6px; }
 .btn { border-radius: 4px; }
+
+/* Brisk-style forms: header fields in two columns, compact labels, grey panel with a blue title bar */
+.form-two-col { display: grid; grid-template-columns: 1fr 1fr; column-gap: 2.5rem; }
+.form-two-col > *:not(.form-row) { grid-column: 1 / -1; }
+.form-two-col > .form-row:has(textarea) { grid-column: 1 / -1; }
+.form-two-col .form-row label { min-width: 130px; max-width: 130px; color: var(--text-muted); font-weight: 600; font-size: 0.8rem; }
+.form-two-col .form-row input, .form-two-col .form-row select { max-width: none; }
+.invoice-workspace > .card { border-top: 4px solid var(--action); background: #FBFCFE; }
+.form-two-col .stat-row .stat { background: #FFFFFF; }
+@media (max-width: 900px) { .form-two-col { grid-template-columns: 1fr; } }
+.form-two-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.form-two-col > *:not(.form-row) { min-width: 0; overflow-x: auto; }
+.card:has(.form-two-col) { overflow-x: visible; }
