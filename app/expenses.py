@@ -13,7 +13,8 @@ from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.attachments import ALLOWED_EXTENSIONS, MAX_FILE_SIZE, upload_dir
+from app.attachments import ALLOWED_EXTENSIONS, MAX_FILE_SIZE
+from app.storage import save_upload
 from app.audit import log_audit
 from app.auth import current_company, current_company_id
 from app.models import Account, Attachment, Expense, JournalEntry, JournalLine, Vendor
@@ -123,7 +124,7 @@ def expense_new():
                 file.seek(0)
                 if size <= MAX_FILE_SIZE:
                     stored_name = f"{uuid.uuid4().hex}.{ext}"
-                    file.save(os.path.join(upload_dir(), stored_name))
+                    save_upload(file, stored_name)
                     db.session.add(Attachment(
                         entity_type="expense", entity_id=expense.id,
                         original_filename=secure_filename(file.filename) or "receipt",

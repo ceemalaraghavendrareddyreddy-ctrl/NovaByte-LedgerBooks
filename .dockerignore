@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.env
+instance/
+*.log
+*.db
+docs/
+reports/
+mobile-app/
+*.docx
+*.vbs
+*.bat

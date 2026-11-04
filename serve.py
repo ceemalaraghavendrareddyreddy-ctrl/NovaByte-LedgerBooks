@@ -18,4 +18,14 @@ app = create_app()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5057))
     print(f"LedgerBooks running at http://localhost:{port}  (Ctrl+C to stop)")
-    serve(app, host="0.0.0.0", port=port, threads=4)
+    options = {}
+    if os.environ.get("TRUST_PROXY"):
+        # Behind a host's HTTPS proxy (Cloud Run, Render): believe its forwarded headers so
+        # the app writes https:// links (payment returns, share links) instead of http://.
+        options = dict(
+            trusted_proxy="*",
+            trusted_proxy_count=1,
+            trusted_proxy_headers={"x-forwarded-for", "x-forwarded-proto", "x-forwarded-host", "x-forwarded-port"},
+            clear_untrusted_proxy_headers=True,
+        )
+    serve(app, host="0.0.0.0", port=port, threads=4, **options)

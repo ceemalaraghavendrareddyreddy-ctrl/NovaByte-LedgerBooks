@@ -1,7 +1,7 @@
 import os
 import uuid
 
-from flask import Blueprint, abort, current_app, flash, redirect, request, send_from_directory, url_for
+from flask import Blueprint, abort, flash, redirect, request, url_for
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
@@ -11,6 +11,7 @@ from app.models import (
     Attachment, Bill, CreditMemo, Customer, Expense, Invoice, JournalEntry, PurchaseOrder, Vendor, VendorCredit,
 )
 from app.scoping import scoped_get
+from app.storage import delete_upload, save_upload, send_upload
 
 attachments_bp = Blueprint("attachments", __name__, url_prefix="/attachments")
 
@@ -44,12 +45,6 @@ def _parent_or_404(entity_type, entity_id):
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB — plenty for scanned receipts/invoices, keeps the DB/disk sane
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg", "gif", "webp", "doc", "docx", "xls", "xlsx", "csv", "txt"}
-
-
-def upload_dir():
-    path = os.path.join(current_app.instance_path, "uploads")
-    os.makedirs(path, exist_ok=True)
-    return path
 
 
 def _redirect_target(entity_type, entity_id):
@@ -86,7 +81,7 @@ def upload(entity_type, entity_id):
 
     original_name = secure_filename(file.filename) or "upload"
     stored_name = f"{uuid.uuid4().hex}.{ext}"
-    file.save(os.path.join(upload_dir(), stored_name))
+    save_upload(file, stored_name)
 
     attachment = Attachment(
         entity_type=entity_type, entity_id=entity_id, original_filename=original_name,
@@ -105,9 +100,7 @@ def upload(entity_type, entity_id):
 def download(attachment_id):
     attachment = Attachment.query.get_or_404(attachment_id)
     _parent_or_404(attachment.entity_type, attachment.entity_id)
-    return send_from_directory(
-        upload_dir(), attachment.stored_filename, as_attachment=True, download_name=attachment.original_filename,
-    )
+    return send_upload(attachment.stored_filename, attachment.original_filename)
 
 
 @attachments_bp.route("/<int:attachment_id>/delete", methods=["POST"])
@@ -118,9 +111,7 @@ def delete(attachment_id):
     _parent_or_404(entity_type, entity_id)
     label = ENTITY_REDIRECTS.get(entity_type, ("Document",))[0]
 
-    file_path = os.path.join(upload_dir(), attachment.stored_filename)
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    delete_upload(attachment.stored_filename)
 
     original_filename = attachment.original_filename  # capture before delete expires the instance
     db.session.delete(attachment)
