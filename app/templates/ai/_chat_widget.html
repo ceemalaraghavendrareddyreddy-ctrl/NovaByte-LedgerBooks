@@ -1,7 +1,11 @@
 {# Dashboard assistant: ask questions about the books in plain English. Needs ai_chat_info (see app/ai_chat.py). #}
 <div class="card chat-card" id="ask-books">
-  <div class="flex-between" style="margin-bottom:.6rem;">
-    <h3 class="mt-0" style="margin:0;">Ask your books ✨</h3>
+  <div class="agent-head">
+    <span class="agent-avatar agent-avatar-lg"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="agbg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a8fc4"/><stop offset="1" stop-color="#1a5fb8"/></linearGradient></defs><circle cx="32" cy="32" r="32" fill="url(#agbg1)"/><line x1="32" y1="9" x2="32" y2="17" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="8" r="3.2" fill="#f79e1b"/><rect x="14" y="17" width="36" height="30" rx="11" fill="#fff"/><circle cx="25" cy="31" r="4.2" fill="#1a5fb8"/><circle cx="39" cy="31" r="4.2" fill="#1a5fb8"/><circle cx="26.2" cy="29.8" r="1.3" fill="#fff"/><circle cx="40.2" cy="29.8" r="1.3" fill="#fff"/><path d="M25 39c2 2.6 12 2.6 14 0" fill="none" stroke="#1a5fb8" stroke-width="2.6" stroke-linecap="round"/><rect x="8" y="26" width="5" height="10" rx="2.5" fill="#f79e1b"/><rect x="51" y="26" width="5" height="10" rx="2.5" fill="#f79e1b"/><path d="M20 50c2 5 6 7 12 7s10-2 12-7" fill="#fff" opacity=".9"/></svg></span>
+    <div class="agent-intro">
+      <div class="agent-title">Hi, I'm your AI Agent &mdash; ask me!</div>
+      <div class="agent-sub">Ask about sales, profit, who owes you, bills and cash. I read your real figures.</div>
+    </div>
     <span class="badge {{ 'debit' if ai_chat_info.on else '' }}">{{ 'AI assistant on' if ai_chat_info.on else 'Basic mode' }}</span>
   </div>
   {% if not ai_chat_info.on %}
@@ -11,7 +15,7 @@
   </div>
   {% endif %}
   <div id="chat-log" class="chat-log" aria-live="polite">
-    <div class="chat-msg bot">Hello! Ask me anything about your books in plain English &mdash; I look up your real figures, and I can't change anything.</div>
+    <div class="chat-row"><span class="agent-avatar"><svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="agbg2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3a8fc4"/><stop offset="1" stop-color="#1a5fb8"/></linearGradient></defs><circle cx="32" cy="32" r="32" fill="url(#agbg2)"/><line x1="32" y1="9" x2="32" y2="17" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="32" cy="8" r="3.2" fill="#f79e1b"/><rect x="14" y="17" width="36" height="30" rx="11" fill="#fff"/><circle cx="25" cy="31" r="4.2" fill="#1a5fb8"/><circle cx="39" cy="31" r="4.2" fill="#1a5fb8"/><circle cx="26.2" cy="29.8" r="1.3" fill="#fff"/><circle cx="40.2" cy="29.8" r="1.3" fill="#fff"/><path d="M25 39c2 2.6 12 2.6 14 0" fill="none" stroke="#1a5fb8" stroke-width="2.6" stroke-linecap="round"/><rect x="8" y="26" width="5" height="10" rx="2.5" fill="#f79e1b"/><rect x="51" y="26" width="5" height="10" rx="2.5" fill="#f79e1b"/><path d="M20 50c2 5 6 7 12 7s10-2 12-7" fill="#fff" opacity=".9"/></svg></span><div class="chat-msg bot">Hello! Ask me anything about your books in plain English &mdash; I look up your real figures, and I can't change anything.</div></div>
   </div>
   <div class="chat-examples" id="chat-examples">
     {% for ex in ai_chat_info.examples %}<button type="button" class="btn small secondary" data-q="{{ ex }}">{{ ex }}</button>{% endfor %}
@@ -30,6 +34,15 @@
   .chat-msg.me { background:var(--action); color:#fff; align-self:flex-end; }
   .chat-msg.err { background:var(--error-bg); color:var(--error); border:2px solid var(--error); align-self:flex-start; }
   .chat-msg.wait { color:var(--text-muted); font-style:italic; }
+  .agent-head { display:flex; align-items:center; gap:.9rem; margin-bottom:.8rem; }
+  .agent-intro { flex:1; min-width:0; }
+  .agent-title { font-size:1.15rem; font-weight:800; color:var(--primary); }
+  .agent-sub { font-size:.85rem; color:var(--text-muted); font-weight:500; }
+  .agent-avatar { flex:none; width:36px; height:36px; border-radius:50%; display:inline-block; box-shadow:0 2px 6px rgba(26,95,184,.35); }
+  .agent-avatar svg { width:100%; height:100%; display:block; }
+  .agent-avatar-lg { width:64px; height:64px; border:3px solid #fff; box-shadow:0 4px 12px rgba(26,95,184,.4); }
+  .chat-row { display:flex; align-items:flex-end; gap:.55rem; max-width:92%; align-self:flex-start; }
+  .chat-row .chat-msg { align-self:auto; max-width:none; }
   .chat-examples { display:flex; flex-wrap:wrap; gap:.5rem; margin:.3rem 0 .9rem; }
   .chat-form { display:flex; gap:.6rem; }
   .chat-form input { flex:1; }
@@ -44,13 +57,25 @@
   var history = [];
   var busy = false;
 
+  var AVATAR = document.querySelector('.agent-avatar:not(.agent-avatar-lg)').innerHTML;
+
   function add(cls, text) {
     var d = document.createElement('div');
     d.className = 'chat-msg ' + cls;
     d.textContent = text;
-    log.appendChild(d);
+    var node = d;
+    if (cls.indexOf('bot') === 0 || cls === 'err') {
+      node = document.createElement('div');
+      node.className = 'chat-row';
+      var av = document.createElement('span');
+      av.className = 'agent-avatar';
+      av.innerHTML = AVATAR;
+      node.appendChild(av);
+      node.appendChild(d);
+    }
+    log.appendChild(node);
     log.scrollTop = log.scrollHeight;
-    return d;
+    return node;
   }
 
   function ask(question) {
