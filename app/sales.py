@@ -17,7 +17,7 @@ from app.models import (
 )
 from app.pdf import generate_credit_memo_pdf, generate_invoice_pdf
 from app.report_export import rows_to_pdf, rows_to_xlsx
-from app.scoping import scoped_get, scoped_or_404, scoped_query
+from app.scoping import next_number, scoped_get, scoped_or_404, scoped_query
 from app.share_links import share_url, whatsapp_link
 from app.mra_bridge import (
     fiscalize_invoice_with_mra, fiscalize_credit_memo_with_mra,
@@ -50,21 +50,15 @@ def get_account_or_400(code, label):
 
 
 def next_invoice_no():
-    last = scoped_query(Invoice).order_by(Invoice.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"INV-{next_num:04d}"
+    return next_number(Invoice, Invoice.invoice_no, "INV")
 
 
 def next_estimate_no():
-    last = scoped_query(Estimate).order_by(Estimate.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"EST-{next_num:04d}"
+    return next_number(Estimate, Estimate.estimate_no, "EST")
 
 
 def next_order_no():
-    last = scoped_query(SalesOrder).order_by(SalesOrder.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"SO-{next_num:04d}"
+    return next_number(SalesOrder, SalesOrder.order_no, "SO")
 
 
 # ── Customers ────────────────────────────────────────────────────────
@@ -1637,9 +1631,7 @@ def generate_due_invoices_for_current_company(source="manual"):
 # ── Credit Memos ─────────────────────────────────────────────────────
 
 def next_credit_no():
-    last = scoped_query(CreditMemo).order_by(CreditMemo.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"CM-{next_num:04d}"
+    return next_number(CreditMemo, CreditMemo.credit_no, "CM")
 
 
 @sales_bp.route("/credit-memos")

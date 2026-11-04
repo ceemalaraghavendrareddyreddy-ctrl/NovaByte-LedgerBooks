@@ -15,7 +15,7 @@ from app.models import (
 from app.webhooks import fire_webhook
 from app.pdf import generate_bill_pdf
 from app.report_export import rows_to_pdf, rows_to_xlsx
-from app.scoping import scoped_get, scoped_or_404, scoped_query
+from app.scoping import next_number, scoped_get, scoped_or_404, scoped_query
 from app.share_links import share_url, whatsapp_link
 from app.custom_fields import (
     get_field_definitions as get_custom_field_definitions,
@@ -40,21 +40,15 @@ def get_account_or_400(code, label):
 
 
 def next_bill_no():
-    last = scoped_query(Bill).order_by(Bill.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"BILL-{next_num:04d}"
+    return next_number(Bill, Bill.bill_no, "BILL")
 
 
 def next_vendor_credit_no():
-    last = scoped_query(VendorCredit).order_by(VendorCredit.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"VC-{next_num:04d}"
+    return next_number(VendorCredit, VendorCredit.credit_no, "VC")
 
 
 def next_po_no():
-    last = scoped_query(PurchaseOrder).order_by(PurchaseOrder.id.desc()).first()
-    next_num = (last.id + 1) if last else 1
-    return f"PO-{next_num:04d}"
+    return next_number(PurchaseOrder, PurchaseOrder.po_no, "PO")
 
 
 # ── Vendors ──────────────────────────────────────────────────────────
