@@ -29,8 +29,8 @@
   --text: #1F2937;
   --text-muted: #6B7280;
   --text-subtle: #94A3B8;
-  --border: #C5CEDB;
-  --border-strong: #94A3B8;
+  --border: #A9B6C8;
+  --border-strong: #64748B;
 
   /* Status */
   --success: #16A34A;
@@ -1065,12 +1065,13 @@ html[data-theme="dark"] thead th { background: #26344A; color: #E3E9F3; }
 
 /* Bolder box outlines everywhere (cards, stat boxes, tables, inputs, buttons) */
 .card, .stat, .table-wrap, .invoice-preview, .onboarding-step, .company-pill-box {
-  border: 1.5px solid var(--border-strong);
+  border: 2px solid var(--border-strong);
 }
 input[type=text], input[type=email], input[type=password], input[type=number],
 input[type=date], input[type=file], input[type=search], select, textarea,
+input[type=file]{}
 .form-row input, .form-row select, .form-row textarea {
-  border: 1.5px solid var(--border-strong);
+  border: 2px solid var(--border-strong);
 }
 .btn.secondary, .btn.ghost { border-width: 1.5px; }
 .invoice-workspace > .card, .card:has(.form-two-col) { border-top: 4px solid var(--action); }
