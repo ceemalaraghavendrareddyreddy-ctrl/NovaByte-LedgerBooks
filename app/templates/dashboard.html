@@ -80,14 +80,23 @@
 </style>
 {% endif %}
 
-<div class="quick-actions">
-  <span class="qa-label">Quick actions</span>
-  <a class="btn secondary small" href="{{ url_for('sales.invoice_new') }}">+ Invoice</a>
-  <a class="btn secondary small" href="{{ url_for('sales.estimate_new') }}">+ Estimate</a>
-  <a class="btn secondary small" href="{{ url_for('sales.payment_new') }}">Receive payment</a>
-  <a class="btn secondary small" href="{{ url_for('purchases.bill_new') }}">+ Bill</a>
-  <a class="btn secondary small" href="{{ url_for('ledger.journal_new') }}">+ Journal entry</a>
-  <a class="btn secondary small" href="{{ url_for('banking.reconcile_start') }}">Reconcile</a>
+<div class="tile-grid">
+  <a class="tile tile-green" href="{{ url_for('sales.invoice_new') }}">New Invoice</a>
+  <a class="tile tile-green" href="{{ url_for('sales.payment_new') }}">Receive Payment</a>
+  <a class="tile tile-green" href="{{ url_for('sales.estimate_new') }}">New Estimate</a>
+  <a class="tile tile-green" href="{{ url_for('sales.customer_list') }}">Customers</a>
+  <a class="tile tile-red" href="{{ url_for('purchases.bill_new') }}">Enter Bill</a>
+  <a class="tile tile-red" href="{{ url_for('banking.new_transaction') }}">Spend Money</a>
+  <a class="tile tile-red" href="{{ url_for('purchases.payment_list') }}">Pay Bills</a>
+  <a class="tile tile-red" href="{{ url_for('purchases.vendor_list') }}">Suppliers</a>
+  <a class="tile tile-blue" href="{{ url_for('reports.profit_loss') }}">Income Statement</a>
+  <a class="tile tile-blue" href="{{ url_for('reports.balance_sheet') }}">Balance Sheet</a>
+  <a class="tile tile-blue" href="{{ url_for('ledger.journal_list') }}">Journal</a>
+  <a class="tile tile-blue" href="{{ url_for('ledger.account_list') }}">Chart of Accounts</a>
+  <a class="tile tile-orange" href="{{ url_for('banking.reconcile_start') }}">Reconcile Bank</a>
+  <a class="tile tile-orange" href="{{ url_for('inventory.item_list') }}">Inventory</a>
+  <a class="tile tile-orange" href="{{ url_for('ledger.journal_new') }}">Journal Entry</a>
+  <a class="tile tile-orange" href="{{ url_for('reports.vat_return') }}">VAT Return</a>
 </div>
 
 <div class="stat-row" style="margin-bottom:1.15rem;">
