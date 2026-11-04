@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>Edit Item — {{ item.sku }}</h1>
-<div class="card" style="max-width:600px;">
-  <form method="post">
+<div class="card" style="max-width:980px;">
+  <form method="post" class="form-two-col">
     <div class="form-row"><label>SKU</label><input type="text" name="sku" required value="{{ item.sku }}"></div>
     <div class="form-row"><label>Name</label><input type="text" name="name" required value="{{ item.name }}"></div>
     <div class="form-row"><label>Unit</label><input type="text" name="unit" value="{{ item.unit }}" style="max-width:100px;"></div>

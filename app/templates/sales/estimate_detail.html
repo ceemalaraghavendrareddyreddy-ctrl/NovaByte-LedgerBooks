@@ -1,14 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Estimate {{ estimate.estimate_no }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('sales.customer_detail', customer_id=estimate.customer.id) }}">{{ estimate.customer.name }}</a>
-  &middot; Date: {{ estimate.estimate_date }}
-  {% if estimate.expiry_date %} &middot; Expires: {{ estimate.expiry_date }}{% endif %}
-  &middot; <span class="badge {{ 'debit' if estimate.status in ('accepted','converted') else '' }}">{{ estimate.status }}</span>
-  {% if estimate.is_expired %}<span class="badge" style="background:#fbe6e4;color:var(--error);">expired</span>{% endif %}
-</p>
-{% if estimate.memo %}<p>{{ estimate.memo }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('sales.estimate_list') }}">Sales</a> / Estimates / {{ estimate.estimate_no }}</div>
+    <h1>Estimate {{ estimate.estimate_no }} <span class="badge {{ {'paid':'paid','closed':'paid','accepted':'paid','converted':'paid','invoiced':'paid','open':'open','partial':'open','sent':'open','pending_approval':'open','draft':'draft','void':'draft','cancelled':'draft','declined':'draft'}.get(estimate.status, '') }}" style="font-size:0.8rem; vertical-align:middle;">{{ estimate.status }}</span>{% if estimate.is_expired %} <span class="badge error" style="font-size:0.8rem; vertical-align:middle;">expired</span>{% endif %}</h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Customer</span><a href="{{ url_for('sales.customer_detail', customer_id=estimate.customer.id) }}">{{ estimate.customer.name }}</a></div>
+    <div><span class="dl">Estimate date</span>{{ estimate.estimate_date }}</div>
+    {% if estimate.expiry_date %}<div><span class="dl">Expires</span>{{ estimate.expiry_date }}</div>{% endif %}
+    {% if estimate.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ estimate.memo }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="card">
   <table>
@@ -25,12 +32,12 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(estimate.subtotal) }}</td></tr>
-      <tr><td colspan="5" style="text-align:right;">VAT ({{ estimate.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(estimate.vat_amount) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(estimate.total) }}</th></tr>
-    </tfoot>
   </table>
+  <div class="totals-box">
+    <div class="trow"><span>Subtotal</span><span>{{ '%.2f'|format(estimate.subtotal) }}</span></div>
+    <div class="trow"><span>VAT ({{ estimate.vat_rate }}%)</span><span>{{ '%.2f'|format(estimate.vat_amount) }}</span></div>
+    <div class="trow tbig"><span>Total</span><span>{{ '%.2f'|format(estimate.total) }}</span></div>
+  </div>
 </div>
 
 {% if estimate.status == 'converted' %}
@@ -66,5 +73,7 @@
 </div>
 {% endif %}
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('sales.estimate_list') }}">Back to Estimates</a>
+</div>
 {% endblock %}

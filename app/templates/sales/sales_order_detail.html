@@ -1,15 +1,23 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Sales Order {{ order.order_no }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('sales.customer_detail', customer_id=order.customer.id) }}">{{ order.customer.name }}</a>
-  &middot; Date: {{ order.order_date }}
-  {% if order.expected_date %} &middot; Expected: {{ order.expected_date }}{% endif %}
-  {% if order.customer_po_ref %} &middot; Customer PO: {{ order.customer_po_ref }}{% endif %}
-  &middot; <span class="badge {{ 'debit' if order.status == 'invoiced' else '' }}">{{ order.status }}</span>
-  {% if order.source_estimate %} &middot; from <a href="{{ url_for('sales.estimate_detail', estimate_id=order.source_estimate_id) }}">{{ order.source_estimate.estimate_no }}</a>{% endif %}
-</p>
-{% if order.memo %}<p>{{ order.memo }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('sales.order_list') }}">Sales</a> / Sales Orders / {{ order.order_no }}</div>
+    <h1>Sales Order {{ order.order_no }} <span class="badge {{ {'paid':'paid','closed':'paid','accepted':'paid','converted':'paid','invoiced':'paid','open':'open','partial':'open','sent':'open','pending_approval':'open','draft':'draft','void':'draft','cancelled':'draft','declined':'draft'}.get(order.status, '') }}" style="font-size:0.8rem; vertical-align:middle;">{{ order.status }}</span></h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Customer</span><a href="{{ url_for('sales.customer_detail', customer_id=order.customer.id) }}">{{ order.customer.name }}</a></div>
+    <div><span class="dl">Order date</span>{{ order.order_date }}</div>
+    {% if order.expected_date %}<div><span class="dl">Expected</span>{{ order.expected_date }}</div>{% endif %}
+    {% if order.customer_po_ref %}<div><span class="dl">Customer PO</span>{{ order.customer_po_ref }}</div>{% endif %}
+    {% if order.source_estimate %}<div><span class="dl">From estimate</span><a href="{{ url_for('sales.estimate_detail', estimate_id=order.source_estimate_id) }}">{{ order.source_estimate.estimate_no }}</a></div>{% endif %}
+    {% if order.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ order.memo }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="card">
   <table>
@@ -26,12 +34,12 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(order.subtotal) }}</td></tr>
-      <tr><td colspan="5" style="text-align:right;">VAT ({{ order.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(order.vat_amount) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(order.total) }}</th></tr>
-    </tfoot>
   </table>
+  <div class="totals-box">
+    <div class="trow"><span>Subtotal</span><span>{{ '%.2f'|format(order.subtotal) }}</span></div>
+    <div class="trow"><span>VAT ({{ order.vat_rate }}%)</span><span>{{ '%.2f'|format(order.vat_amount) }}</span></div>
+    <div class="trow tbig"><span>Total</span><span>{{ '%.2f'|format(order.total) }}</span></div>
+  </div>
 </div>
 
 {% if order.status == 'invoiced' %}
@@ -59,5 +67,7 @@
 </div>
 {% endif %}
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('sales.order_list') }}">Back to Sales Orders</a>
+</div>
 {% endblock %}

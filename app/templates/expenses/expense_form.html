@@ -2,7 +2,7 @@
 {% block content %}
 <h1>New Expense</h1>
 
-<div class="card" style="max-width:640px;">
+<div class="card" style="max-width:980px;">
   <div class="form-row">
     <label>Upload Receipt</label>
     <input type="file" id="receipt-input" name="receipt" form="expense-form" accept="image/*,.pdf">
@@ -12,7 +12,7 @@
     (best-effort OCR; always double-check before saving).
   </p>
 
-  <form method="post" id="expense-form" enctype="multipart/form-data">
+  <form method="post" id="expense-form" enctype="multipart/form-data" class="form-two-col">
     <div class="form-row"><label>Date</label><input type="date" name="expense_date" id="expense-date" required value="{{ form.expense_date or today }}"></div>
     <div class="form-row"><label>Description</label><input type="text" name="description" id="expense-description" required value="{{ form.description or '' }}" placeholder="e.g. Fuel, client lunch, office supplies"></div>
     <div class="form-row"><label>Vendor (optional)</label>

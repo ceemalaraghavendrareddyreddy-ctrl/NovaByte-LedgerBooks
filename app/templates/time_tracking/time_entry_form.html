@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>{{ 'Edit Time Entry' if editing else 'Log Time' }}</h1>
-<div class="card" style="max-width:600px;">
-  <form method="post">
+<div class="card" style="max-width:980px;">
+  <form method="post" class="form-two-col">
     <div class="form-row"><label>Date</label><input type="date" name="entry_date" required value="{{ form.entry_date or today }}"></div>
     <div class="form-row"><label>Description</label><input type="text" name="description" required value="{{ form.description or '' }}" placeholder="e.g. Website redesign - homepage layout"></div>
     <div class="form-row"><label>Customer (optional)</label>

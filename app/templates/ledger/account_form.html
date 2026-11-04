@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>New Account</h1>
-<div class="card" style="max-width:600px;">
-  <form method="post">
+<div class="card" style="max-width:980px;">
+  <form method="post" class="form-two-col">
     <div class="form-row">
       <label>Code</label>
       <input type="text" name="code" required value="{{ form.code or '' }}" placeholder="e.g. 1000">

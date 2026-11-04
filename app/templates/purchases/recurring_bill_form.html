@@ -2,7 +2,7 @@
 {% block content %}
 <h1>New Recurring Bill</h1>
 <div class="card">
-  <form method="post" id="recurring-form">
+  <form method="post" id="recurring-form" class="form-two-col">
     <div class="form-row">
       <label>Template Name</label>
       <input type="text" name="name" required value="{{ form.name or '' }}" placeholder="e.g. Monthly office rent">
@@ -45,6 +45,7 @@
       <input type="text" name="memo" value="{{ form.memo or '' }}">
     </div>
 
+    <div class="table-scroll">
     <table class="journal-lines-table">
       <thead>
         <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Expense/Asset Account</th><th>Taxable</th><th></th></tr>
@@ -75,6 +76,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
     <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
 
     <div class="stat-row" style="margin-top:1rem;">

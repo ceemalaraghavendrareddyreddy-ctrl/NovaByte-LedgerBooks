@@ -1,15 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Bill {{ bill.bill_no }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('purchases.vendor_detail', vendor_id=bill.vendor.id) }}">{{ bill.vendor.name }}</a>
-  {% if bill.vendor_ref %} &middot; Ref: {{ bill.vendor_ref }}{% endif %}
-  &middot; Date: {{ bill.bill_date }} &middot; Due: {{ bill.due_date }}
-  &middot; <span class="badge {{ 'debit' if bill.status == 'paid' else '' }}">{{ bill.status }}</span>
-  {% if bill.is_foreign %}&middot; <span class="badge">{{ bill.currency }} @ {{ bill.exchange_rate }}</span>{% endif %}
-</p>
-{% if bill.memo %}<p>{{ bill.memo }}</p>{% endif %}
-{% if bill.project %}<p style="color:var(--text-muted, var(--muted));">Project: <strong>{{ bill.project.name }}</strong></p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('purchases.bill_list') }}">Purchases</a> / Bills / {{ bill.bill_no }}</div>
+    <h1>Bill {{ bill.bill_no }} <span class="badge {{ {'paid':'paid','closed':'paid','accepted':'paid','converted':'paid','invoiced':'paid','open':'open','partial':'open','sent':'open','pending_approval':'open','draft':'draft','void':'draft','cancelled':'draft','declined':'draft'}.get(bill.status, '') }}" style="font-size:0.8rem; vertical-align:middle;">{{ bill.status }}</span></h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Vendor</span><a href="{{ url_for('purchases.vendor_detail', vendor_id=bill.vendor.id) }}">{{ bill.vendor.name }}</a></div>
+    {% if bill.vendor_ref %}<div><span class="dl">Vendor ref</span>{{ bill.vendor_ref }}</div>{% endif %}
+    <div><span class="dl">Bill date</span>{{ bill.bill_date }}</div>
+    <div><span class="dl">Due date</span>{{ bill.due_date }}</div>
+    {% if bill.is_foreign %}<div><span class="dl">Currency</span>{{ bill.currency }} @ {{ bill.exchange_rate }}</div>{% endif %}
+    {% if bill.project %}<div><span class="dl">Project</span>{{ bill.project.name }}</div>{% endif %}
+    {% if bill.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ bill.memo }}</div>{% endif %}
+  </div>
+</div>
+
 {% if bill.purchase_order %}
 <p style="color:var(--muted);">
   Against PO: <a href="{{ url_for('purchases.po_detail', po_id=bill.purchase_order.id) }}">{{ bill.purchase_order.po_no }}</a>
@@ -66,23 +75,24 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.subtotal) }}</td></tr>
-      <tr><td colspan="5" style="text-align:right;">VAT ({{ bill.vat_rate }}%)</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.vat_amount) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ bill.currency }} {{ '%.2f'|format(bill.total) }}</th></tr>
-      {% if bill.is_foreign %}
-      <tr><td colspan="5" style="text-align:right; color:var(--muted);">Total (base currency, @ {{ bill.exchange_rate }})</td><td class="num" style="color:var(--muted);">{{ '%.2f'|format(bill.total_base) }}</td></tr>
-      {% endif %}
-      <tr><td colspan="5" style="text-align:right;">Paid</td><td class="num">{{ bill.currency }} {{ '%.2f'|format(bill.amount_paid) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Balance Due</th><th class="num">{{ bill.currency }} {{ '%.2f'|format(bill.balance_due) }}</th></tr>
-    </tfoot>
   </table>
+  <div class="totals-box">
+    <div class="trow"><span>Subtotal</span><span>{{ bill.currency }} {{ '%.2f'|format(bill.subtotal) }}</span></div>
+    <div class="trow"><span>VAT ({{ bill.vat_rate }}%)</span><span>{{ bill.currency }} {{ '%.2f'|format(bill.vat_amount) }}</span></div>
+    <div class="trow tbig"><span>Total</span><span>{{ bill.currency }} {{ '%.2f'|format(bill.total) }}</span></div>
+    {% if bill.is_foreign %}
+    <div class="trow tmuted"><span>Total (base currency, @ {{ bill.exchange_rate }})</span><span>{{ '%.2f'|format(bill.total_base) }}</span></div>
+    {% endif %}
+    <div class="trow"><span>Paid</span><span>{{ bill.currency }} {{ '%.2f'|format(bill.amount_paid) }}</span></div>
+    <div class="trow tbal"><span>Balance Due</span><span>{{ bill.currency }} {{ '%.2f'|format(bill.balance_due) }}</span></div>
+  </div>
 </div>
 
 {% if bill.journal_entry_id %}
 <p><a href="{{ url_for('ledger.journal_detail', entry_id=bill.journal_entry_id) }}">View journal entry &rarr;</a></p>
 {% endif %}
 
+<div class="action-bar">
 {% if bill.status in ('open', 'partial') %}
 <a class="btn" href="{{ url_for('purchases.payment_new', vendor_id=bill.vendor_id) }}">Pay Vendor</a>
 {% endif %}
@@ -94,6 +104,7 @@
 </form>
 {% endif %}
 <a class="btn secondary" href="{{ url_for('purchases.bill_list') }}">Back to Bills</a>
+</div>
 
 {% with entity_type='bill', entity_id=bill.id %}{% include "attachments/_widget.html" %}{% endwith %}
 {% endblock %}

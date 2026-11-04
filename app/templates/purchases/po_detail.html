@@ -1,13 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Purchase Order {{ po.po_no }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('purchases.vendor_detail', vendor_id=po.vendor.id) }}">{{ po.vendor.name }}</a>
-  &middot; Date: {{ po.po_date }}
-  {% if po.expected_date %} &middot; Expected: {{ po.expected_date }}{% endif %}
-  &middot; <span class="badge {{ 'debit' if po.status == 'closed' else '' }}">{{ po.status }}</span>
-</p>
-{% if po.memo %}<p>{{ po.memo }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('purchases.po_list') }}">Purchases</a> / Purchase Orders / {{ po.po_no }}</div>
+    <h1>Purchase Order {{ po.po_no }} <span class="badge {{ {'paid':'paid','closed':'paid','accepted':'paid','converted':'paid','invoiced':'paid','open':'open','partial':'open','sent':'open','pending_approval':'open','draft':'draft','void':'draft','cancelled':'draft','declined':'draft'}.get(po.status, '') }}" style="font-size:0.8rem; vertical-align:middle;">{{ po.status }}</span></h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Vendor</span><a href="{{ url_for('purchases.vendor_detail', vendor_id=po.vendor.id) }}">{{ po.vendor.name }}</a></div>
+    <div><span class="dl">PO date</span>{{ po.po_date }}</div>
+    {% if po.expected_date %}<div><span class="dl">Expected</span>{{ po.expected_date }}</div>{% endif %}
+    {% if po.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ po.memo }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="card">
   <table>
@@ -24,12 +32,12 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(po.subtotal) }}</td></tr>
-      <tr><td colspan="5" style="text-align:right;">VAT ({{ po.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(po.vat_amount) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ '%.2f'|format(po.total) }}</th></tr>
-    </tfoot>
   </table>
+  <div class="totals-box">
+    <div class="trow"><span>Subtotal</span><span>{{ '%.2f'|format(po.subtotal) }}</span></div>
+    <div class="trow"><span>VAT ({{ po.vat_rate }}%)</span><span>{{ '%.2f'|format(po.vat_amount) }}</span></div>
+    <div class="trow tbig"><span>Total</span><span>{{ '%.2f'|format(po.total) }}</span></div>
+  </div>
 </div>
 
 {% if po.bills %}
@@ -66,7 +74,9 @@
 </div>
 {% endif %}
 
+<div class="action-bar">
 <a class="btn secondary" href="{{ url_for('purchases.po_list') }}">Back to Purchase Orders</a>
+</div>
 
 {% with entity_type='purchase_order', entity_id=po.id %}{% include "attachments/_widget.html" %}{% endwith %}
 {% endblock %}

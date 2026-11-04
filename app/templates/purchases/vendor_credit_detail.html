@@ -1,12 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Vendor Credit {{ vendor_credit.credit_no }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('purchases.vendor_detail', vendor_id=vendor_credit.vendor.id) }}">{{ vendor_credit.vendor.name }}</a>
-  &middot; Date: {{ vendor_credit.credit_date }}
-  &middot; <span class="badge {{ 'debit' if vendor_credit.status == 'closed' else '' }}">{{ vendor_credit.status }}</span>
-</p>
-{% if vendor_credit.memo %}<p>{{ vendor_credit.memo }}</p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('purchases.vendor_credit_list') }}">Purchases</a> / Vendor Credits / {{ vendor_credit.credit_no }}</div>
+    <h1>Vendor Credit {{ vendor_credit.credit_no }} <span class="badge {{ {'paid':'paid','closed':'paid','accepted':'paid','converted':'paid','invoiced':'paid','open':'open','partial':'open','sent':'open','pending_approval':'open','draft':'draft','void':'draft','cancelled':'draft','declined':'draft'}.get(vendor_credit.status, '') }}" style="font-size:0.8rem; vertical-align:middle;">{{ vendor_credit.status }}</span></h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Vendor</span><a href="{{ url_for('purchases.vendor_detail', vendor_id=vendor_credit.vendor.id) }}">{{ vendor_credit.vendor.name }}</a></div>
+    <div><span class="dl">Credit date</span>{{ vendor_credit.credit_date }}</div>
+    {% if vendor_credit.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ vendor_credit.memo }}</div>{% endif %}
+  </div>
+</div>
+
 
 <div class="card">
   <table>
@@ -22,14 +30,14 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr><td colspan="4" style="text-align:right;">Subtotal</td><td class="num">{{ '%.2f'|format(vendor_credit.subtotal) }}</td></tr>
-      <tr><td colspan="4" style="text-align:right;">VAT ({{ vendor_credit.vat_rate }}%)</td><td class="num">{{ '%.2f'|format(vendor_credit.vat_amount) }}</td></tr>
-      <tr><th colspan="4" style="text-align:right;">Total Credit</th><th class="num">{{ '%.2f'|format(vendor_credit.total) }}</th></tr>
-      <tr><td colspan="4" style="text-align:right;">Applied</td><td class="num">{{ '%.2f'|format(vendor_credit.amount_applied) }}</td></tr>
-      <tr><th colspan="4" style="text-align:right;">Remaining Credit</th><th class="num">{{ '%.2f'|format(vendor_credit.remaining_credit) }}</th></tr>
-    </tfoot>
   </table>
+  <div class="totals-box">
+    <div class="trow"><span>Subtotal</span><span>{{ '%.2f'|format(vendor_credit.subtotal) }}</span></div>
+    <div class="trow"><span>VAT ({{ vendor_credit.vat_rate }}%)</span><span>{{ '%.2f'|format(vendor_credit.vat_amount) }}</span></div>
+    <div class="trow"><span>Total Credit</span><span>{{ '%.2f'|format(vendor_credit.total) }}</span></div>
+    <div class="trow"><span>Applied</span><span>{{ '%.2f'|format(vendor_credit.amount_applied) }}</span></div>
+    <div class="trow tbal"><span>Remaining Credit</span><span>{{ '%.2f'|format(vendor_credit.remaining_credit) }}</span></div>
+  </div>
 </div>
 
 {% if vendor_credit.journal_entry_id %}
@@ -65,12 +73,14 @@
 </div>
 {% endif %}
 
+<div class="action-bar">
 {% if vendor_credit.status != 'void' and vendor_credit.amount_applied == 0 %}
 <form class="inline" method="post" action="{{ url_for('purchases.vendor_credit_void', vendor_credit_id=vendor_credit.id) }}" onsubmit="return confirm('Void this vendor credit? This reverses its ledger entry.');">
   <button class="btn danger" type="submit">Void Vendor Credit</button>
 </form>
 {% endif %}
 <a class="btn secondary" href="{{ url_for('purchases.vendor_credit_list') }}">Back to Vendor Credits</a>
+</div>
 
 {% with entity_type='vendor_credit', entity_id=vendor_credit.id %}{% include "attachments/_widget.html" %}{% endwith %}
 {% endblock %}
