@@ -15,7 +15,7 @@ understanding the question, never inventing the answer.
 import re
 from datetime import date, timedelta
 
-from flask import Blueprint, render_template, request
+from flask import Blueprint, redirect, request, url_for
 from flask_login import login_required
 
 from app.auth import current_company_id
@@ -155,6 +155,5 @@ def answer_question(question, company_id):
 @ai_qa_bp.route("/ask")
 @login_required
 def ask():
-    from app.ai_chat import render_chat_page
-
-    return render_chat_page(prefill=request.args.get("q", "").strip())
+    # The assistant lives on the Dashboard now; keep old bookmarks working.
+    return redirect(url_for("dashboard.index") + "#ask-books")

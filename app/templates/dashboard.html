@@ -98,6 +98,8 @@
   <a class="tile tile-orange" href="{{ url_for('reports.vat_return') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg><span>VAT Return</span></a>
 </div>
 
+{% if ai_chat_info.allowed %}{% include "ai/_chat_widget.html" %}{% endif %}
+
 <div class="stat-row" style="margin-bottom:1.15rem;">
   <div class="stat">
     <div class="label">Cash on hand</div>

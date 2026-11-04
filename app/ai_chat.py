@@ -15,7 +15,7 @@ from collections import defaultdict, deque
 from datetime import date, datetime, timedelta
 
 import anthropic
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
 from app.auth import current_company, current_company_id
@@ -334,5 +334,7 @@ def send():
     return jsonify(answer=answer, mode="ai")
 
 
-def render_chat_page(prefill=""):
-    return render_template("ai/ask.html", examples=EXAMPLES, ai_on=api_configured(), prefill=prefill)
+@ai_chat_bp.app_context_processor
+def _inject_chat_info():
+    allowed = current_user.is_authenticated and current_user.can_use_module("reports")
+    return {"ai_chat_info": {"allowed": allowed, "on": api_configured(), "examples": EXAMPLES}}
