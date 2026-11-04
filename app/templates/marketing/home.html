@@ -167,8 +167,8 @@
   .lede{ max-width:64ch; color:var(--ink-soft); font-size:1rem; line-height:1.7; }
 
   /* ---------- contact ---------- */
-  .contact-grid{ display:grid; grid-template-columns:1.05fr .85fr .85fr; gap:1.2rem; align-items:start; }
-  @media (max-width:900px){ .contact-grid{ grid-template-columns:1fr 1fr; } }
+  .contact-grid{ display:grid; grid-template-columns:1.05fr .85fr; gap:1.2rem; align-items:start; }
+  
   @media (max-width:640px){ .contact-grid{ grid-template-columns:1fr; } }
   .contact-card{ background:var(--surface); border:1px solid var(--rule); border-radius:12px; padding:1.6rem; box-shadow:var(--shadow); }
   .contact-card h3{ font-size:1.1rem; font-weight:600; margin-bottom:1rem; }
@@ -569,7 +569,6 @@
       <div class="contact-card">
         <h3>Business details</h3>
         <div class="field-row"><span class="label">Business name</span><span contenteditable="true" data-placeholder="NovaByte LedgerBooks" id="c-name">NovaByte LedgerBooks</span></div>
-        <div class="field-row"><span class="label">Email</span><span contenteditable="true" data-placeholder="name@company.com" id="c-email">hasting.bissesur@gmail.com</span></div>
         <div class="field-row"><span class="label">Phone</span><span contenteditable="true" data-placeholder="+230 ____ ____" id="c-phone">+230 5422 2407</span></div>
         <div class="field-row"><span class="label">Address</span><span contenteditable="true" data-placeholder="Street, City, Mauritius" id="c-address">Mauritius</span></div>
         <div class="field-row"><span class="label">Website</span><span contenteditable="true" data-placeholder="https://yourcompany.com" id="c-website">https://novabyte.mu</span></div>
@@ -582,12 +581,6 @@
         <div class="qr-hint">Live · updates as you edit</div>
       </div>
 
-      <div class="contact-panel">
-        <h3>Prefer email?</h3>
-        <p>Send a note with your company size and which currencies you invoice in — that's usually enough to recommend a package.</p>
-        <a class="btn-primary" href="mailto:hasting.bissesur@gmail.com?subject=NovaByte%20LedgerBooks%20Enquiry">Email Us</a>
-      </div>
-    </div>
   </section>
 
   <footer>NovaByte LedgerBooks — a product of Novabyte Solutions Ltd, Mauritius.</footer>
@@ -612,7 +605,7 @@
     window.addEventListener('hashchange', function(){ show(routeFromHash()); });
     show(routeFromHash());
 
-    var ids = ['c-name','c-email','c-phone','c-address','c-website'];
+    var ids = ['c-name','c-phone','c-address','c-website'];
     ids.forEach(function(id){
       var el = document.getElementById(id);
       if(!el) return;
@@ -633,7 +626,7 @@
     }
     function buildVCard(){
       var name = document.getElementById('c-name').textContent.trim() || 'NovaByte LedgerBooks';
-      var email = document.getElementById('c-email').textContent.trim();
+      var email = '';
       var phone = document.getElementById('c-phone').textContent.trim();
       var address = document.getElementById('c-address').textContent.trim();
       var website = document.getElementById('c-website').textContent.trim();
