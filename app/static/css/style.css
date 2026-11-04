@@ -1069,7 +1069,6 @@ html[data-theme="dark"] thead th { background: #26344A; color: #E3E9F3; }
 }
 input[type=text], input[type=email], input[type=password], input[type=number],
 input[type=date], input[type=file], input[type=search], select, textarea,
-input[type=file]{}
 .form-row input, .form-row select, .form-row textarea {
   border: 2px solid var(--border-strong);
 }
