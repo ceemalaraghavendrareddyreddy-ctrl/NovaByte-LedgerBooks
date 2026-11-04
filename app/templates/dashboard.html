@@ -9,7 +9,6 @@
   </div>
   <div class="btn-group">
     <a class="btn secondary small" href="{{ url_for('reports.profit_loss') }}">View reports</a>
-    <a class="btn primary small" href="{{ url_for('sales.invoice_new') }}">+ New invoice</a>
   </div>
 </div>
 
@@ -81,22 +80,22 @@
 {% endif %}
 
 <div class="tile-grid">
-  <a class="tile tile-green" href="{{ url_for('sales.invoice_new') }}">New Invoice</a>
-  <a class="tile tile-green" href="{{ url_for('sales.payment_new') }}">Receive Payment</a>
-  <a class="tile tile-green" href="{{ url_for('sales.estimate_new') }}">New Estimate</a>
-  <a class="tile tile-green" href="{{ url_for('sales.customer_list') }}">Customers</a>
-  <a class="tile tile-red" href="{{ url_for('purchases.bill_new') }}">Enter Bill</a>
-  <a class="tile tile-red" href="{{ url_for('banking.new_transaction') }}">Spend Money</a>
-  <a class="tile tile-red" href="{{ url_for('purchases.payment_list') }}">Pay Bills</a>
-  <a class="tile tile-red" href="{{ url_for('purchases.vendor_list') }}">Suppliers</a>
-  <a class="tile tile-blue" href="{{ url_for('reports.profit_loss') }}">Income Statement</a>
-  <a class="tile tile-blue" href="{{ url_for('reports.balance_sheet') }}">Balance Sheet</a>
-  <a class="tile tile-blue" href="{{ url_for('ledger.journal_list') }}">Journal</a>
-  <a class="tile tile-blue" href="{{ url_for('ledger.account_list') }}">Chart of Accounts</a>
-  <a class="tile tile-orange" href="{{ url_for('banking.reconcile_start') }}">Reconcile Bank</a>
-  <a class="tile tile-orange" href="{{ url_for('inventory.item_list') }}">Inventory</a>
-  <a class="tile tile-orange" href="{{ url_for('ledger.journal_new') }}">Journal Entry</a>
-  <a class="tile tile-orange" href="{{ url_for('reports.vat_return') }}">VAT Return</a>
+  <a class="tile tile-green" href="{{ url_for('sales.invoice_new') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg><span>New Invoice</span></a>
+  <a class="tile tile-green" href="{{ url_for('sales.payment_new') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg><span>Receive Payment</span></a>
+  <a class="tile tile-green" href="{{ url_for('sales.estimate_new') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg><span>New Estimate</span></a>
+  <a class="tile tile-green" href="{{ url_for('sales.customer_list') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Customers</span></a>
+  <a class="tile tile-red" href="{{ url_for('purchases.bill_new') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/></svg><span>Enter Bill</span></a>
+  <a class="tile tile-red" href="{{ url_for('banking.new_transaction') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></svg><span>Spend Money</span></a>
+  <a class="tile tile-red" href="{{ url_for('purchases.payment_list') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg><span>Pay Bills</span></a>
+  <a class="tile tile-red" href="{{ url_for('purchases.vendor_list') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></svg><span>Suppliers</span></a>
+  <a class="tile tile-blue" href="{{ url_for('reports.profit_loss') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg><span>Income Statement</span></a>
+  <a class="tile tile-blue" href="{{ url_for('reports.balance_sheet') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg><span>Balance Sheet</span></a>
+  <a class="tile tile-blue" href="{{ url_for('ledger.journal_list') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg><span>Journal</span></a>
+  <a class="tile tile-blue" href="{{ url_for('ledger.account_list') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12h-8"/><path d="M21 6H8"/><path d="M21 18h-8"/><path d="M3 6v4c0 1.1.9 2 2 2h3"/><path d="M3 10v6c0 1.1.9 2 2 2h3"/></svg><span>Chart of Accounts</span></a>
+  <a class="tile tile-orange" href="{{ url_for('banking.reconcile_start') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/></svg><span>Reconcile Bank</span></a>
+  <a class="tile tile-orange" href="{{ url_for('inventory.item_list') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg><span>Inventory</span></a>
+  <a class="tile tile-orange" href="{{ url_for('ledger.journal_new') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.376 3.622a1 1 0 0 1 3.002 3.002L7.368 18.635a2 2 0 0 1-.855.506l-2.872.838a.5.5 0 0 1-.62-.62l.838-2.872a2 2 0 0 1 .506-.854z"/></svg><span>Journal Entry</span></a>
+  <a class="tile tile-orange" href="{{ url_for('reports.vat_return') }}"><svg class="tile-ico" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/></svg><span>VAT Return</span></a>
 </div>
 
 <div class="stat-row" style="margin-bottom:1.15rem;">

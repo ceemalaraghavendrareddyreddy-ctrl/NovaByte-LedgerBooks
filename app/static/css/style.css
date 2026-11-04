@@ -1023,3 +1023,9 @@ html[data-theme="dark"] .auth-shell { background: linear-gradient(135deg, #14304
 .tile-red { background: #D8472B; }
 .tile-blue { background: #1A73E8; }
 .tile-orange { background: #E39A12; }
+
+.tile { flex-direction: column; justify-content: space-between; align-items: flex-start; gap: 0.5rem; }
+.tile-ico { width: 26px; height: 26px; opacity: 0.92; }
+.tile-grid { grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 700px)  { .tile-grid { grid-template-columns: repeat(4, 1fr); } }
+@media (min-width: 1250px) { .tile-grid { grid-template-columns: repeat(8, 1fr); } }
