@@ -103,12 +103,20 @@
       {% endif %}
 
       <div class="sidebar-nav">
-      <div class="sidebar-section-heading">Main</div>
       <a class="sidebar-link{% if request.endpoint == 'dashboard.index' %} active{% endif %}" href="{{ url_for('dashboard.index') }}">
         {{ icon('layout-dashboard') }} <span>Dashboard</span>
       </a>
 
-      <div class="sidebar-section-heading">Money in &amp; out</div>
+      {% if current_user.can_use_module('ledger') %}
+      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('ledger.') or request.endpoint.startswith('revaluation.')) %}open{% endif %}>
+        <summary>{{ icon('book-open') }} <span>Accounts</span></summary>
+        <a href="{{ url_for('ledger.account_list') }}">Chart of accounts</a>
+        <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
+        <a href="{{ url_for('ledger.trial_balance') }}">Trial balance</a>
+        <a href="{{ url_for('ledger.general_ledger') }}">General ledger</a>
+        <a href="{{ url_for('revaluation.index') }}">FX revaluation</a>
+      </details>
+      {% endif %}
 
       {% if current_user.can_use_module('banking') %}
       <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('banking.') or request.endpoint.startswith('bank_rules.')) %}open{% endif %}>
@@ -147,7 +155,7 @@
 
       {% if current_user.can_use_module('purchases') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('purchases.') %}open{% endif %}>
-        <summary>{{ icon('receipt') }} <span>Expenses</span></summary>
+        <summary>{{ icon('receipt') }} <span>Purchases</span></summary>
         <a href="{{ url_for('purchases.vendor_list') }}">Vendors</a>
         <a href="{{ url_for('purchases.po_list') }}">Purchase orders</a>
         <a href="{{ url_for('purchases.bill_list') }}">Bills</a>
@@ -162,8 +170,6 @@
       </details>
       {% endif %}
 
-      <div class="sidebar-section-heading">Records</div>
-
       {% if current_user.can_use_module('inventory') %}
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('inventory.') %}open{% endif %}>
         <summary>{{ icon('package') }} <span>Inventory</span></summary>
@@ -176,17 +182,6 @@
       <details class="sidebar-group" {% if request.endpoint and request.endpoint.startswith('assets.') %}open{% endif %}>
         <summary>{{ icon('tag') }} <span>Fixed assets</span></summary>
         <a href="{{ url_for('assets.asset_list') }}">Asset register</a>
-      </details>
-      {% endif %}
-
-      {% if current_user.can_use_module('ledger') %}
-      <details class="sidebar-group" {% if request.endpoint and (request.endpoint.startswith('ledger.') or request.endpoint.startswith('revaluation.')) %}open{% endif %}>
-        <summary>{{ icon('book-open') }} <span>Accounting</span></summary>
-        <a href="{{ url_for('ledger.account_list') }}">Chart of accounts</a>
-        <a href="{{ url_for('ledger.journal_list') }}">Journal</a>
-        <a href="{{ url_for('ledger.trial_balance') }}">Trial balance</a>
-        <a href="{{ url_for('ledger.general_ledger') }}">General ledger</a>
-        <a href="{{ url_for('revaluation.index') }}">FX revaluation</a>
       </details>
       {% endif %}
 
