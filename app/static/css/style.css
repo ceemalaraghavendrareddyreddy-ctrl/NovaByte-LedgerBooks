@@ -1100,3 +1100,6 @@ th, td { border-bottom-color: var(--border); }
 .more-list form.inline { display: block; }
 
 .form-card { border-top: 4px solid var(--action); }
+
+/* Sign-in: show the error/notice message above the card, not beside it */
+.auth-shell { flex-direction: column; gap: 1rem; }
