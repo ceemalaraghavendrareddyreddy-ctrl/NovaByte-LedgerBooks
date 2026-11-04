@@ -2,7 +2,7 @@
 {% block content %}
 <h1>New Vendor Credit</h1>
 <div class="card">
-  <form method="post" id="vendor-credit-form">
+  <form method="post" id="vendor-credit-form" class="form-two-col">
     <div class="form-row">
       <label>Vendor</label>
       <select name="vendor_id" required>
@@ -25,6 +25,7 @@
       <input type="text" name="memo" value="{{ form.memo or '' }}" placeholder="e.g. reason for the credit">
     </div>
 
+    <div class="table-scroll">
     <table class="journal-lines-table">
       <thead>
         <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Expense/Asset Account</th><th>Taxable</th><th>Return to Vendor</th><th></th></tr>
@@ -58,6 +59,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
     <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
     <p style="color:var(--muted);font-size:0.85rem;">"Return to Vendor" only matters for inventory items — check it if goods are physically going back to them.</p>
 

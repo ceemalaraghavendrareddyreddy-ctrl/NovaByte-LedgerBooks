@@ -2,7 +2,7 @@
 {% block content %}
 <h1>New Estimate</h1>
 <div class="card">
-  <form method="post" id="estimate-form">
+  <form method="post" id="estimate-form" class="form-two-col">
     <div class="form-row">
       <label>Customer</label>
       <select name="customer_id" required>
@@ -29,6 +29,7 @@
       <input type="text" name="memo" value="{{ form.memo or '' }}">
     </div>
 
+    <div class="table-scroll">
     <table class="journal-lines-table">
       <thead>
         <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Income Account</th><th>Taxable</th><th></th></tr>
@@ -59,6 +60,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
     <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
 
     <div class="stat-row" style="margin-top:1rem;">

@@ -1075,3 +1075,26 @@ input[type=date], input[type=file], input[type=search], select, textarea,
 .btn.secondary, .btn.ghost { border-width: 1.5px; }
 .invoice-workspace > .card, .card:has(.form-two-col) { border-top: 4px solid var(--action); }
 th, td { border-bottom-color: var(--border); }
+
+/* Invoice view page: details card, totals box, action bar */
+.detail-card { border-top: 4px solid var(--action); }
+.detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 1rem 2rem; }
+.detail-grid .dl { display: block; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+.detail-grid .detail-wide { grid-column: 1 / -1; }
+.totals-box { margin: 1rem 0 0 auto; width: 100%; max-width: 380px; border: 2px solid var(--border-strong); border-radius: 6px; overflow: hidden; background: #FBFCFE; }
+.totals-box .trow { display: flex; justify-content: space-between; gap: 1rem; padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+.totals-box .trow:last-child { border-bottom: 0; }
+.totals-box .tbig { font-weight: 700; font-size: 1.02rem; background: var(--primary-50); }
+.totals-box .tmuted { color: var(--text-muted); font-size: 0.82rem; }
+.totals-box .tbal { font-weight: 700; font-size: 1.05rem; background: var(--sidebar-bg); color: #FFFFFF; }
+.action-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 1rem 0; }
+.action-bar form.inline { display: inline-flex; }
+.more-menu { position: relative; }
+.more-menu summary { list-style: none; cursor: pointer; }
+.more-menu summary::-webkit-details-marker { display: none; }
+.more-list { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; min-width: 190px; background: #FFFFFF; border: 2px solid var(--border-strong); border-radius: 6px; box-shadow: var(--shadow-md); padding: 0.3rem; display: flex; flex-direction: column; }
+.more-list a, .more-list .disabled, .more-list .danger-link { display: block; text-align: left; padding: 0.5rem 0.7rem; border-radius: 4px; color: var(--text); font-size: 0.88rem; background: none; border: 0; font-family: inherit; cursor: pointer; text-decoration: none; width: 100%; }
+.more-list a:hover, .more-list .danger-link:hover { background: var(--primary-50); text-decoration: none; }
+.more-list .disabled { opacity: 0.5; cursor: not-allowed; }
+.more-list .danger-link { color: var(--error); }
+.more-list form.inline { display: block; }

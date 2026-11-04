@@ -2,7 +2,7 @@
 {% block content %}
 <h1>New Bill</h1>
 <div class="card">
-  <form method="post" id="bill-form">
+  <form method="post" id="bill-form" class="form-two-col">
     <div class="form-row">
       <label>Vendor</label>
       <select name="vendor_id" required>
@@ -60,6 +60,7 @@
     </div>
     {% endif %}
 
+    <div class="table-scroll">
     <table class="journal-lines-table">
       <thead>
         <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit Price</th><th>Expense/Asset Account</th><th>Taxable</th><th>VAT %</th><th>Warehouse / Lot #</th><th></th></tr>
@@ -112,6 +113,7 @@
         </tr>
       </tbody>
     </table>
+    </div>
     <button type="button" class="btn small secondary" id="add-line">+ Add Line</button>
 
     <div class="stat-row" style="margin-top:1rem;">

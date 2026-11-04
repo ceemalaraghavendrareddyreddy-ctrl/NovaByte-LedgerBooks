@@ -1,15 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Invoice {{ invoice.invoice_no }}</h1>
-<p style="color:var(--muted);">
-  <a href="{{ url_for('sales.customer_detail', customer_id=invoice.customer.id) }}">{{ invoice.customer.name }}</a>
-  &middot; Date: {{ invoice.invoice_date }} &middot; Due: {{ invoice.due_date }} ({{ invoice.payment_terms }})
-  &middot; <span class="badge {{ 'debit' if invoice.status == 'paid' else '' }}">{{ invoice.status }}</span>
-  {% if invoice.is_foreign %}&middot; <span class="badge">{{ invoice.currency }} @ {{ invoice.exchange_rate }}</span>{% endif %}
-  {% if invoice.customer_po_number %}&middot; PO # {{ invoice.customer_po_number }}{% endif %}
-</p>
-{% if invoice.memo %}<p>{{ invoice.memo }}</p>{% endif %}
-{% if invoice.project %}<p style="color:var(--text-muted, var(--muted));">Project: <strong>{{ invoice.project.name }}</strong></p>{% endif %}
+<div class="page-header">
+  <div>
+    <div class="breadcrumb"><a href="{{ url_for('sales.invoice_list') }}">Sales</a> / <a href="{{ url_for('sales.invoice_list') }}">Invoices</a> / {{ invoice.invoice_no }}</div>
+    <h1>Invoice {{ invoice.invoice_no }}
+      <span class="badge {{ {'paid':'paid','open':'open','partial':'open','pending_approval':'open','void':'draft'}.get(invoice.status, '') }}" style="font-size:0.8rem; vertical-align:middle;">{{ invoice.status }}</span>
+    </h1>
+  </div>
+</div>
+
+<div class="card detail-card">
+  <div class="detail-grid">
+    <div><span class="dl">Customer</span><a href="{{ url_for('sales.customer_detail', customer_id=invoice.customer.id) }}">{{ invoice.customer.name }}</a></div>
+    <div><span class="dl">Invoice date</span>{{ invoice.invoice_date }}</div>
+    <div><span class="dl">Due date</span>{{ invoice.due_date }} <span class="text-muted">({{ invoice.payment_terms }})</span></div>
+    {% if invoice.customer_po_number %}<div><span class="dl">Customer PO #</span>{{ invoice.customer_po_number }}</div>{% endif %}
+    {% if invoice.is_foreign %}<div><span class="dl">Currency</span>{{ invoice.currency }} @ {{ invoice.exchange_rate }}</div>{% endif %}
+    {% if invoice.project %}<div><span class="dl">Project</span>{{ invoice.project.name }}</div>{% endif %}
+    {% if invoice.memo %}<div class="detail-wide"><span class="dl">Memo</span>{{ invoice.memo }}</div>{% endif %}
+  </div>
+</div>
 
 {% if invoice.mra_status %}
 <p style="color:var(--muted); font-size:.9em;">
@@ -62,51 +72,59 @@
       </tr>
       {% endfor %}
     </tbody>
-    <tfoot>
-      <tr><td colspan="5" style="text-align:right;">Subtotal</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.subtotal) }}</td></tr>
-      <tr><td colspan="5" style="text-align:right;">VAT ({{ invoice.vat_rate }}%)</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.vat_amount) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Total</th><th class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.total) }}</th></tr>
-      {% if invoice.is_foreign %}
-      <tr><td colspan="5" style="text-align:right; color:var(--muted);">Total (base currency, @ {{ invoice.exchange_rate }})</td><td class="num" style="color:var(--muted);">{{ '%.2f'|format(invoice.total_base) }}</td></tr>
-      {% endif %}
-      <tr><td colspan="5" style="text-align:right;">Paid</td><td class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.amount_paid) }}</td></tr>
-      <tr><th colspan="5" style="text-align:right;">Balance Due</th><th class="num">{{ invoice.currency }} {{ '%.2f'|format(invoice.balance_due) }}</th></tr>
-    </tfoot>
   </table>
+  <div class="totals-box">
+    <div class="trow"><span>Subtotal</span><span>{{ invoice.currency }} {{ '%.2f'|format(invoice.subtotal) }}</span></div>
+    <div class="trow"><span>VAT ({{ invoice.vat_rate }}%)</span><span>{{ invoice.currency }} {{ '%.2f'|format(invoice.vat_amount) }}</span></div>
+    <div class="trow tbig"><span>Total</span><span>{{ invoice.currency }} {{ '%.2f'|format(invoice.total) }}</span></div>
+    {% if invoice.is_foreign %}
+    <div class="trow tmuted"><span>Total (base currency, @ {{ invoice.exchange_rate }})</span><span>{{ '%.2f'|format(invoice.total_base) }}</span></div>
+    {% endif %}
+    <div class="trow"><span>Paid</span><span>{{ invoice.currency }} {{ '%.2f'|format(invoice.amount_paid) }}</span></div>
+    <div class="trow tbal"><span>Balance Due</span><span>{{ invoice.currency }} {{ '%.2f'|format(invoice.balance_due) }}</span></div>
+  </div>
 </div>
 
 {% if invoice.journal_entry_id %}
 <p><a href="{{ url_for('ledger.journal_detail', entry_id=invoice.journal_entry_id) }}">View journal entry &rarr;</a></p>
 {% endif %}
 
-<a class="btn" href="{{ url_for('sales.invoice_pdf', invoice_id=invoice.id) }}" target="_blank">📄 View / Print PDF</a>
-<a class="btn" style="background:#25D366;" href="{{ whatsapp_href }}" target="_blank" rel="noopener">Share via WhatsApp</a>
-{% if smtp_ready and invoice.customer.email %}
-<form class="inline" method="post" action="{{ url_for('sales.invoice_email', invoice_id=invoice.id) }}">
-  <button class="btn secondary" type="submit">✉ Email Invoice</button>
-</form>
-{% elif smtp_ready %}
-<span class="btn secondary" style="opacity:0.6;" title="{{ invoice.customer.name }} has no email address on file">✉ Email Invoice</span>
-{% else %}
-<span class="btn secondary" style="opacity:0.6;" title="Configure SMTP in Settings → Company to enable this">✉ Email Invoice</span>
-{% endif %}
-{% if not not_editable_reason %}
-<a class="btn secondary" href="{{ url_for('sales.invoice_edit', invoice_id=invoice.id) }}">Edit Invoice</a>
-{% else %}
-<span class="btn secondary" style="opacity:0.6;" title="{{ not_editable_reason }}">Edit Invoice</span>
-{% endif %}
-{% if invoice.status not in ('void', 'pending_approval') %}
-<a class="btn secondary" href="{{ url_for('sales.credit_memo_new', invoice_id=invoice.id) }}">Create Credit Memo</a>
-{% endif %}
-{% if invoice.status in ('open', 'partial') %}
-<a class="btn" href="{{ url_for('sales.payment_new', customer_id=invoice.customer_id) }}">Record Payment</a>
-{% endif %}
-{% if invoice.status not in ('void', 'pending_approval') and invoice.amount_paid == 0 %}
-<form class="inline" method="post" action="{{ url_for('sales.invoice_void', invoice_id=invoice.id) }}" onsubmit="return confirm('Void this invoice? This reverses its ledger entry.');">
-  <button class="btn danger" type="submit">Void Invoice</button>
-</form>
-{% endif %}
-<a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Back to Invoices</a>
+<div class="action-bar">
+  <a class="btn" href="{{ url_for('sales.invoice_pdf', invoice_id=invoice.id) }}" target="_blank">📄 View / Print PDF</a>
+  {% if invoice.status in ('open', 'partial') %}
+  <a class="btn" href="{{ url_for('sales.payment_new', customer_id=invoice.customer_id) }}">Record Payment</a>
+  {% endif %}
+  <a class="btn" style="background:#25D366; border-color:#25D366;" href="{{ whatsapp_href }}" target="_blank" rel="noopener">Share via WhatsApp</a>
+  {% if smtp_ready and invoice.customer.email %}
+  <form class="inline" method="post" action="{{ url_for('sales.invoice_email', invoice_id=invoice.id) }}">
+    <button class="btn secondary" type="submit">✉ Email Invoice</button>
+  </form>
+  {% elif smtp_ready %}
+  <span class="btn secondary" style="opacity:0.6;" title="{{ invoice.customer.name }} has no email address on file">✉ Email Invoice</span>
+  {% else %}
+  <span class="btn secondary" style="opacity:0.6;" title="Configure SMTP in Settings → Company to enable this">✉ Email Invoice</span>
+  {% endif %}
+
+  <details class="more-menu">
+    <summary class="btn secondary">More actions ▾</summary>
+    <div class="more-list">
+      {% if not not_editable_reason %}
+      <a href="{{ url_for('sales.invoice_edit', invoice_id=invoice.id) }}">Edit Invoice</a>
+      {% else %}
+      <span class="disabled" title="{{ not_editable_reason }}">Edit Invoice</span>
+      {% endif %}
+      {% if invoice.status not in ('void', 'pending_approval') %}
+      <a href="{{ url_for('sales.credit_memo_new', invoice_id=invoice.id) }}">Create Credit Memo</a>
+      {% endif %}
+      {% if invoice.status not in ('void', 'pending_approval') and invoice.amount_paid == 0 %}
+      <form class="inline" method="post" action="{{ url_for('sales.invoice_void', invoice_id=invoice.id) }}" onsubmit="return confirm('Void this invoice? This reverses its ledger entry.');">
+        <button class="danger-link" type="submit">Void Invoice</button>
+      </form>
+      {% endif %}
+    </div>
+  </details>
+  <a class="btn secondary" href="{{ url_for('sales.invoice_list') }}">Back to Invoices</a>
+</div>
 
 {% with entity_type='invoice', entity_id=invoice.id %}{% include "attachments/_widget.html" %}{% endwith %}
 {% endblock %}
