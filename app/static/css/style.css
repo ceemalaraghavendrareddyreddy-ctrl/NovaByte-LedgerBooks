@@ -684,7 +684,11 @@ html[data-theme="dark"] .dash-bar { background: #26344A; }
   gap: 1.25rem;
   align-items: start;
 }
-@media (max-width: 1100px) { .invoice-workspace { grid-template-columns: 1fr; } }
+/* Form gets the full width; the preview only sits beside it on very wide screens. */
+.invoice-workspace { grid-template-columns: 1fr; }
+@media (min-width: 1750px) { .invoice-workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 420px); } }
+.invoice-workspace .invoice-preview { position: static; max-height: none; }
+@media (min-width: 1750px) { .invoice-workspace .invoice-preview { position: sticky; max-height: calc(100vh - var(--topbar-height) - 2rem); } }
 
 .invoice-preview {
   position: sticky;
@@ -885,12 +889,15 @@ input:focus, select:focus, textarea:focus {
    this table is tight even on a laptop screen), instead of squeezing every
    input down to fit. */
 .card:has(.journal-lines-table) { overflow-x: auto; }
-.journal-lines-table { min-width: 920px; }
+.journal-lines-table { min-width: 1100px; }
 .journal-lines-table input, .journal-lines-table select {
   width: 100%; padding: 0.6rem 0.65rem; font-size: 0.92rem; min-height: 2.4rem;
 }
 .journal-lines-table th, .journal-lines-table td { padding: 0.6rem 0.55rem; }
-.journal-lines-table td:nth-child(2) input { min-width: 160px; }  /* Description */
+.journal-lines-table td:nth-child(2) input { min-width: 280px; }  /* Description */
+.journal-lines-table td:nth-child(1) select { min-width: 170px; }  /* Item */
+.journal-lines-table td:nth-child(3) input { min-width: 90px; }   /* Qty */
+.journal-lines-table td:nth-child(4) input { min-width: 120px; }  /* Unit price */
 .journal-lines-table td:has(select[name=income_account_id]) select,
 .journal-lines-table td:has(input[name*=lot_number]) input { min-width: 130px; }
 .journal-lines-table td { vertical-align: middle; }
@@ -966,3 +973,8 @@ input:focus, select:focus, textarea:focus {
   color: var(--text-subtle);
   opacity: 0.7;
 }
+
+/* No up/down spinner arrows on number boxes in the line-items table — you type the number. */
+.journal-lines-table input[type=number] { -moz-appearance: textfield; appearance: textfield; }
+.journal-lines-table input[type=number]::-webkit-outer-spin-button,
+.journal-lines-table input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
