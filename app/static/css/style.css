@@ -1029,3 +1029,21 @@ html[data-theme="dark"] .auth-shell { background: linear-gradient(135deg, #14304
 .tile-grid { grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 700px)  { .tile-grid { grid-template-columns: repeat(4, 1fr); } }
 @media (min-width: 1250px) { .tile-grid { grid-template-columns: repeat(8, 1fr); } }
+
+/* Brisk-style tables: slate header bar, soft zebra rows, light-blue hover */
+.invoice-preview table thead th { background: transparent; color: var(--text-muted); }
+thead th {
+  background: var(--sidebar-bg);
+  color: #FFFFFF;
+  border-bottom: 0;
+  letter-spacing: 0.04em;
+}
+thead th a { color: #FFFFFF; }
+tbody tr:nth-child(even) { background: #F8FAFD; }
+tbody tr:hover { background: #E6F0FB; }
+html[data-theme="dark"] tbody tr:nth-child(even) { background: transparent; }
+html[data-theme="dark"] thead th { background: #26344A; color: #E3E9F3; }
+.page-header h1 { font-size: 1.7rem; font-weight: 500; letter-spacing: 0; }
+.card { border-radius: 6px; }
+.table-wrap { border-radius: 6px; }
+.btn { border-radius: 4px; }
