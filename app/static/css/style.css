@@ -1,27 +1,29 @@
 /* =========================================================================
-   NovaByte LedgerBooks — Zoho-inspired UI theme
-   Palette: deep teal primary (#0F766E) + warm coral accent (#F97354)
+   NovaByte LedgerBooks — Brisk-style UI theme
+   Palette: steel blue (#26709E), slate sidebar (#3D5278), blue actions, orange CTA (#F79E1B)
    ========================================================================= */
 
 :root {
   /* Brand */
-  --primary: #0F766E;
-  --primary-600: #0D5F58;
-  --primary-700: #094F49;
-  --primary-50: #E8F5F3;
-  --accent: #F97354;         /* coral CTA */
-  --accent-600: #E85A38;
-  --accent-50: #FEF1EC;
+  --primary: #26709E;
+  --primary-600: #1D5A80;
+  --primary-700: #154563;
+  --primary-50: #E6F0F7;
+  --accent: #F79E1B;         /* orange CTA */
+  --action: #1A73E8;         /* blue buttons, like Brisk */
+  --action-600: #1558B8;
+  --accent-600: #DB8506;
+  --accent-50: #FEF4E3;
 
   /* Neutrals */
-  --bg: #F5F7FA;
+  --bg: #F6F8FC;
   --card: #FFFFFF;
-  --sidebar-bg: #1E2A3A;
-  --sidebar-bg-hover: #2A3849;
-  --sidebar-active: rgba(249,115,84,0.16);
-  --sidebar-text: #C7D0DC;
+  --sidebar-bg: #3D5278;
+  --sidebar-bg-hover: #4A6088;
+  --sidebar-active: #1A73E8;
+  --sidebar-text: #E3E9F3;
   --sidebar-text-active: #FFFFFF;
-  --sidebar-heading: #8A97AB;
+  --sidebar-heading: #B4C2DA;
   --sidebar-border: rgba(255,255,255,0.06);
 
   --text: #1F2937;
@@ -211,7 +213,7 @@ h3 { font-size: 1.05rem; }
   background: var(--sidebar-bg-hover);
   color: #FFFFFF;
   text-decoration: none;
-  border-left-color: rgba(249,115,84,0.5);
+  border-left-color: rgba(255,255,255,0.6);
 }
 
 .sidebar-section-heading {
@@ -326,7 +328,7 @@ h3 { font-size: 1.05rem; }
   outline: none;
   border-color: var(--primary);
   background: #FFFFFF;
-  box-shadow: 0 0 0 3px rgba(15,118,110,0.12);
+  box-shadow: 0 0 0 3px rgba(38,112,158,0.15);
 }
 .topbar-search .search-ico {
   position: absolute; left: 0.7rem; top: 50%;
@@ -503,11 +505,11 @@ tfoot th, tfoot td { background: #FAFBFC; font-weight: 600; color: var(--text); 
   white-space: nowrap;
 }
 .btn:hover { background: var(--primary-600); border-color: var(--primary-600); color: #FFF; text-decoration: none; }
-.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(15,118,110,0.25); }
+.btn:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(38,112,158,0.25); }
 
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #FFF; }
-.btn.primary:hover { background: var(--accent-600); border-color: var(--accent-600); }
-.btn.primary:focus-visible { box-shadow: 0 0 0 3px rgba(249,115,84,0.30); }
+.btn.primary { background: var(--action); border-color: var(--action); color: #FFF; }
+.btn.primary:hover { background: var(--action-600); border-color: var(--action-600); }
+.btn.primary:focus-visible { box-shadow: 0 0 0 3px rgba(26,115,232,0.30); }
 
 .btn.secondary {
   background: #FFFFFF;
@@ -625,8 +627,8 @@ html[data-theme="dark"] {
   --border: #263041;
   --border-strong: #364256;
 
-  --primary: #14B8A6;
-  --primary-600: #0FA093;
+  --primary: #5BA8D6;
+  --primary-600: #4A93C0;
   --primary-700: #0C7F76;
   --primary-50: #133A36;
 
@@ -634,9 +636,9 @@ html[data-theme="dark"] {
   --accent-600: #E85A38;
   --accent-50: #3A2019;
 
-  --sidebar-bg: #0B1220;
+  --sidebar-bg: #1B2740;
   --sidebar-bg-hover: #1A2536;
-  --sidebar-active: rgba(249,115,84,0.18);
+  --sidebar-active: #1A73E8;
   --sidebar-text: #C7D0DC;
   --sidebar-text-active: #FFFFFF;
   --sidebar-heading: #6B7889;
@@ -878,7 +880,7 @@ input[type=date], input[type=file], select, textarea {
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(15,118,110,0.15);
+  box-shadow: 0 0 0 3px rgba(38,112,158,0.18);
 }
 .form-row input, .form-row select, .form-row textarea { flex: 1; min-width: 160px; }
 
@@ -978,3 +980,32 @@ input:focus, select:focus, textarea:focus {
 .journal-lines-table input[type=number] { -moz-appearance: textfield; appearance: textfield; }
 .journal-lines-table input[type=number]::-webkit-outer-spin-button,
 .journal-lines-table input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+
+/* =========================================================================
+   BRISK-STYLE REFRESH — blue page titles, slate sidebar, orange CTA, hero login
+   ========================================================================= */
+.brand-logo { background: linear-gradient(135deg, #29B6F6 0%, #1A73E8 100%); }
+.sidebar-link .nav-ico, .sidebar-group summary .nav-ico { color: #D6E0F2; }
+.sidebar-link:hover .nav-ico, .sidebar-group summary:hover .nav-ico,
+.sidebar-link.active .nav-ico { color: #FFFFFF; }
+.sidebar-link.active, .sidebar-link.current { color: #FFFFFF; font-weight: 600; }
+.sidebar-group a:hover { color: #FFFFFF; }
+.sidebar-group a.active, .sidebar-group a.current { background: var(--action); color: #FFFFFF; }
+
+h1, h2 { color: var(--primary); }
+html[data-theme="dark"] h1, html[data-theme="dark"] h2 { color: #8CC4E8; }
+th { background: #EDF2F9; }
+
+/* Sign-in / sign-up: blue hero with an orange call-to-action, like the Brisk home page */
+.auth-shell {
+  background:
+    radial-gradient(circle at 18% 22%, rgba(79,195,247,0.35) 0, rgba(79,195,247,0) 38%),
+    linear-gradient(135deg, #2C78A8 0%, #1F5F8B 55%, #184E75 100%);
+}
+html[data-theme="dark"] .auth-shell { background: linear-gradient(135deg, #14304A 0%, #0F2236 100%); }
+.auth-card { border: 0; box-shadow: 0 18px 50px rgba(8,30,55,0.35); }
+.auth-brand-title { color: var(--primary); }
+.auth-title { color: var(--primary); }
+.auth-card .btn.primary { background: var(--accent); border-color: var(--accent); font-weight: 700; }
+.auth-card .btn.primary:hover { background: var(--accent-600); border-color: var(--accent-600); }
