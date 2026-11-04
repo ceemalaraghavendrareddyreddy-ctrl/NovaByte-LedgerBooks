@@ -1,3 +1,4 @@
+import os
 from functools import wraps
 
 from flask import Blueprint, abort, flash, redirect, render_template, request, session, url_for
@@ -10,6 +11,18 @@ from app.models import CompanySettings, User, UserCompany
 from app import two_factor
 
 auth_bp = Blueprint("auth", __name__)
+
+
+def registration_open():
+    """Public sign-up at /register is on unless ALLOW_REGISTRATION=0 is set (used on a
+    public cloud deployment so strangers can't create companies; a signed-in user can still
+    add one from the sidebar's "+ New company")."""
+    return os.environ.get("ALLOW_REGISTRATION") != "0"
+
+
+@auth_bp.app_context_processor
+def _auth_flags():
+    return {"registration_open": registration_open()}
 
 
 def owner_required(view_func):
@@ -131,6 +144,8 @@ def register():
     """Creates a brand new company (tenant) + its owner login together — the same
     entry point MRA_TaxInvoice_System uses for a fresh business signing up.
     """
+    if not registration_open():
+        abort(404)
     if request.method == "POST":
         business_name = request.form["business_name"].strip()
         name = request.form["name"].strip()

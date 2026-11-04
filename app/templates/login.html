@@ -19,8 +19,10 @@
     </div>
     <button class="btn primary" type="submit">Sign in</button>
   </form>
+  {% if registration_open %}
   <div class="auth-footer">
     New to LedgerBooks? <a href="{{ url_for('auth.register') }}">Create a company account</a>
   </div>
+  {% endif %}
 </div>
 {% endblock %}
