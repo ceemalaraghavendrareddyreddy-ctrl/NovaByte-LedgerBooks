@@ -7,44 +7,45 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
   :root{
-    --ink:#101d30;
-    --ink-soft:#2b3b52;
-    --paper:#f4f5ef;
+    --ink:#14263f;
+    --ink-soft:#33465f;
+    --paper:#f6f8fc;
     --surface:#ffffff;
-    --rule:#dcdac9;
-    --rule-strong:#b9b6a0;
-    --muted:#5c6577;
-    --brass:#a97a2b;
-    --brass-deep:#8a5f1e;
-    --brass-tint:#f2e4c9;
-    --green:#2f6f4e;
-    --green-tint:#e3ede6;
-    --shadow: 0 1px 2px rgba(16,29,48,.04), 0 8px 24px rgba(16,29,48,.06);
+    --rule:#d5dde8;
+    --rule-strong:#a9b6c8;
+    --muted:#5c6b80;
+    --brass:#f79e1b;
+    --brass-deep:#1a5fb8;
+    --brass-tint:#e6f0fb;
+    --green:#1b9e2b;
+    --green-tint:#e3f3e6;
+    --blue:#26709e;
+    --shadow: 0 1px 2px rgba(16,29,48,.05), 0 8px 24px rgba(16,29,48,.08);
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --ink:#e9e6da; --ink-soft:#c3c2b6; --paper:#10182a; --surface:#161f35;
-      --rule:#2c3552; --rule-strong:#3c4666; --muted:#9096ab;
-      --brass:#d6a24f; --brass-deep:#e8bd74; --brass-tint:#3a3120;
-      --green:#5aa77e; --green-tint:#183226;
+      --ink:#e6ebf4; --ink-soft:#c3ccdb; --paper:#10182a; --surface:#161f35;
+      --rule:#2c3552; --rule-strong:#3c4666; --muted:#9aa5bb;
+      --brass:#f79e1b; --brass-deep:#6fb0ff; --brass-tint:#1d2f4d;
+      --green:#4cc15c; --green-tint:#183226;
       --shadow: 0 1px 2px rgba(0,0,0,.3), 0 12px 30px rgba(0,0,0,.35);
     }
   }
 
   *{box-sizing:border-box;}
   html{ scroll-behavior:smooth; }
-  body{ margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  body{ overflow-x:hidden; margin:0; background:var(--paper); color:var(--ink); font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
   h1,h2,h3{ font-family:'Fraunces', Georgia, serif; text-wrap:balance; margin:0; }
   .num{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-variant-numeric:tabular-nums; }
   a{ color:inherit; }
-  .page{ max-width:960px; margin:0 auto; padding:0 2rem 5rem; }
+  .page{ max-width:1120px; margin:0 auto; padding:0 2rem 5rem; }
 
   /* ---------- nav ---------- */
   .topnav{
     position:sticky; top:0; z-index:20; background:var(--paper);
     border-bottom:1px solid var(--rule); backdrop-filter:saturate(160%) blur(6px);
   }
-  .topnav-inner{ max-width:960px; margin:0 auto; padding:0 2rem; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; height:64px; }
+  .topnav-inner{ max-width:1120px; margin:0 auto; padding:0 2rem; display:flex; align-items:center; justify-content:space-between; gap:1.5rem; height:64px; }
   .brandmark{ display:flex; align-items:center; gap:.7rem; flex:none; }
   .monogram{
     width:34px; height:34px; border-radius:8px; flex:none;
@@ -191,6 +192,67 @@
   .qr-frame img, .qr-frame canvas, .qr-frame table{ image-rendering:pixelated; }
   .qr-hint{ margin-top:1rem; font-family:'IBM Plex Mono', monospace; font-size:.68rem; letter-spacing:.04em; text-transform:uppercase; color:var(--brass-deep); }
 
+
+  /* ---------- refresh: matches the app ---------- */
+  h1,h2,h3{ font-family:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif; font-weight:700; letter-spacing:-.01em; }
+  .stat .v, .tier-price [contenteditable], .principle .pmark{ font-family:'IBM Plex Sans', ui-sans-serif, sans-serif; font-weight:700; }
+  .monogram{ background:linear-gradient(155deg, #3a8fc4 0%, #1a5fb8 100%); }
+  .nav-cta{ background:var(--brass); color:#2a1700; font-weight:600; }
+  .nav-signin{ color:var(--ink); font-weight:600; }
+  .band{ background:linear-gradient(135deg, #3d5278 0%, #26709e 100%); color:#fff; }
+  .contact-panel{ background:linear-gradient(135deg, #3d5278 0%, #26709e 100%); color:#fff; }
+  .btn-ghost{ border:2px solid var(--rule-strong); }
+  .trio-card, .feature-card, .tier, .addon, .principle, .contact-card, .qr-card, .table-wrap{ border:2px solid var(--rule); transition:transform .15s, border-color .15s; }
+  .trio-card:hover, .feature-card:hover{ transform:translateY(-3px); border-color:var(--blue); }
+  .tier.featured{ border-color:var(--brass); }
+  thead th{ background:#3d5278; color:#fff; border-bottom:none; }
+
+  .hero-full{ width:100vw; margin-left:calc(50% - 50vw); margin-top:-2.6rem; background:linear-gradient(135deg, #3d5278 0%, #26709e 60%, #2f86bd 100%); color:#fff; }
+  .hero-inner{ max-width:1120px; margin:0 auto; padding:3.6rem 2rem 4rem; display:grid; grid-template-columns:1.05fr .95fr; gap:2.5rem; align-items:center; }
+  .hero-full .eyebrow{ color:#ffd596; }
+  .hero-full .eyebrow::before{ background:#ffd596; }
+  .hero-full h1{ font-size:3.1rem; line-height:1.08; color:#fff; max-width:15ch; }
+  .hero-full h1 em{ font-style:normal; color:#ffc566; }
+  .hero-full p.sub{ color:#e3ecf7; font-size:1.08rem; line-height:1.65; margin:1.2rem 0 0; max-width:50ch; }
+  .hero-full .btn-ghost{ border-color:rgba(255,255,255,.7); color:#fff; }
+  .hero-full .btn-ghost:hover{ background:rgba(255,255,255,.12); }
+  .hero-note{ margin-top:1rem; font-size:.8rem; color:#c9d9ec; }
+  @media (max-width:900px){ .hero-inner{ grid-template-columns:1fr; padding:2.6rem 1.4rem 3rem; } .hero-full h1{ font-size:2.3rem; } }
+
+  .mock{ background:#fff; border-radius:14px; box-shadow:0 24px 60px rgba(8,20,40,.45); overflow:hidden; color:#14263f; }
+  .mock-bar{ display:flex; align-items:center; gap:.4rem; padding:.6rem .9rem; background:#eef2f8; border-bottom:1px solid #d5dde8; }
+  .mock-bar i{ width:10px; height:10px; border-radius:50%; background:#c4cedc; display:block; }
+  .mock-bar span{ margin-left:.6rem; font-size:.68rem; color:#5c6b80; }
+  .mock-body{ display:grid; grid-template-columns:92px 1fr; min-height:270px; }
+  .mock-side{ background:#3d5278; padding:.8rem .6rem; display:flex; flex-direction:column; gap:.4rem; }
+  .mock-side b{ display:block; height:9px; border-radius:4px; background:rgba(255,255,255,.28); }
+  .mock-side b.on{ background:#1a73e8; height:14px; }
+  .mock-main{ padding:.9rem; background:#f6f8fc; }
+  .mock-tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:.45rem; }
+  .mock-tiles div{ height:46px; border-radius:6px; }
+  .mt-g{ background:#1b9e2b; } .mt-r{ background:#d8472b; } .mt-b{ background:#1a73e8; } .mt-o{ background:#e39a12; }
+  .mock-table{ margin-top:.8rem; background:#fff; border:2px solid #a9b6c8; border-radius:6px; overflow:hidden; }
+  .mock-table .h{ height:16px; background:#3d5278; }
+  .mock-table .r{ height:18px; border-top:1px solid #e3e9f2; display:flex; align-items:center; gap:.5rem; padding:0 .6rem; }
+  .mock-table .r:nth-child(odd){ background:#f8fafd; }
+  .mock-table .r s{ display:block; height:6px; border-radius:3px; background:#c8d2e0; text-decoration:none; }
+  .mock-table .r s:nth-child(1){ width:24%; } .mock-table .r s:nth-child(2){ width:34%; } .mock-table .r s:nth-child(3){ margin-left:auto; width:16%; background:#1b9e2b; opacity:.7; }
+
+  .logo-strip{ display:flex; flex-wrap:wrap; justify-content:center; gap:.6rem 1.8rem; padding:1.4rem 0 0; color:var(--muted); font-size:.84rem; font-weight:500; }
+  .logo-strip span::before{ content:"\2713 "; color:var(--green); font-weight:700; }
+
+  .steps{ display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; counter-reset:step; }
+  .step{ background:var(--surface); border:2px solid var(--rule); border-radius:10px; padding:1.3rem; }
+  .step::before{ counter-increment:step; content:counter(step); display:flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:var(--blue); color:#fff; font-weight:700; margin-bottom:.8rem; }
+  .step h3{ font-size:1.02rem; margin:0 0 .4rem; }
+  .step p{ margin:0; font-size:.86rem; color:var(--muted); line-height:1.55; }
+  @media (max-width:720px){ .steps{ grid-template-columns:1fr; } }
+
+  .module-tiles{ display:grid; grid-template-columns:repeat(4,1fr); gap:.8rem; }
+  .module-tiles a{ display:block; text-decoration:none; color:#fff; border-radius:10px; padding:1.1rem 1rem; font-weight:600; font-size:.95rem; box-shadow:var(--shadow); }
+  .module-tiles a small{ display:block; font-weight:400; font-size:.78rem; opacity:.9; margin-top:.25rem; }
+  @media (max-width:720px){ .module-tiles{ grid-template-columns:1fr 1fr; } }
+
   footer{ margin-top:3rem; text-align:center; font-size:.72rem; color:var(--muted); padding-top:1.5rem; border-top:1px solid var(--rule); }
 </style>
 </head>
@@ -199,7 +261,7 @@
 <nav class="topnav">
   <div class="topnav-inner">
     <div class="brandmark">
-      <div class="monogram">NL</div>
+      <div class="monogram"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round"><path d="M4 7h16M4 12h11M4 17h16"/></svg></div>
       <div class="brand-name">NovaByte LedgerBooks</div>
     </div>
     <div class="navlinks" id="navlinks">
@@ -220,20 +282,39 @@
 
   <!-- ================= HOME ================= -->
   <section class="page-section" id="home">
-    <span class="eyebrow">Accounting Software · Mauritius</span>
-    <div class="hero">
-      <h1>Books that balance themselves to the cent.</h1>
-      <p>Double-entry bookkeeping, multi-currency invoicing, and MRA-ready e-invoicing in one system — built for how Mauritius businesses actually trade, across as many companies and currencies as the group needs.</p>
-      <div class="hero-ctas">
-        <a class="btn-primary" href="#pricing" data-route="pricing">See Pricing</a>
-        <a class="btn-ghost" href="#features" data-route="features">Explore Features</a>
+    <div class="hero-full">
+      <div class="hero-inner">
+        <div>
+          <span class="eyebrow">Accounting Software · Mauritius</span>
+          <h1>Books that balance <em>themselves</em> to the cent.</h1>
+          <p class="sub">Double-entry bookkeeping, multi-currency invoicing, and MRA-ready e-invoicing in one system — built for how Mauritius businesses actually trade, across as many companies and currencies as the group needs.</p>
+          <div class="hero-ctas">
+            <a class="btn-primary" href="#contact" data-route="contact">Book a Demo</a>
+            <a class="btn-ghost" href="{{ url_for('auth.login') }}">Sign In</a>
+            <a class="btn-ghost" href="#features" data-route="features">Explore Features</a>
+          </div>
+          <div class="hero-note">Already a customer? Sign in to open your books.</div>
+        </div>
+        <div class="mock" aria-hidden="true">
+          <div class="mock-bar"><i></i><i></i><i></i><span>LedgerBooks · Dashboard</span></div>
+          <div class="mock-body">
+            <div class="mock-side"><b class="on"></b><b></b><b></b><b></b><b></b><b></b><b></b></div>
+            <div class="mock-main">
+              <div class="mock-tiles"><div class="mt-g"></div><div class="mt-g"></div><div class="mt-r"></div><div class="mt-r"></div><div class="mt-b"></div><div class="mt-b"></div><div class="mt-o"></div><div class="mt-o"></div></div>
+              <div class="mock-table"><div class="h"></div><div class="r"><s></s><s></s><s></s></div><div class="r"><s></s><s></s><s></s></div><div class="r"><s></s><s></s><s></s></div><div class="r"><s></s><s></s><s></s></div></div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="stat-strip">
-        <div class="stat"><div class="v num">6</div><div class="l">Currencies</div></div>
-        <div class="stat"><div class="v">MRA</div><div class="l">Fiscalization-ready</div></div>
-        <div class="stat"><div class="v">Multi</div><div class="l">Company ledgers</div></div>
-        <div class="stat"><div class="v num">100%</div><div class="l">Balanced entries</div></div>
-      </div>
+    </div>
+
+    <div class="logo-strip"><span>MRA e-invoicing ready</span><span>6 currencies</span><span>Multi-company</span><span>Bank reconciliation</span><span>Works on phone</span></div>
+
+    <div class="stat-strip">
+      <div class="stat"><div class="v num">6</div><div class="l">Currencies</div></div>
+      <div class="stat"><div class="v">MRA</div><div class="l">Fiscalization-ready</div></div>
+      <div class="stat"><div class="v">Multi</div><div class="l">Company ledgers</div></div>
+      <div class="stat"><div class="v num">100%</div><div class="l">Balanced entries</div></div>
     </div>
 
     <div class="section-head"><h2>Built for how Mauritius businesses trade</h2></div>
@@ -253,6 +334,21 @@
         <h3>Payroll that reconciles itself</h3>
         <p>Connect your payroll system once — every finalized run posts as one balanced journal entry, so gross pay, PAYE, and net pay payable are never re-typed.</p>
       </div>
+    </div>
+
+    <div class="section-head"><h2>Up and running in three steps</h2></div>
+    <div class="steps">
+      <div class="step"><h3>Tell us about your business</h3><p>Companies, currencies and your chart of accounts — we help you import what you already have.</p></div>
+      <div class="step"><h3>Invoice, bill and bank as usual</h3><p>Every sale, bill and payment posts a balanced entry for you. Nothing is typed twice.</p></div>
+      <div class="step"><h3>Read your reports any day</h3><p>Profit &amp; Loss, Balance Sheet and VAT return are always current — no month-end scramble.</p></div>
+    </div>
+
+    <div class="section-head"><h2>Everything in one place</h2></div>
+    <div class="module-tiles">
+      <a style="background:#1b9e2b" href="#features" data-route="features">Sales<small>Invoices, estimates, payments</small></a>
+      <a style="background:#d8472b" href="#features" data-route="features">Purchases<small>Bills, orders, suppliers</small></a>
+      <a style="background:#1a73e8" href="#features" data-route="features">Reports<small>P&amp;L, balance sheet, VAT</small></a>
+      <a style="background:#e39a12" href="#features" data-route="features">Banking<small>Reconcile &amp; import</small></a>
     </div>
 
     <div class="band">
@@ -561,7 +657,7 @@
         qrTarget.innerHTML = '';
         qrInstance = new QRCode(qrTarget, {
           text: text, width: 180, height: 180,
-          colorDark: '#101d30', colorLight: '#ffffff',
+          colorDark: '#14263f', colorLight: '#ffffff',
           correctLevel: QRCode.CorrectLevel.M
         });
       } else {
