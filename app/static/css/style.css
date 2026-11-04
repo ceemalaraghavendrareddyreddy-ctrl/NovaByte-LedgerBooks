@@ -1060,3 +1060,5 @@ html[data-theme="dark"] thead th { background: #26344A; color: #E3E9F3; }
 .form-two-col { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .form-two-col > *:not(.form-row) { min-width: 0; overflow-x: auto; }
 .card:has(.form-two-col) { overflow-x: visible; }
+
+.table-scroll { overflow-x: auto; max-width: 100%; }

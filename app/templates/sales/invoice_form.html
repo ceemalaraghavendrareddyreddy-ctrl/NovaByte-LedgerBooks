@@ -91,6 +91,7 @@
       {% endif %}
 
       <div class="section-title">Line items</div>
+      <div class="table-scroll">
       <table class="journal-lines-table">
         <thead>
           <tr><th>Item</th><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th>Income account</th><th>Taxable</th><th>VAT %</th><th>Warehouse / Lot #</th><th></th></tr>
@@ -143,6 +144,7 @@
           {% endfor %}
         </tbody>
       </table>
+      </div>
       <button type="button" class="btn small secondary" id="add-line">+ Add line</button>
 
       <div class="stat-row" style="margin-top:1rem;">
