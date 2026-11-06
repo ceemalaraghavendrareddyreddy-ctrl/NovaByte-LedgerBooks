@@ -66,10 +66,21 @@ def _customer_payload(customer):
     return {
         "name": customer.name,
         "vat_number": customer.vat_number,
+        "brn": customer.brn,
         "address": customer.address,
         "phone": customer.phone,
         "email": customer.email,
     }
+
+
+def _transaction_type_field(customer):
+    """A private individual with no VAT number or BRN is a consumer sale (B2C) — MRA
+    only demands a buyer TAN/BRN for business sales (B2B), so sending such a customer
+    as B2B always came back rejected (ERR0600). Anyone else keeps MRA_TaxInvoice_System's
+    default (B2B for a named customer), so a company without a tax number is still caught."""
+    if customer.customer_type == "individual" and not customer.vat_number and not customer.brn:
+        return {"transaction_type": "B2C"}
+    return {}
 
 
 def _line_items_payload(lines):
@@ -90,6 +101,7 @@ def fiscalize_invoice_with_mra(invoice):
         "currency": invoice.currency,
         "payment_mode": _payment_mode(invoice.company_id),
         "customer": _customer_payload(invoice.customer),
+        **_transaction_type_field(invoice.customer),
         "line_items": _line_items_payload(invoice.lines),
     })
     if ok:
@@ -137,6 +149,7 @@ def fiscalize_credit_memo_with_mra(credit_memo):
         "reference_invoice_number": reference_invoice.mra_invoice_number,
         "reason": credit_memo.memo or f"Credit memo {credit_memo.credit_no}",
         "customer": _customer_payload(credit_memo.customer),
+        **_transaction_type_field(credit_memo.customer),
         "line_items": _line_items_payload(credit_memo.lines),
     })
     if ok:
@@ -165,6 +178,7 @@ def void_invoice_via_credit_note(invoice):
         "reference_invoice_number": invoice.mra_invoice_number,
         "reason": f"Invoice {invoice.invoice_no} voided in LedgerBooks",
         "customer": _customer_payload(invoice.customer),
+        **_transaction_type_field(invoice.customer),
         "line_items": _line_items_payload(invoice.lines),
     })
     if ok:
@@ -187,6 +201,7 @@ def void_credit_memo_via_debit_note(credit_memo):
         "reference_invoice_number": credit_memo.mra_invoice_number,
         "reason": f"Credit memo {credit_memo.credit_no} voided in LedgerBooks",
         "customer": _customer_payload(credit_memo.customer),
+        **_transaction_type_field(credit_memo.customer),
         "line_items": _line_items_payload(credit_memo.lines),
     })
     if ok:
